@@ -1,0 +1,1435 @@
+# 1.hadoop环境搭建
+    1. 配置ip,hostname,hosts
+        vi /etc/sysconfig/network-scripts/ifcfg-ens33
+            BOOTPROTO=static
+            ONBOOT=on
+            IPADDR
+            GATEWAY
+            DNS
+        vi /etc/hostname
+        vi /etc/hosts
+    2. 配置yum源，安装工具
+        /etc/yum.repos.d/CentOS-Base.repo
+        yum -y install epel-release net-tools vim psmisc nc rsync lrzsz ntp libzstd openssl-static tree iotop git
+    3. 关闭防火墙
+        systemctl stop firewalld
+        systemctl disable firewalld
+    4. 创建用户
+        useradd atguigu
+        passwd atguigu
+        visudo  #赋予root权限
+    5. 创建目录
+        mkdir /opt/module
+        mkdir /opt/software
+        chown atguigu:atguigu /opt/module /opt/software
+    6. 解压jdk与hadoop
+        tar -zxvf jdk-8u212-linux-x64.tar.gz -C /opt/module
+        tar -zxvf hadoop-3.3.4.tar.gz -C /opt/module
+    7. 配置环境变量
+        sudo vim /etc/profile.d/my_env.sh
+            export JAVA_HOME=/opt/module/jdk1.8.0_212
+            export PATH=$PATH:$JAVA_HOME/bin
+            export HADOOP_HOME=/opt/module/hadoop-3.3.4
+            export PATH=$PATH:$HADOOP_HOME/bin
+            export PATH=$PATH:$HADOOP_HOME/sbin
+        source /etc/profile  #让环境变量生效
+# 2.集群配置
+## 1.配置ssh免密登录
+    ssh-keygen -t rsa  #生成密钥
+    ssh-copy-id 主机名  #分发密钥
+    #密钥在/home/atguigu/.ssh目录下
+    问题:
+    1. ssh分发之后登录仍需密码
+        用户目录权限过大，修改为700
+## 2.常用脚本文件
+    /home/atguigu/bin目录下
+### 1.集群主机名单脚本hosts.sh
+    hadoop102
+    hadoop103
+    hadoop104
+### 2.集群分发脚本xsync
+    #!/bin/bash
+    if [ $# -lt 1 ];then
+        echo no argument
+        exit
+    fi
+    hosts=(`cat /home/atguigu/bin/hosts.sh`)
+    for host in ${hosts[@]};do
+        echo ========== $host ==========
+        for file in $@;do
+            if [ -e $file ];then
+                pdir=$(cd -P $(dirname $file); pwd)
+                fname=$(basename $file)
+                ssh $host "mkdir -p $pdir"
+                rsync -av $pdir/$fname $host:$pdir
+            else
+                echo $file not exists
+            fi
+        done
+    done
+### 3.集群工具脚本myhadoop.sh
+    #!/bin/bash
+    hosts=(`cat /home/atguigu/bin/hosts.sh`)
+    hdfs_host=${hosts[0]}
+    yarn_host=${hosts[1]}
+    histoty_host=${hosts[0]}
+    function start(){
+        echo ========== hadoop start ==========
+        ssh $hdfs_host start-dfs.sh
+        ssh $yarn_host start-yarn.sh
+        ssh $histoty_host mapred --daemon start historyserver
+    }
+    function stop(){
+        echo ========== hadoop stop ==========
+        ssh $histoty_host mapred --daemon stop historyserver
+        ssh $yarn_host stop-yarn.sh
+        ssh $hdfs_host stop-dfs.sh
+    }
+    function clean(){
+        echo ========== hadoop clean ==========
+        for host in ${hosts[@]};do
+            ssh $host rm -rf $HADOOP_HOME/data        
+            ssh $host rm -rf $HADOOP_HOME/logs        
+            ssh $host sudo rm -rf /tmp/*
+        done
+        echo ========== clean finish ==========
+    }
+    function jpsall(){
+        for host in ${hosts[@]};do
+            echo ========== $host ==========
+            ssh $host jps
+        done
+    }
+    function compare(){
+        echo ========== hadoop compare ==========
+        files=(
+            $HADOOP_HOME/etc/hadoop/core-site.xml
+            $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+            $HADOOP_HOME/etc/hadoop/yarn-site.xml
+            $HADOOP_HOME/etc/hadoop/mapred-site.xml
+            $HADOOP_HOME/etc/hadoop/workers
+        )
+        for file in ${files[@]};do
+            if [ ! -f $file ];then
+                echo $file not exists
+                continue
+            fi
+            for host in ${hosts[@]};do
+                ssh $host cat $file | diff $file - > /dev/null || echo $file on  $host is different
+            done
+        done
+        echo ========== compare finish ==========
+    }
+    function zk(){
+        echo ========== zookeeper $1 ==========
+        for host in ${hosts[@]};do
+            echo ========== $host ==========
+            ssh $host zkServer.sh $1
+        done
+    }
+    function kafka(){
+        echo ========== kafka $1 ==========
+        for host in ${hosts[@]};do
+            echo ========== $host ==========
+            case $1 in
+            "start") ssh $host kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties;;
+            "stop") ssh $host kafka-server-stop.sh
+            esac
+        done
+    }
+    case $1 in
+    "start")start;;
+    "stop")stop;;
+    "clean")clean;;
+    "jps")jpsall;;
+    "compare")compare;;
+    "zk")zk $2;;
+    "kafka")kafka $2;;
+    *)
+        echo argument error
+        echo "start|stop|clean|jps|compare|zk|kafka" 
+    ;;
+    esac
+## 3.集群配置文件
+    $HADOOP_HOME/etc/hadoop
+### 1.core-site.xml
+    <configuration>
+        <!-- 指定NameNode的地址 -->
+        <property>
+            <name>fs.defaultFS</name>
+            <value>hdfs://hadoop102:8020</value>
+        </property>
+        <!-- 指定hadoop数据的存储目录 -->
+        <property>
+            <name>hadoop.tmp.dir</name>
+            <value>/opt/module/hadoop-3.3.4/data</value>
+        </property>
+        <!-- 配置HDFS网页登录使用的静态用户为atguigu -->
+        <property>
+            <name>hadoop.http.staticuser.user</name>
+            <value>atguigu</value>
+        </property>
+    </configuration>
+### 2.hdfs-site.xml
+    <configuration>
+        <!-- nn web端访问地址-->
+        <property>
+            <name>dfs.namenode.http-address</name>
+            <value>hadoop102:9870</value>
+        </property>
+        <!-- 2nn web端访问地址-->
+        <property>
+            <name>dfs.namenode.secondary.http-address</name>
+            <value>hadoop104:9868</value>
+        </property>
+    </configuration>
+### 3.yarn-site.xml
+    <configuration>
+        <!-- 指定MR走shuffle -->
+        <property>
+            <name>yarn.nodemanager.aux-services</name>
+            <value>mapreduce_shuffle</value>
+        </property>
+        <!-- 指定ResourceManager的地址-->
+        <property>
+            <name>yarn.resourcemanager.hostname</name>
+            <value>hadoop103</value>
+        </property>
+        <!-- 环境变量的继承 -->
+        <property>
+            <name>yarn.nodemanager.env-whitelist</name>
+            <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+        </property>
+    </configuration>
+### 4.mapred-site.xml
+    <configuration>
+        <!-- 指定MapReduce程序运行在Yarn上 -->
+        <property>
+            <name>mapreduce.framework.name</name>
+            <value>yarn</value>
+        </property>
+    </configuration>
+### 5.workers
+    #配置从节点信息
+    hadoop102
+    hadoop103
+    hadoop104
+## 4.集群启动
+    1. 初次启动需要格式化Namenode
+        hdfs namenode -format
+        如果集群在运行过程中报错，需要重新格式化NameNode的话，一定要先停止namenode和datanode进程，并且要删除所有机器的data和logs目录以及/tmp，然后再进行格式化
+    2. 在Namenode节点启动HDFS
+        start-dfs.sh
+    3. 在配置了ResourceManager的节点(hadoop103)启动YARN
+        start-yarn.sh
+    3. Web查看HDFS的Namenode
+        http://hadoop102:9870
+    4. Web查看YARN的ResourceManager
+        http://hadoop103:8088
+## 5.配置历史服务器  
+    1. mapred-site.xml
+        <!-- 历史服务器端地址 -->
+        <property>
+            <name>mapreduce.jobhistory.address</name>
+            <value>hadoop102:10020</value>
+        </property>
+        <!-- 历史服务器web端地址 -->
+        <property>
+            <name>mapreduce.jobhistory.webapp.address</name>
+            <value>hadoop102:19888</value>
+        </property>
+    2. 启动历史服务器
+        mapred --daemon start historyserver
+    3. Web查看JobHistory
+        http://hadoop102:19888/jobhistory
+## 6.配置日志的聚集
+    yarn-site.xml
+    <!-- 开启日志聚集功能 -->
+    <property>
+        <name>yarn.log-aggregation-enable</name>
+        <value>true</value>
+    </property>
+    <!-- 设置日志聚集服务器地址 -->
+    <property>  
+        <name>yarn.log.server.url</name>  
+        <value>http://hadoop102:19888/jobhistory/logs</value>
+    </property>
+    <!-- 设置日志保留时间为7天 -->
+    <property>
+        <name>yarn.log-aggregation.retain-seconds</name>
+        <value>604800</value>
+    </property>
+## 7.集群启动/停止方式总结
+    1. 各个模块分开启动/停止
+        1. 整体启动/停止HDFS
+            start-dfs.sh / stop-dfs.sh
+        2. 整体启动/停止YARN
+            start-yarn.sh / stop-yarn.sh
+    2. 各个服务组件逐一启动/停止
+        1. 启动/停止hdfs组件
+            hdfs --daemon start/stop namenode
+            hdfs --daemon start/stop datanode
+            hdfs --daemon start/stop secondarynamenode
+            hdfs --daemon start/stop zkfc
+            hdfs --daemon start/stop journalnode
+        2. 启动/停止yarn组件
+            yarn --daemon start/stop resourcemanager
+            yarn --daemon start/stop nodemanager
+        3. 启动/停止mapreduce组件
+            mapred --daemon start/stop historyserver
+## 8.查看运行日志
+    tail -n500 /opt/module/hadoop-3.3.4/logs/hadoop-atguigu-namenode-hadoop101.log
+    tail -n500 /opt/module/hadoop-3.3.4/logs/hadoop-atguigu-datanode-hadoop101.log
+## 9.集群时间同步
+    如果服务器在内网环境，必须要配置集群时间同步，否则时间久了，会产生时间偏差，导致集群执行任务时间不同步
+    1. 修改/etc/ntp.conf配置文件
+        sudo vim /etc/ntp.conf
+        1. 授权192.168.10.0网段上的所有机器可以从这台机器上查询和同步时间
+            restrict 192.168.10.0 mask 255.255.255.0 nomodify notrap
+        2. 集群在局域网中，不使用其他互联网上的时间，将其他时间服务器注释掉
+            #server 0.centos.pool.ntp.org iburst
+            #server 1.centos.pool.ntp.org iburst
+            #server 2.centos.pool.ntp.org iburst
+            #server 3.centos.pool.ntp.org iburst
+        3. 当该节点丢失网络连接，依然可以采用本地时间作为时间服务器为集群中的其他节点提供时间同步
+            server 127.127.1.0
+            fudge 127.127.1.0 stratum 10
+    2. 修改/etc/sysconfig/ntpd文件
+        SYNC_HWCLOCK=yes
+    3. 重启ntpd服务
+        sudo systemctl start ntpd
+    4. 设置ntpd服务开机启动
+        sudo systemctl enable ntpd
+    5. 关闭集群中所有节点的ntpd服务
+        sudo systemctl stop ntpd
+        sudo systemctl disable ntpd
+    6. 其他节点编写同步时间的定时任务
+        sudo crontab -e
+            */1 * * * * sudo /usr/sbin/ntpdate hadoop102
+# 3.HDFS
+## 1.HDFS概述
+### 1.HDFS定义
+    HDFS(Hadoop Distributed File System)，是一个文件系统，用于存储文件，通过目录树来定位文件
+    其次，它是分布式的，由很多服务器联合起来实现其功能，集群中的服务器有各自的角色
+### 2.HDFS特点
+    1. 高容错性，数据自动保存多个副本，某个副本丢失后可以自动恢复
+    2. 适合处理大量数据
+    3. 不适合低延时数据访问，比如毫秒级的存储数据是做不到的
+    4. 无法高效的对大量小文件进行存储
+    5. 不支持并发写入，不支持随机修改，仅支持追加
+### 3.HDFS组成架构
+    1. NameNode:管理者
+        管理HDFS的名称空间
+        配置副本策略
+        管理数据块(Block)的映射信息
+        处理客户端读写请求
+    2. DataNode:接受NameNode的命令，执行实际的操作
+        存储实际的数据块
+        执行数据块的读写操作
+    3. Client:客户端
+        文件切分。文件上传HDFS的时候，Client将文件切分成一个一个的Block，然后进行上传
+        与NameNode交互，获取文件的位置信息
+        与DataNode交互，读取或者写入数据
+        Client提供一些命令来管理HDFS，比如NameNode格式化
+        Client可以通过一些命令来访问HDFS，比如对HDFS增删查改操作
+    4. Secondary NameNode:并非NameNode的热备。当NameNode挂掉的时候，它并不能马上替换NameNode并提供服务
+        辅助NameNode，分担其工作量，比如定期合并Fsimage和Edits，并推送给NameNode
+        在紧急情况下，可辅助恢复NameNode
+### 4.HDFS文件块大小
+    HDFS块大小的设置主要取决于磁盘传输速率
+    默认大小为128m
+    寻址时间为传输时间的1%时，为最佳状态
+    HDFS的块如果太小，会增加寻址时间
+    HDFS的块如果太大，从磁盘传输数据的时间会明显大于定位这个块开始位置所需的时间，导致程序处理块数据时很慢
+## 2.HDFS的shell操作
+    hadoop fs
+        -appendToFile <localsrc> ... <dst>
+        -cat [-ignoreCrc] <src> ...
+        -chgrp [-R] GROUP PATH...
+        -chmod [-R] <MODE[,MODE]... | OCTALMODE> PATH...
+        -chown [-R] [OWNER][:[GROUP]] PATH...
+        -copyFromLocal [-f] [-p] <localsrc> ... <dst>
+        -copyToLocal [-p] [-ignoreCrc] [-crc] <src> ... <localdst>
+        -count [-q] <path> ...
+        -cp [-f] [-p] <src> ... <dst>
+        -df [-h] [<path> ...]
+        -du [-s] [-h] <path> ...
+        -get [-p] [-ignoreCrc] [-crc] <src> ... <localdst>
+        -getmerge [-nl] <src> <localdst>
+        -help [cmd ...]
+        -ls [-d] [-h] [-R] [<path> ...]
+        -mkdir [-p] <path> ...
+        -moveFromLocal <localsrc> ... <dst>
+        -moveToLocal <src> <localdst>
+        -mv <src> ... <dst>
+        -put [-f] [-p] <localsrc> ... <dst>
+        -rm [-f] [-r|-R] [-skipTrash] <src> ...
+        -rmdir [--ignore-fail-on-non-empty] <dir> ...
+        -stat [format] <path> ...
+        -tail [-f] <file>
+        -test -[defsz] <path>
+        -text [-ignoreCrc] <src> ...
+        -setrep [-R] [-w] <rep> <path> ...  设置HDFS中文件的副本数量
+## 3.HDFS读写数据流程
+### 1.HDFS读数据流程
+    1. 客户端通过Distributed FileSystem模块向NameNode请求上传文件，NameNode检查目标文件是否已存在，父目录是否存在
+    2. NameNode返回是否可以上传
+    3. 客户端请求第一个 Block上传到哪几个DataNode服务器上
+    4. NameNode返回3个DataNode节点，分别为dn1、dn2、dn3
+    5. 客户端通过FSDataOutputStream模块请求dn1上传数据，dn1收到请求会继续调用dn2，然后dn2调用dn3，将这个通信管道建立完成。
+    6. dn1、dn2、dn3逐级应答客户端
+    7. 客户端开始往dn1上传第一个Block(先从磁盘读取数据放到一个本地内存缓存)，以Packet为单位，dn1收到一个Packet就会传给dn2，dn2传给dn3；dn1每传一个packet会放入一个应答队列等待应答
+    8. 当一个Block传输完成之后，客户端再次请求NameNode上传第二个Block的服务器
+### 2.HDFS写数据流程
+    1. 客户端通过DistributedFileSystem向NameNode请求下载文件，NameNode通过查询元数据，找到文件块所在的DataNode地址
+    2. 挑选一台DataNode(就近原则，然后随机)服务器，请求读取数据
+    3. DataNode开始传输数据给客户端(从磁盘里面读取数据输入流，以Packet为单位来做校验)
+    4. 客户端以Packet为单位接收，先在本地缓存，然后写入目标文件
+## 4.NameNode和SecondaryNameNode
+### 1.NN和2NN工作机制
+    磁盘中的FsImage文件用于备份元数据
+    NameNode在内存中修改元数据并向Edits文件中追加元数据
+    SecondaryNamenode专门用于FsImage和Edits的合并
+    第一阶段:NameNode启动
+        1. 第一次启动NameNode格式化后，创建Fsimage和Edits文件。如果不是第一次启动，直接加载编辑日志和镜像文件到内存
+        2. 客户端对元数据进行增删改的请求
+        3. NameNode记录操作日志，更新滚动日志
+        4. NameNode在内存中对元数据进行增删改
+    第二阶段:Secondary NameNode工作
+        1. SecondaryNameNode询问NameNode是否需要CheckPoint。直接带回NameNode是否检查结果
+        2. SecondaryNameNode请求执行CheckPoint
+        3. NameNode滚动正在写的Edits日志
+        4. 将滚动前的编辑日志和镜像文件拷贝到Secondary NameNode
+        5. SecondaryNameNode加载编辑日志和镜像文件到内存，并合并
+        6. 生成新的镜像文件fsimage.chkpoint
+        7. 拷贝fsimage.chkpoint到NameNode
+        8. NameNode将fsimage.chkpoint重新命名成fsimage
+### 2.Fsimage和Edits解析
+    NameNode被格式化之后，将在/opt/module/hadoop-3.1.3/data/tmp/dfs/name/current目录中产生如下文件
+        fsimage_0000000000000000000
+        fsimage_0000000000000000000.md5
+        seen_txid
+        VERSION
+    1. Fsimage文件:HDFS文件系统元数据的一个永久性的检查点，其中包含HDFS文件系统的所有目录和文件inode的序列化信息
+    2. Edits文件:存放HDFS文件系统的所有更新操作的路径，文件系统客户端执行的所有写操作首先会被记录到Edits文件中
+    3. seen_txid文件保存的是一个数字，就是最后一个edits_的数字
+    4. 每次NameNode启动的时候都会将Fsimage文件读入内存，加载Edits里面的更新操作，保证内存中的元数据信息是最新的、同步的，可以看成NameNode启动的时候就将Fsimage和Edits文件进行了合并
+    5. oiv查看Fsimage文件
+        hdfs oiv -p 文件类型 -i镜像文件 -o 转换后文件输出路径
+    6. oev查看Edits文件
+        hdfs oev -p 文件类型 -i编辑日志 -o 转换后文件输出路径
+### 3.CheckPoint时间设置
+    hdfs-default.xml
+    1. 通常情况下，SecondaryNameNode每隔一小时执行一次
+        <property>
+            <name>dfs.namenode.checkpoint.period</name>
+            <value>3600s</value>
+        </property>
+    2. 一分钟检查一次操作次数，当操作次数达到1百万时，SecondaryNameNode执行一次
+        <property>
+            <name>dfs.namenode.checkpoint.txns</name>
+            <value>1000000</value>
+            <description>操作动作次数</description>
+        </property>
+        <property>
+            <name>dfs.namenode.checkpoint.check.period</name>
+            <value>60s</value>
+            <description> 1分钟检查一次操作次数</description>
+        </property>
+## 5.Datanode
+### 1.Datanode工作机制
+    1. 一个数据块在DataNode上以文件形式存储在磁盘上，包括两个文件，一个是数据本身，一个是元数据，元数据包括数据块的长度、块数据的校验和，以及时间戳
+    2. DataNode启动后向NameNode注册，通过后，周期性（6小时）地向NameNode上报所有的块信息
+    3. DataNode向NameNode汇报当前解读信息的时间间隔，默认6小时
+        <property>
+            <name>dfs.blockreport.intervalMsec</name>
+            <value>21600000</value>
+            <description>Determines block reporting interval in milliseconds.</description>
+        </property>
+    4. DataNode扫描自己节点块信息列表的时间，默认6小时
+        <property>
+            <name>dfs.datanode.directoryscan.interval</name>
+            <value>21600s</value>
+            <description>Interval in seconds for Datanode to scan data directories and reconcile the difference between blocks in memory and on the disk.
+            Support multiple time unit suffix(case insensitive), as described
+            in dfs.heartbeat.interval.
+            </description>
+        </property>
+    5. 心跳每3秒一次，心跳返回结果带有NameNode给该DataNode的命令，如复制块数据到另一台机器，或删除某个数据块。如果超过10分钟没有收到某个DataNode的心跳，则认为该节点不可用
+    6. 集群运行中可以安全加入和退出一些机器
+### 2.DataNode节点保证数据完整性的方法
+    1. 当DataNode读取Block的时候，它会计算CheckSum
+    2. 如果计算后的CheckSum，与Block创建时值不一样，说明Block已经损坏
+    3. Client读取其他DataNode上的Block
+    4. 常见的校验算法crc（32）、md5（128）、sha1（160）
+    5. DataNode在其文件创建后周期验证CheckSum
+### 3.掉线时限参数设置
+    需要注意的是hdfs-site.xml 配置文件中的heartbeat.recheck.interval的单位为毫秒，dfs.heartbeat.interval的单位为秒
+    <property>
+        <name>dfs.namenode.heartbeat.recheck-interval</name>
+        <value>300000</value>
+    </property>
+    <property>
+        <name>dfs.heartbeat.interval</name>
+        <value>3</value>
+    </property>
+# 4.MapReduce
+## 1.MapReduce概述
+### 1.MapReduce特点
+    1. 易于编程，简单实现一些接口，就可以完成一个分布式程序
+    2. 易于扩展，可以通过增加机器来扩展其计算能力
+    3. 高容错性，一台机器挂了，它可以把上面的计算任务转移到另外一个节点上运行，不至于这个任务运行失败
+    4. 高并发性，可以实现上千台服务器集群并发工作
+    5. 不擅长实时计算
+    6. 不擅长流式计算，MapReduce的输入数据集是静态的
+    7. 不擅长有向无环图计算，多个应用程序存在依赖关系，后一个应用程序的输入为前一个的输出。在这种情况下，每个MapReduce作业的输出结果都会写入到磁盘，造成大量磁盘IO，导致性能低下
+### 2.MapReduce进程
+    MrAppMaster负责整个程序的过程调度及状态协调
+    第一个阶段的MapTask并发实例，完全并行运行，互不相干
+    第二个阶段的ReduceTask并发实例互不相干，但是他们的数据依赖于上一个阶段的所有MapTask并发实例的输出
+    MapReduce编程模型只能包含一个Map阶段和一个Reduce阶段，如果用户的业务逻辑非常复杂，那就只能多个MapReduce程序，串行运行
+### 3.MapReduce编程规范
+    用户编写的程序分成三个部分:Mapper、Reducer、Driver
+#### 1.Mapper阶段
+    1. 用户自定义的Mapper要继承自己的父类
+    2. Mapper的输入数据是key-value的形式(KV的类型可自定义)
+    3. Mapper中的业务逻辑写在map()方法中
+    4. Mapper的输出数据是key-value的形式(KV的类型可自定义)
+    5. map()方法对每一个<K,V>调用一次
+#### 2.Reducer阶段
+    1. 用户自定义的Reducer要继承自己的父类
+    2. Reducer的输入数据类型对应Mapper的输出数据类型，也是KV
+    3. Reducer的业务逻辑写在reduce()方法中
+    4. ReduceTask进程对每一组相同k的<K,V>组调用一次reduce()方法
+#### 3.Driver阶段
+    相当于YARN集群的客户端，用于提交我们整个程序到YARN集群，提交的是封装了MapReduce程序相关运行参数的job对象
+### 4.Hadoop序列化
+    序列化就是把内存中的对象，转换成字节序列(或其他数据传输协议)以便于存储到磁盘(持久化)和网络传输
+    Java的序列化是一个重量级序列化框架(Serializable)，一个对象被序列化后，会附带很多额外的信息(各种校验信息，Header，继承体系等)，不便于在网络中高效传输。所以，Hadoop自己开发了一套序列化机制(Writable)
+## 1.MapReduce框架原理
+### 1.InputFormat数据输入
+    1. MapTask并行度决定机制
+        数据块:Block是HDFS物理上把数据分成一块一块。数据块是HDFS存储数据单位
+        数据切片:数据切片只是在逻辑上对输入进行分片，并不会在磁盘上将其切分成片进行存储。数据切片是MapReduce程序计算输入数据的单位，一个切片会对应启动一个MapTask
+    2. Job提交流程解析
+        waitForCompletion()
+            submit()
+                1. 建立连接
+                connect()
+                    创建提交Job的代理
+                    new Cluster(getConfiguration())
+                        判断是本地运行环境还是yarn集群运行环境
+                        initialize(jobTrackAddr, conf)
+                2. 提交job
+                submitter.submitJobInternal(Job.this, cluster)
+                    1. 创建给集群提交数据的Stag路径
+                    Path jobStagingArea = JobSubmissionFiles.getStagingDir(cluster, conf)
+                    2. 获取jobid ，并创建Job路径
+                    JobID jobId = submitClient.getNewJobID()
+                    3. 拷贝jar包到集群
+                    copyAndConfigureFiles(job, submitJobDir)	
+                    rUploader.uploadFiles(job, jobSubmitDir)
+                    4. 计算切片，生成切片规划文件
+                    writeSplits(job, submitJobDir)
+                    maps = writeNewSplits(job, jobSubmitDir)
+                    input.getSplits(job);
+                    5. 向Stag路径写XML配置文件
+                    writeConf(conf, submitJobFile)
+                    conf.writeXml(out)
+                    6. 提交Job,返回提交状态
+                    status = submitClient.submitJob(jobId, submitJobDir.toString(), job.getCredentials())
+    3. FileInputFormat切片源码解析
+        1. 程序先找到数据存储的目录
+        2. 开始遍历处理(规划切片)目录下的每一个文件
+        3. 遍历第一个文件ss.txt
+            1. 获取文件大小fs.sizeOf(ss.txt)
+            2. 计算切片大小
+            computeSplitSize(Math.max(minSize,Math.min(maxSize,blocksize)))=blocksize=128M
+            3. 默认情况下，切片大小=blocksize
+            4. 开始切，形成第1个切片:ss.txt—0:128M 第2个切片ss.txt—128:256M 第3个切片ss.txt—256M:300M(每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，不大于1.1倍就划分一个切片)
+            5. 将切片信息写到一个切片规划文件中
+            6. 整个切片的核心过程在getSplit()方法中完成
+            7. InputSplit只记录了切片的元数据信息，比如起始位置、长度以及所在的节点列表等
+        4. 提交切片规划文件到YARN上，YARN上的MrAppMaster就可以根据切片规划文件计算开启MapTask个数
+    4. TextInputFormat
+        TextInputFormat是默认的FileInputFormat实现类。按行读取每条记录。key是存储该行在整个文件中的起始字节偏移量， LongWritable类型。value是这行的内容，不包括任何行终止符(换行符和回车符)，Text类型
+    5. CombineTextInputFormat切片机制
+        框架默认的TextInputFormat切片机制是对任务按文件规划切片，不管文件多小，都会是一个单独的切片，都会交给一个MapTask，这样如果有大量小文件，就会产生大量的MapTask，处理效率极其低下
+        1. 应用场景
+            CombineTextInputFormat用于小文件过多的场景，它可以将多个小文件从逻辑上规划到一个切片中，这样，多个小文件就可以交给一个MapTask处理
+        2. 虚拟存储切片最大值设置
+            CombineTextInputFormat.setMaxInputSplitSize(job, 4194304);// 4m
+        3. 切片机制
+            生成切片过程包括:虚拟存储过程和切片过程2部分
+            1. 虚拟存储过程
+                将输入目录下所有文件大小，依次和设置的setMaxInputSplitSize值比较，如果不大于设置的最大值，逻辑上划分一个块。如果输入文件大于设置的最大值且大于两倍，那么以最大值切割一块；当剩余数据大小超过设置的最大值且不大于最大值2倍，此时将文件均分成2个虚拟存储块(防止出现太小切片)
+                例如setMaxInputSplitSize值为4M，输入文件大小为8.02M，则先逻辑上分成一个4M。剩余的大小为4.02M，如果按照4M逻辑划分，就会出现0.02M的小的虚拟存储文件，所以将剩余的4.02M文件切分成(2.01M和2.01M)两个文件
+            2. 切片过程
+                1. 判断虚拟存储的文件大小是否大于setMaxInputSplitSize值，大于等于则单独形成一个切片
+                2. 如果不大于则跟下一个虚拟存储文件进行合并，共同形成一个切片
+                3. 测试举例
+                    有4个小文件大小分别为1.7M、5.1M、3.4M以及6.8M这四个小文件，则虚拟存储之后形成6个文件块，大小分别为:1.7M，(2.55M、2.55M)，3.4M以及(3.4M、3.4M),最终会形成3个切片，大小分别为(1.7+2.55)M，(2.55+3.4)M，(3.4+3.4)M
+### 2.Shuffle机制
+    Map方法之后，Reduce方法之前的数据处理过程称之为Shuffle
+#### 1.Partition分区
+    1. 默认Partitioner分区
+        public class HashPartitioner<K, V> extends Partitioner<K, V> {
+            public int getPartition(K key, V value, int numReduceTasks) {
+                return (key.hashCode() & Integer.MAX_VALUE) % numReduceTasks;
+            }
+        }
+        默认分区是根据key的hashCode对ReduceTasks个数取模得到的。用户没法控制哪个key存储到哪个分区
+    2. 自定义Partitioner分区
+        1. 自定义类继承Partitioner，重写getPartition()方法
+            public class CustomPartitioner extends Partitioner<Text, FlowBean> {
+             	@Override
+                public int getPartition(Text key, FlowBean value, int numPartitions) {
+                    // 控制分区代码逻辑
+                    return partition;
+                }
+            }
+        2. 在Job驱动中，设置自定义Partitioner 
+            job.setPartitionerClass(CustomPartitioner.class);
+        3. 自定义Partition后，要根据自定义Partitioner的逻辑设置相应数量的ReduceTask
+            job.setNumReduceTasks(5);
+        4. 分区总结
+            1. 如果ReduceTask的数量 > getPartition的结果数，则会多产生几个空的输出文件part-r-000xx
+            2. 如果ReduceTask的数量 < getPartition的结果数，则有一部分分区数据无处安放，会Exception
+            3. 如果ReduceTask的数量 = 1，则不管MapTask端输出多少个分区文件，最终结果都交给这一个ReduceTask，最终也就只会产生一个结果文件 part-r-00000
+            4. 分区号必须从零开始，逐一累加
+#### 2.WritableComparable排序
+    1. MapTask和ReduceTask均会对数据按照key进行排序。该操作属于Hadoop的默认行为。任何应用程序中的数据均会被排序，而不管逻辑上是否需要，默认排序是按照字典顺序排序，且实现该排序的方法是快速排序
+    2. 对于MapTask，它会将处理的结果暂时放到环形缓冲区中，当环形缓冲区使用率达到一定阈值后，再对缓冲区中的数据进行一次快速排序，并将这些有序数据溢写到磁盘上，而当数据处理完毕后，它会对磁盘上所有文件进行归并排序
+    3. 对于ReduceTask，它从每个MapTask上远程拷贝相应的数据文件，如果文件大小超过一定阈值，则溢写磁盘上，否则存储在内存中。如果磁盘上文件数目达到一定阈值，则进行一次归并排序以生成一个更大文件；如果内存中文件大小或者数目超过一定阈值，则进行一次合并后将数据溢写到磁盘上。当所有数据拷贝完毕后，ReduceTask统一对内存和磁盘上的所有数据进行一次归并排序
+    4. 自定义排序WritableComparable
+        对象做为key传输，需要实现WritableComparable接口重写compareTo方法，就可以实现排序
+#### 3.Combiner合并
+    1. Combiner是MR程序中Mapper和Reducer之外的一种组件
+    2. Combiner组件的父类就是Reducer
+    3. Combiner和Reducer的区别在于运行的位置
+        Combiner是在每一个MapTask所在的节点运行
+        Reducer是接收全局所有Mapper的输出结果
+    4. Combiner的意义就是对每一个MapTask的输出进行局部汇总，以减小网络传输量
+    5. Combiner能够应用的前提是不能影响最终的业务逻辑，而且，Combiner的输出kv应该跟Reducer的输入kv类型要对应起来
+    6. 自定义Combiner
+        1. 自定义一个Combiner继承Reducer，重写Reduce方法
+        2. 在Job驱动类中设置
+            job.setCombinerClass(Combiner.class);
+### 3.OutputFormat数据输出
+    1. OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现了OutputFormat接口
+    2. 默认输出格式TextOutputFormat
+    3. 自定义OutputFormat
+        1. 应用场景
+            例如:输出数据到MySQL/HBase/Elasticsearch等存储框架中
+        2. 自定义OutputFormat步骤
+            自定义一个类继承FileOutputFormat
+            改写RecordWriter，具体改写输出数据的方法write()
+## 2.MapReduce工作机制
+### 1.MapTask工作机制
+    1. Read阶段
+        MapTask通过InputFormat获得的RecordReader，从输入InputSplit中解析出一个个key/value
+    2. Map阶段
+        将解析出的key/value交给用户编写map()函数处理，并产生一系列新的key/value
+    3. Collect收集阶段
+        在用户编写map()函数中，当数据处理完成后，一般会调用OutputCollector.collect()输出结果。在该函数内部，它会将生成的key/value分区(调用Partitioner)，并写入一个环形内存缓冲区中
+    4. Spill阶段
+        即“溢写”，当环形缓冲区满后，MapReduce会将数据写到本地磁盘上，生成一个临时文件。需要注意的是，将数据写入本地磁盘之前，先要对数据进行一次本地排序，并在必要时对数据进行合并、压缩等操作
+        溢写阶段详情:
+        1. 利用快速排序算法对缓存区内的数据进行排序，排序方式是，先按照分区编号Partition进行排序，然后按照key进行排序。这样，经过排序后，数据以分区为单位聚集在一起，且同一分区内所有数据按照key有序
+        2. 按照分区编号由小到大依次将每个分区中的数据写入任务工作目录下的临时文件output/spillN.out(N表示当前溢写次数)中。如果用户设置了Combiner，则写入文件之前，对每个分区中的数据进行一次聚集操作
+        3. 将分区数据的元信息写到内存索引数据结构SpillRecord中，其中每个分区的元信息包括在临时文件中的偏移量、压缩前数据大小和压缩后数据大小。如果当前内存索引大小超过1MB，则将内存索引写到文件output/spillN.out.index中
+    5. Merge阶段
+        当所有数据处理完成后，MapTask对所有临时文件进行一次合并，以确保最终只会生成一个数据文件
+        当所有数据处理完后，MapTask会将所有临时文件合并成一个大文件，并保存到文件output/file.out中，同时生成相应的索引文件output/file.out.index
+        在进行文件合并过程中，MapTask以分区为单位进行合并。对于某个分区，它将采用多轮递归合并的方式。每轮合并mapreduce.task.io.sort.factor（默认10）个文件，并将产生的文件重新加入待合并列表中，对文件排序后，重复以上过程，直到最终得到一个大文件
+        让每个MapTask最终只生成一个数据文件，可避免同时打开大量文件和同时读取大量小文件产生的随机读取带来的开销
+### 2.ReduceTask工作机制
+    1. Copy阶段
+        ReduceTask从各个MapTask上远程拷贝一片数据，并针对某一片数据，如果其大小超过一定阈值，则写到磁盘上，否则直接放到内存中
+    2. Sort阶段
+        在远程拷贝数据的同时，ReduceTask启动了两个后台线程对内存和磁盘上的文件进行合并，以防止内存使用过多或磁盘上文件过多。按照MapReduce语义，用户编写reduce()函数输入数据是按key进行聚集的一组数据。为了将key相同的数据聚在一起，Hadoop采用了基于排序的策略。由于各个MapTask已经实现对自己的处理结果进行了局部排序，因此，ReduceTask只需对所有数据进行一次归并排序即可
+    3. Reduce阶段
+        reduce()函数将计算结果写到HDFS上
+### 3.MapReduce工作流程
+    1. 客户端submit()前，获取待处理数据的信息，根据参数配置形成一个任务分配规划
+    2. 提交Job.split,jar包，Job.xml等信息
+    3. Yarn启动AppMaster,AppMaster向ResourceManager请求资源启动相应数量MapTask
+    4. MapTask调用InputFormat的RecordReader读取数据按行传入map()方法
+    5. map()处理后将数据分区并写入环形缓冲区，一端数据另一端元数据
+    6. 待缓冲区达到80%后反向写入，并对数据进行快速排序并溢出到文件中
+    7. 对所有文件进行归并排序并合并成一个文件
+    8. ReduceTask从各个MapTask上远程拷贝对应分区的数据写入内存，内存超出阈值后写入磁盘
+    9. 对数据进行归并排序，分组传入reduce()方法
+    10. reduce()处理后将结果写入文件中
+## 3.Join应用
+### 1.Map Join
+    1. 使用场景
+        Map Join适用于一张表十分小、一张表很大的场景
+    2. 优点
+        在Map端缓存多张表，提前处理业务逻辑，这样增加Map端业务，减少Reduce端数据的压力，尽可能的减少数据倾斜
+    3. 具体方法
+        1. 在Mapper的setup()阶段，将文件读取到缓存集合中
+            URI[] cacheFiles = context.getCacheFiles();
+            Path path = new Path(cacheFiles[0]);
+                #通过缓存文件得到小表数据
+        2. 在Driver驱动类中加载缓存
+            job.addCacheFile(new URI("file:///e:/cache/pd.txt"));
+                #缓存普通文件到Task运行节点
+            job.addCacheFile(new URI("hdfs://hadoop102:8020/cache/pd.txt"));
+                #如果是集群运行,需要设置HDFS路径
+### 2.Reduce Join
+    1. Map端的主要工作:为来自不同表或文件的key/value对，打标签以区别不同来源的记录。然后用连接字段作为key，其余部分和新加的标志作为value，最后进行输出
+        FileSplit fileSplit = (FileSplit) context.getInputSplit();
+        fileName = fileSplit.getPath().getName();
+            #确定数据来源与哪个文件
+    2. Reduce端的主要工作:在每一个分组当中将那些来源于不同文件的记录(在Map阶段已经打标志)分开，最后进行合并
+# 5.Yarn
+## 1.Yarn的基础架构
+    YARN主要由ResourceManager、NodeManager、ApplicationMaster和Container等组件构成
+    1. ResourceManager
+        处理客户端请求
+        监控NodeManager
+        启动或监控ApplicationMaster
+        资源的分配与调度
+    2. NodeManager
+        管理单个节点上的资源
+        处理来自ResourceManager的命令
+        处理来自ApplicationMaster的命令
+    3. ApplicationMaster
+        为应用程序申请资源并分配给内部的任务
+        任务的监控与容错
+    4. Container
+        Container是YARN中的资源抽象，它封装了某个节点上的多维度资源，如内存、CPU、磁盘、网络等
+## 2.Yarn的工作机制
+    1. MapReduce程序提交到客户端所在的节点
+    2. YarnRunner向ResourceManager申请一个Application
+    3. RM将该应用程序的资源路径返回给YarnRunner
+    4. 该程序将运行所需资源提交到HDFS上
+    5. 程序资源提交完毕后，申请运行mrAppMaster
+    6. RM将用户的请求初始化成一个Task
+    7. 其中一个NodeManager领取到Task任务
+    8. 该NodeManager创建容器Container，并产生MRAppmaster
+    9. Container从HDFS上拷贝资源到本地
+    10. MRAppmaster向RM申请运行MapTask资源
+    11. RM将运行MapTask任务分配给另外两个NodeManager，另两个NodeManager分别领取任务并创建容器
+    12. MRAppmaster向两个接收到任务的NodeManager发送程序启动脚本，这两个NodeManager分别启动MapTask
+    13. MRAppmaster等待所有MapTask运行完毕后，向RM申请容器，运行ReduceTask
+    14. ReduceTask向MapTask获取相应分区的数据
+    15. 程序运行完毕后，MRAppmaster会向RM申请注销自己
+## 3.Yarn调度器和调度算法
+    Hadoop作业调度器主要有三种:FIFO、容量(Capacity Scheduler)和公平(Fair Scheduler)
+    Apache Hadoop3.3.4默认的资源调度器是Capacity Scheduler
+    CDH框架默认调度器是Fair Scheduler
+### 1.先进先出调度器(FIFO)
+    单队列，根据提交作业的先后顺序，先来先服务
+    不支持多队列，生产环境很少使用
+### 2.容量调度器(Capacity Scheduler)
+    1. 特点
+        1. 多队列
+            每个队列可配置一定的资源量，每个队列采用FIFO调度策略
+        2. 容量保证
+            管理员可为每个队列设置资源最低保证和资源使用上限
+        3. 灵活性
+            如果一个队列中的资源有剩余，可以暂时共享给那些需要资源的队列，而一旦该队列有新的应用程序提交，则其他队列借调的资源会归还给该队列
+        4. 多租户
+            支持多用户共享集群和多应用程序同时运行
+            为了防止同一个用户的作业独占队列中的资源，该调度器会对同一用户提交的作业所占资源量进行限定
+    2. 资源分配算法
+        1. 队列资源分配
+            从root开始，使用深度优先算法，优先选择资源占用率最低的队列分配资源
+        2. 作业资源分配
+            默认按照提交作业的优先级和提交时间顺序分配资源
+        3. 容器资源分配
+            按照容器的优先级分配资源
+            如果优先级相同，按照数据本地性原则
+            1. 任务和数据在同一节点
+            2. 任务和数据在同一机架
+            3. 任务和数据不在同一节点也不在同一机架
+### 3.公平调度器(Fair Scheduler)
+    1. 特点
+        1. 核心调度策略不同
+            容量调度器:优先选择资源利用率低的队列
+            公平调度器:优先选择对资源的缺额比例大的
+        2. 每个队列可以单独设置资源分配方式
+            容量调度器:FIFO、 DRF
+            公平调度器:FIFO、FAIR、DRF
+     2. 资源分配算法
+        公平策略:
+        分别计算比较对象的(实际最小资源份额、是否饥饿、资源分配比、资源使用权重比)判断两种比较对象饥饿状态
+        1. 其中有一个饥饿
+            饥饿优先
+        2. 都饥饿
+            资源分配比小者优先
+            相同，则按照提交时间顺序
+        3. 都不饥饿
+            资源使用权值比小者优先
+            相同，则按照提交时间顺序
+        先平均分配，在将多余的资源取出对缺少资源的job(平均或是按权重)进行分配
+## 4.Yarn生产环境核心参数配置
+    yarn-site.xml
+    <!-- 选择调度器，默认容量 -->
+    <property>
+        <name>yarn.resourcemanager.scheduler.class</name>
+        <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler</value>
+    </property>
+    <!-- ResourceManager处理调度器请求的线程数量,默认50；如果提交的任务数大于50，可以增加该值，但是不能超过3台 * 4线程 = 12线程(去除其他应用程序实际不能超过8) -->
+    <property>
+        <name>yarn.resourcemanager.scheduler.client.thread-count</name>
+        <value>8</value>
+    </property>
+    <!-- 是否将虚拟核数当作CPU核数，默认是false，采用物理CPU核数 -->
+    <property>
+        <name>yarn.nodemanager.resource.count-logical-processors-as-cores</name>
+        <value>false</value>
+    </property>
+    <!-- 是否让yarn自动检测硬件进行配置，默认是false，如果该节点有很多其他应用程序，建议手动配置。如果该节点没有其他应用程序，可以采用自动 -->
+    <property>
+        <name>yarn.nodemanager.resource.detect-hardware-capabilities</name>
+        <value>false</value>
+    </property>
+    <!-- Core转成Vcore的个数(虚拟核数和物理核数乘数，默认是1.0)hadoop中的vcore不是真正的core，通常vcore的个数设置为逻辑cpu个数的1~5倍 -->
+    <property>
+        <name>yarn.nodemanager.resource.pcores-vcores-multiplier</name>
+        <value>1.0</value>
+    </property>
+    <!-- NodeManager使用内存数，默认8G，修改为4G内存 -->
+    <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <value>4096</value>
+    </property>
+    <!-- nodemanager的CPU核数，不按照硬件环境自动设定时默认是8个，修改为4个 -->
+    <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <value>4</value>
+    </property>
+    <!-- 容器最小内存，默认1G -->
+    <property>
+        <name>yarn.scheduler.minimum-allocation-mb</name>
+        <value>1024</value>
+    </property>
+    <!-- 容器最大内存，默认8G，修改为2G -->
+    <property>
+        <name>yarn.scheduler.maximum-allocation-mb</name>
+        <value>2048</value>
+    </property>
+    <!-- 容器最小CPU核数，默认1个 -->
+    <property>
+        <name>yarn.scheduler.minimum-allocation-vcores</name>
+        <value>1</value>
+    </property>
+    <!-- 容器最大CPU核数，默认4个，修改为2个 -->
+    <property>
+        <name>yarn.scheduler.maximum-allocation-vcores</name>
+        <value>2</value>
+    </property>
+    <!-- 虚拟内存检查(限制)，默认打开，修改为关闭 -->
+    <property>
+        <name>yarn.nodemanager.vmem-check-enabled</name>
+        <value>false</value>
+    </property>
+    <!-- 虚拟内存和物理内存设置比例,默认2.1 -->
+    <property>
+        <name>yarn.nodemanager.vmem-pmem-ratio</name>
+        <value>2.1</value>
+    </property>
+## 5.配置多队列的容量调度器
+    1. 在capacity-scheduler.xml修改配置
+        <!-- 指定多队列，增加hive队列 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.queues</name>
+            <value>default,hive</value>
+        </property>
+        <!-- 降低default队列资源额定容量为40%，默认100% -->
+        <property>
+            <name>yarn.scheduler.capacity.root.default.capacity</name>
+            <value>40</value>
+        </property>
+        <!-- 降低default队列资源最大容量为60%，默认100% -->
+        <property>
+            <name>yarn.scheduler.capacity.root.default.maximum-capacity</name>
+            <value>60</value>
+        </property>
+        ===== 为新加队列添加必要属性 =====
+        <!-- 指定hive队列的资源额定容量 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.capacity</name>
+            <value>60</value>
+        </property>
+        <!-- 用户最多可以使用队列多少资源，1表示所有 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.user-limit-factor</name>
+            <value>1</value>
+        </property>
+        <!-- 指定hive队列的资源最大容量 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.maximum-capacity</name>
+            <value>80</value>
+        </property>
+        <!-- 启动hive队列 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.state</name>
+            <value>RUNNING</value>
+        </property>
+        <!-- 哪些用户有权向队列提交作业 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.acl_submit_applications</name>
+            <value>*</value>
+        </property>
+        <!-- 哪些用户有权操作队列，管理员权限（查看/杀死） -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.acl_administer_queue</name>
+            <value>*</value>
+        </property>
+        <!-- 哪些用户有权配置提交任务优先级 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.acl_application_max_priority</name>
+            <value>*</value>
+        </property>
+        <!-- 如果application指定了超时时间，则提交到该队列的application能够指定的最大超时时间不能超过该值 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.maximum-application-lifetime</name>
+            <value>-1</value>
+        </property>
+        <!-- 如果application没指定超时时间，则用default-application-lifetime作为默认值 -->
+        <property>
+            <name>yarn.scheduler.capacity.root.hive.default-application-lifetime</name>
+            <value>-1</value>
+        </property>
+    2. 向队列提交任务
+        hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-3.3.4.jar wordcount -D mapreduce.job.queuename=hive /input /output
+        -D 表示运行时改变参数值
+    3. 打jar包的方式
+        默认的任务提交都是提交到default队列的。如果希望向其他队列提交任务，需要在Driver中声明
+        conf.set("mapreduce.job.queuename","hive")
+# 6.Hadoop优化
+## 1.HDFS—DataNode管理多块数据盘
+    1. 查看刚刚添加的磁盘对应的设备
+        lsblk
+            NAME            MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+            sda               8:0    0   20G  0 disk
+            sr0              11:0    1  973M  0 rom
+            nvme0n1         259:0    0  100G  0 disk
+            ├─nvme0n1p1     259:1    0    1G  0 part /boot
+            └─nvme0n1p2     259:2    0   99G  0 part
+                ├─centos-root 253:0    0 95.1G  0 lvm  /
+                └─centos-swap 253:1    0  3.9G  0 lvm  [SWAP]
+    2. 对磁盘进行格式化
+        1. sudo fdisk /dev/sdb
+        2. 按n新建分区，并不断回车接受默认配置。完成后按w保存磁盘分区
+        3. 执行mkfs.ext4指令格式化刚刚建立的分区
+            sudo mkfs.ext4 /dev/sdb1
+        4. 格式化完成后，新建一个目录挂载这个磁盘即可
+            sudo mkdir -p /opt/sdb
+            sudo mount /dev/sdb1 /opt/sdb
+        5. 修改目录权限
+            sudo chown -R atguigu:atguigu /opt/sdb
+    3. 配置DataNode管理多磁盘
+        1. 在hdfs-site.xml文件中添加如下内容:
+            <property>
+                <name>dfs.datanode.data.dir</name>
+                <value>file://${hadoop.tmp.dir}/dfs/data,file:///opt/sdb </value>
+            </property>
+        2. 重启hadoop102的datanode
+            hdfs --daemon stop datanode
+            hdfs --daemon start datanode
+    4. 集群数据均衡之磁盘间数据均衡
+        1. 生成均衡计划
+            hdfs diskbalancer -plan hadoop102 --thresholdPercentage 1 –v
+            结果:
+                Writing plan to:
+                /system/diskbalancer/2022-十二月-01-05-10-43/hadoop102.plan.json
+        2. 执行均衡计划
+            hdfs diskbalancer -execute /system/diskbalancer/2022-十二月-01-05-10-43/hadoop102.plan.json
+        3. 查看当前均衡任务的执行情况
+            hdfs diskbalancer -query hadoop102
+                Result:PLAN_UNDER_PROGRESS  #表示正在执行
+                Result:PLAN_DONE  #表示执行结束
+## 2.HDFS—集群扩容及缩容
+### 1.服役新服务器
+    直接启动DataNode，即可关联到集群
+    hdfs --daemon start datanode
+    yarn --daemon start nodemanager
+### 2.服务器间数据均衡
+    在企业开发中，如果经常在hadoop102和hadoop104上提交任务，且副本数为2，由于数据本地性原则，就会导致hadoop102和hadoop104数据过多，hadoop103存储的数据量小
+    另一种情况，就是新服役的服务器数据量比较少，需要执行集群均衡命令
+    1. 开启数据均衡命令
+        sbin/start-balancer.sh -threshold 10
+            参数10，代表的是集群中各个节点的磁盘空间利用率相差不超过10%，可根据实际情况进行调整
+    2. 停止数据均衡命令
+        sbin/stop-balancer.sh
+    注意：由于HDFS需要启动单独的Rebalance Server来执行Rebalance操作，所以尽量不要在NameNode上执行start-balancer.sh，而是找一台比较空闲的机器
+### 3.白名单
+    在白名单的主机IP地址可以用来存储数据
+    企业中配置白名单，可以尽量防止黑客恶意访问攻击
+    1. 在NameNode节点的/opt/module/hadoop-3.3.4/etc/hadoop目录下创建whitelist文件
+    2. 在whitelist文件中添加集群正常工作的节点
+    3. 在hdfs-site.xml配置文件中增加dfs.hosts配置参数
+        <!-- 白名单 -->
+        <property>
+            <name>dfs.hosts</name>
+            <value>/opt/module/hadoop-3.3.4/etc/hadoop/whitelist</value>
+        </property>
+    4. 分发配置文件whitelist，hdfs-site.xml
+    5. 第一次添加白名单必须重启集群，如不是第一次，只需要刷新NameNode节点即可
+        hdfs dfsadmin -refreshNodes  #刷新NameNode节点
+### 4.黑名单
+    在黑名单的主机IP地址不可以存储数据
+    企业中配置黑名单，用来退役服务器
+    1. 在NameNode节点的/opt/module/hadoop-3.3.4/etc/hadoop目录下创建blacklist文件
+    2. 在blacklist文件中添加要退役的节点
+    3. 在hdfs-site.xml配置文件中增加dfs.hosts.exclude配置参数
+        <!-- 黑名单 -->
+        <property>
+            <name>dfs.hosts.exclude</name>
+            <value>/opt/module/hadoop-3.3.4/etc/hadoop/blacklist</value>
+        </property>
+    4. 分发配置文件blacklist，hdfs-site.xml
+    5. 第一次添加黑名单必须重启集群，如不是第一次，只需要刷新NameNode节点即可
+        hdfs dfsadmin -refreshNodes  #刷新NameNode节点
+    6. 等待退役节点状态为decommissioned(所有块已经复制完成)，停止该节点及节点资源管理器
+    注意:如果副本数是3，服役的节点小于等于3，是不能退役成功的，需要修改副本数后才能退役
+## 3.HDFS-安全模式
+### 1.安全模式
+    文件系统只接受读数据请求，而不接受删除、修改等变更请求
+    进入安全模式场景:
+        1. NameNode在加载镜像文件和编辑日志期间处于安全模式
+        2. NameNode再接收DataNode注册时，处于安全模式
+    退出安全模式条件:
+        1. dfs.namenode.safemode.min.datanodes
+            最小可用datanode数量，默认0，当前启动的DataNode的数量如果小于该值那么处于安全模式
+        2. dfs.namenode.safemode.threshold-pct
+            副本数达到最小要求的block占系统总block数的百分比，默认0.999f(只允许丢一个块)
+        3. dfs.namenode.safemode.extension
+            稳定时间，默认值30000毫秒，即30秒
+### 2.基本语法
+    集群处于安全模式，不能执行重要操作（写操作）。集群启动完成后，自动退出安全模式。
+    bin/hdfs dfsadmin -safemode get  #查看安全模式状态
+    bin/hdfs dfsadmin -safemode enter  #进入安全模式状态
+    bin/hdfs dfsadmin -safemode leave  #离开安全模式状态
+    bin/hdfs dfsadmin -safemode wait  #等待安全模式状态
+## 4.Hadoop数据压缩
+### 1.概述
+    压缩的优点:减少磁盘IO、减少磁盘存储空间
+    压缩的缺点:增加CPU开销
+    运算密集型的Job，少用压缩
+    IO密集型的Job，多用压缩
+### 2.MR支持的压缩编码
+    压缩格式	Hadoop自带?		算法		文件扩展名		是否可切片	换成压缩格式后，原来的程序是否需要修改
+    DEFLATE		是，直接使用	DEFLATE		.deflate		否		和文本处理一样，不需要修改
+    Gzip		是，直接使用	DEFLATE		.gz				否		和文本处理一样，不需要修改
+    bzip2		是，直接使用	bzip2		.bz2			是		和文本处理一样，不需要修改
+    LZO			否，需要安装	LZO			.lzo			是		需要建索引，还需要指定输入格式
+    Snappy		是，直接使用	Snappy		.snappy			否		和文本处理一样，不需要修改
+### 3.压缩位置选择
+    1. 输入端采用压缩
+        无须显示指定使用的编解码方式。Hadoop自动检查文件扩展名，如果扩展名能够匹配，就会用恰当的编解码方式对文件进行压缩和解压
+        企业开发考虑因素:
+            1. 数据量小于块大小，重点考虑压缩和解压缩速度比较快的LZO/Snappy
+            2. 数据量非常大，重点考虑支持切片的Bzip2和LZO
+    2. Mapper输出采用压缩
+        为了减少MapTask和ReduceTask之间的网络IO，重点考虑压缩和解压缩快的LZO、Snappy
+    3. Reducer输出采用压缩
+        如果数据永久保存，考虑压缩率比较高的Bzip2和Gzip
+        如果作为下一个MapReduce输入，需要考虑数据量和是否支持切片
+### 4.在Hadoop中启用压缩的配置参数
+| 参数 | 描述 |
+| --- | --- |
+| DEFLATE | org.apache.hadoop.io.compress.DefaultCodec |
+| gzip | org.apache.hadoop.io.compress.GzipCodec |
+| bzip2 | org.apache.hadoop.io.compress.BZip2Codec |
+| LZO | com.hadoop.compression.lzo.LzopCodec |
+| Snappy | org.apache.hadoop.io.compress.SnappyCodec |
+    1. io.compression.codecs(在core-site.xml中配置)  #输入压缩
+        默认值无，这个需要在命令行输入hadoop checknative查看
+        Hadoop使用文件扩展名判断是否支持某种编解码器
+    2. mapreduce.map.output.compress(在mapred-site.xml中配置)  #mapper输出
+        默认false，设置为true则启用压缩
+    3. mapreduce.map.output.compress.codec(在mapred-site.xml中配置)  #mapper输出
+        默认org.apache.hadoop.io.compress.DefaultCodec
+        企业多使用LZO或Snappy编解码器在此阶段压缩数据
+    4. mapreduce.output.fileoutputformat.compress(在mapred-site.xml中配置)  #reducer输出
+        默认false，设置为true则启用压缩
+    5. mapreduce.output.fileoutputformat.compress.codec(在mapred-site.xml中配置)  #reducer输出
+        默认org.apache.hadoop.io.compress.DefaultCodec
+        使用标准工具或者编解码器，如gzip和bzip2
+### 5.压缩实操案例
+    1. Map输出端采用压缩
+        在Driver中:
+        // 开启map端输出压缩
+        conf.setBoolean("mapreduce.map.output.compress", true);
+        // 设置map端输出压缩方式
+        conf.setClass("mapreduce.map.output.compress.codec", BZip2Codec.class,CompressionCodec.class);
+    2. Reduce输出端采用压缩
+        在Driver中:
+        // 开启reduce端输出压缩
+        FileOutputFormat.setCompressOutput(job, true);
+        // 设置reduce端输出压缩的方式
+        FileOutputFormat.setOutputCompressorClass(job, BZip2Codec.class);
+## 5.Hadoop企业优化
+# 7.Zookeeper
+## 1.特点
+    1. Zookeeper:一个领导者(Leader)，多个跟随者(Follower)组成的集群
+    2. 集群中只要有半数以上节点存活，Zookeeper集群就能正常服务。所以Zookeeper适合安装奇数台服务器
+    3. 全局数据一致:每个Server保存一份相同的数据副本，Client无论连接到哪个Server，数据都是一致的
+    4. 更新请求顺序执行，来自同一个Client的更新请求按其发送顺序依次执行
+    5. 数据更新原子性，一次数据更新要么成功，要么失败
+    6. 实时性，在一定时间范围内，Client能读到最新数据
+## 2.集群安装
+    1. 解压安装，修改文件名
+        tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz -C /opt/module/
+        mv apache-zookeeper-3.7.1-bin/ zookeeper-3.7.1
+    2. 配置服务器编号
+        mkdir /opt/module/zookeeper-3.7.1/zkData
+        vi myid
+            2
+        在文件中添加与server对应的编号(注意:上下不要有空行，左右不要有空格)
+        拷贝配置好的zookeeper到其他机器上,并分别在hadoop103、hadoop104上修改myid文件中内容为3、4
+    3. 配置zoo.cfg文件
+        重命名/opt/module/zookeeper-3.7.1/conf这个目录下的zoo_sample.cfg为zoo.cfg
+        mv zoo_sample.cfg zoo.cfg
+        vi zoo.cfg
+        #修改数据存储路径配置
+        dataDir=/opt/module/zookeeper-3.7.1/zkData
+        #增加如下配置
+        server.2=hadoop102:2888:3888
+        server.3=hadoop103:2888:3888
+        server.4=hadoop104:2888:3888
+        #配置参数解读:server.第几号服务器=服务器的地址:服务器Follower与集群中的Leader服务器交换信息的端口:执行选举时服务器相互通信的端口
+        同步zoo.cfg文件
+    4. 集群操作
+        分别启动ZooKeeper
+        zkServer.sh start
+        查看状态
+        zkServer.sh status
+## 3.选举机制
+    SID:服务器ID。用来唯一标识一台ZooKeeper集群中的机器，每台机器不能重复，和myid一致
+    ZXID:事务ID。ZXID是一个事务ID，用来标识一次服务器状态的变更。在某一时刻，集群中的每台机器的ZXID值不一定完全一致，这和ZooKeeper服务器对于客户端“更新请求”的处理逻辑有关
+    Epoch:每个Leader任期的代号。没有Leader时同一轮投票过程中的逻辑时钟值是相同的。每投完一次票这个数据就会增加
+    1. 第一次启动
+        1. 服务器1启动，发起一次选举。服务器1投自己一票。此时服务器1票数一票，不够半数以上，选举无法完成，服务器1状态保持为LOOKING
+        2. 服务器2启动，再发起一次选举。服务器1和2分别投自己一票并交换选票信息:此时服务器1发现服务器2的myid比自己目前投票推举的(服务器1)大，更改选票为推举服务器2。此时服务器1票数0票，服务器2票数2票，没有半数以上结果，选举无法完成，服务器1，2状态保持LOOKING
+        3. 服务器3启动，发起一次选举。此时服务器1和2都会更改选票为服务器3。此次投票结果:服务器1为0票，服务器2为0票，服务器3为3票。此时服务器3的票数已经超过半数，服务器3当选Leader。服务器1，2更改状态为FOLLOWING，服务器3更改状态为LEADING
+        4. 服务器4启动，发起一次选举。此时服务器1，2，3已经不是LOOKING状态，不会更改选票信息。交换选票信息结果:服务器3为3票，服务器4为1票。此时服务器4服从多数，更改选票信息为服务器3，并更改状态为FOLLOWING
+        5. 服务器5启动，同4一样FOLLOWING
+    2. 非第一次启动
+        1. 当ZooKeeper集群中的一台服务器出现以下两种情况之一时，就会开始进入Leader选举:
+            1. 服务器初始化启动
+            2. 服务器运行期间无法和Leader保持连接
+        2. 而当一台机器进入Leader选举流程时，当前集群也可能会处于以下两种状态:
+            1. 集群中本来就已经存在一个Leader
+                对于第一种已经存在Leader的情况，机器试图去选举Leader时，会被告知当前服务器的Leader信息，对于该机器来说，仅仅需要和Leader机器建立连接，并进行状态同步即可
+            2 .集群中确实不存在Leader
+                选举Leader规则:
+                1. EPOCH大的直接胜出
+                2. EPOCH相同，事务id大的胜出
+                3. 事务id相同，服务器id大的胜出
+## 4.客户端命令行操作
+### 1.启动客户端
+    zkCli.sh -server hadoop102:2181
+### 2.命令行语法
+| 参数 | 描述 |
+| --- | --- |
+| help | 显示所有操作命令 |
+| ls path | 使用 ls 命令来查看当前znode的子节点， -w 监听子节点变化， -s 附加次级信息 |
+| create | 普通创建， -s 含有序列， -e 临时(重启或者超时消失) |
+| get 节点 | 获得节点的值， -w 监听节点内容变化， -s 附加次级信息 |
+| set | 设置节点的具体值 |
+| stat | 查看节点状态 |
+| delete | 删除节点 |
+| deleteall | 递归删除节点 |
+### 3.节点数据信息
+| 参数 | 描述 |
+| --- | --- |
+| czxid | 创建节点的事务zxid，每次修改ZooKeeper状态都会产生一个ZooKeeper事务ID。事务ID是ZooKeeper中所有修改总的次序。每次修改都有唯一的zxid，如果zxid1小于zxid2，那么zxid1在zxid2之前发生 |
+| ctime | znode被创建的毫秒数(从1970年开始) |
+| mzxid | znode最后更新的事务zxid |
+| mtime | znode最后修改的毫秒数(从1970年开始) |
+| pZxid | znode最后更新的子节点zxid |
+| cversion | znode子节点变化号，znode子节点修改次数 |
+| dataversion | znode数据变化号 |
+| aclVersion | znode访问控制列表的变化号 |
+| ephemeralOwner | 如果是临时节点，这个是znode拥有者的session id。如果不是临时节点则是0 |
+| dataLength | znode的数据长度 |
+| numChildren | znode子节点数量 |
+### 4.监听器原理
+    客户端注册监听它关心的目录节点，当目录节点发生变化(数据改变、节点删除、子目录节点增加删除)时，ZooKeeper会通知客户端。监听机制保证ZooKeeper保存的任何的数据的任何改变都能快速的响应到监听了该节点的应用程序
+## 5.写数据流程
+    1. Client向ZooKeeper的Server1上写数据，发送一个写请求
+    2. 如果Server1不是Leader，那么Server1会把接受到的请求转发给Leader，Leader将写请求广播给各个Server，各个Server将该写请求加入待写队列，并向Leader发送成功信息
+    3. 当Leader收到半数以上Server的成功信息，说明该写操作可以执行。Leader会向各个Server发送提交信息，各个Server收到信息后落实队列里的写请求，此时写成功
+    4. Server1会进一步通知Client数据写成功了，这时就认为整个写操作成功
+# 8.Hadoop HA 高可用
+## 1.概述
+    1. HDFS HA功能通过配置多个NameNodes(Active/Standby)实现在集群中对NameNode的热备来解决上述问题。如果出现故障，如机器崩溃或机器需要升级维护，这时可通过此种方式将NameNode很快的切换到另外一台机器
+    2. 怎么保证三台NameNode的数据一致
+        1. Fsimage:让一台NN生成数据，让其他机器NN同步
+        2. Edits:需要引进新的模块JournalNode来保证edtis的文件的数据一致性
+    3. 怎么让同时只有一台NN是active，其他所有是standby的
+        Zookeeper居中协调，选举active
+    4. 2NN在ha架构中并不存在，定期合并fsimage和edtis的活谁来干
+        由standby的NN来干
+    5. 自动故障转移
+        1. Active的NameNode通过zkfc(zookeeper failover controller)向zookeeper中临时节点写入数据
+        2. 其他NameNode从临时节点中读取数据
+        3. 如果Active的NameNode假死，临时节点会被删除
+        4. zookeeper会反向通知其他节点的zkfc
+        5. 其他节点并通过 ssh kill -9 杀死故障NameNode，防止脑裂
+        6. 如果补刀失败则调用用户自定义脚本程序
+        7. 其他节点先抢到临时节点的会变为Active
+## 2.HDFS-HA搭建
+    1. 在opt目录下创建一个ha文件夹
+        sudo mkdir /opt/ha
+        sudo chown atguigu:atguigu /opt/ha
+    2. 将/opt/module/下的 hadoop-3.3.4拷贝到/opt/ha目录下(记得删除 data 和 log 目录)
+        cp -r /opt/module/hadoop-3.3.4 /opt/ha/
+    3. 配置core-site.xml
+        <!-- 把多个NameNode的地址组装成一个集群mycluster -->
+        <property>
+            <name>fs.defaultFS</name>
+            <value>hdfs://mycluster</value>
+        </property>
+        <!-- 指定hadoop运行时产生文件的存储目录 -->
+        <property>
+            <name>hadoop.tmp.dir</name>
+            <value>/opt/ha/hadoop-3.3.4/data</value>
+        </property>
+        
+        <!-- 指定zkfc要连接的zkServer地址 -->
+        <property>
+            <name>ha.zookeeper.quorum</name>
+            <value>hadoop102:2181,hadoop103:2181,hadoop104:2181</value>
+        </property>
+    4. 配置hdfs-site.xml
+        <!-- NameNode数据存储目录 -->
+        <property>
+            <name>dfs.namenode.name.dir</name>
+            <value>file://${hadoop.tmp.dir}/name</value>
+        </property>
+        <!-- DataNode数据存储目录 -->
+        <property>
+            <name>dfs.datanode.data.dir</name>
+            <value>file://${hadoop.tmp.dir}/data</value>
+        </property>
+        <!-- JournalNode数据存储目录 -->
+        <property>
+            <name>dfs.journalnode.edits.dir</name>
+            <value>${hadoop.tmp.dir}/jn</value>
+        </property>
+        <!-- 完全分布式集群名称 -->
+        <property>
+            <name>dfs.nameservices</name>
+            <value>mycluster</value>
+        </property>
+        <!-- 集群中NameNode节点都有哪些 -->
+        <property>
+            <name>dfs.ha.namenodes.mycluster</name>
+            <value>nn1,nn2,nn3</value>
+        </property>
+        <!-- NameNode的RPC通信地址 -->
+        <property>
+            <name>dfs.namenode.rpc-address.mycluster.nn1</name>
+            <value>hadoop102:8020</value>
+        </property>
+        <property>
+            <name>dfs.namenode.rpc-address.mycluster.nn2</name>
+            <value>hadoop103:8020</value>
+        </property>
+        <property>
+            <name>dfs.namenode.rpc-address.mycluster.nn3</name>
+            <value>hadoop104:8020</value>
+        </property>
+        <!-- NameNode的http通信地址 -->
+        <property>
+            <name>dfs.namenode.http-address.mycluster.nn1</name>
+            <value>hadoop102:9870</value>
+        </property>
+        <property>
+            <name>dfs.namenode.http-address.mycluster.nn2</name>
+            <value>hadoop103:9870</value>
+        </property>
+        <property>
+            <name>dfs.namenode.http-address.mycluster.nn3</name>
+            <value>hadoop104:9870</value>
+        </property>
+        <!-- 指定NameNode元数据在JournalNode上的存放位置 -->
+        <property>
+            <name>dfs.namenode.shared.edits.dir</name>
+        <value>qjournal://hadoop102:8485;hadoop103:8485;hadoop104:8485/mycluster</value>
+        </property>
+        <!-- 访问代理类:client用于确定哪个NameNode为Active -->
+        <property>
+            <name>dfs.client.failover.proxy.provider.mycluster</name>
+            <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
+        </property>
+        <!-- 配置隔离机制，即同一时刻只能有一台服务器对外响应 -->
+        <property>
+            <name>dfs.ha.fencing.methods</name>
+            <value>sshfence</value>
+        </property>
+        <!-- 使用隔离机制时需要ssh秘钥登录-->
+        <property>
+            <name>dfs.ha.fencing.ssh.private-key-files</name>
+            <value>/home/atguigu/.ssh/id_rsa</value>
+        </property>
+        <!-- 启用nn故障自动转移 -->
+        <property>
+            <name>dfs.ha.automatic-failover.enabled</name>
+            <value>true</value>
+        </property>
+    5. 分发配置文件
+## 3.启动HDFS-HA集群
+    1. 将HADOOP_HOME环境变量更改到HA目录(三台机器)
+        sudo vim /etc/profile.d/my_env.sh
+        export HADOOP_HOME=/opt/ha/hadoop-3.3.4
+        export PATH=$PATH:$HADOOP_HOME/bin
+        export PATH=$PATH:$HADOOP_HOME/sbin
+        去三台机器上source环境变量
+        source /etc/profile
+    2. 在各个JournalNode节点上，输入以下命令启动journalnode服务
+        hdfs --daemon start journalnode
+    3. 在[nn1]上，对其进行格式化，并启动
+        hdfs namenode -format
+        hdfs --daemon start namenode
+    4. 在[nn2]和[nn3]上，同步[nn1]的元数据信息
+        hdfs namenode -bootstrapStandby
+    5. 启动[nn2]和[nn3]
+        hdfs --daemon start namenode
+    6. 在所有节点上，启动datanode
+        hdfs --daemon start datanode
+    7. 格式化zkfc
+        hdfs zkfs -formatZK
+    8. 在所有nn节点启动zkfc
+        hdfs --daemon start zkfc
+    9. 第二次启动可以通过脚本启动和关闭集群
+        start-dfs.sh
+        stop-dfs.sh
+## 4.HA故障恢复
+    HA集群的作用就是当active NN出现故障时，standby NN能快速恢复服务，为我们修理故障争取时间
+    下面模拟hadoop103节点NN数据出现故障的恢复:
+    1. 杀掉active的NN(假设在hadoop103)
+        jps
+            21125 DataNode
+            7542 NameNode
+            43340 Jps 
+        kill -9 7542
+    2. 删除hadoop103的NN的数据模拟数据出现故障
+        rm -rf /opt/ha/hadoop/data/name
+        此时hadoop103的nn数据已经完全丢失。如果实际生产中数据没有完全损坏，请务必删除干净
+    3. 从其他NN恢复数据
+        hdfs namenode -bootstrapStandby
+    4. 启动hadoop103的NN
+        hdfs --daemon start namenode
+## 5.YARN-HA配置
+    1. yarn-site.xml
+        <property>
+            <name>yarn.nodemanager.aux-services</name>
+            <value>mapreduce_shuffle</value>
+        </property>
+        <!-- 启用resourcemanager ha -->
+        <property>
+            <name>yarn.resourcemanager.ha.enabled</name>
+            <value>true</value>
+        </property>
+    
+        <!-- 声明两台resourcemanager的地址 -->
+        <property>
+            <name>yarn.resourcemanager.cluster-id</name>
+            <value>cluster-yarn1</value>
+        </property>
+        <!--指定resourcemanager的逻辑列表-->
+        <property>
+            <name>yarn.resourcemanager.ha.rm-ids</name>
+            <value>rm1,rm2,rm3</value>
+        </property>
+    <!-- ========== rm1的配置 ========== -->
+        <!-- 指定rm1的主机名 -->
+        <property>
+            <name>yarn.resourcemanager.hostname.rm1</name>
+            <value>hadoop102</value>
+        </property>
+        <!-- 指定rm1的web端地址 -->
+        <property>
+            <name>yarn.resourcemanager.webapp.address.rm1</name>
+            <value>hadoop102:8088</value>
+        </property>
+        <!-- 指定rm1的内部通信地址 -->
+        <property>
+            <name>yarn.resourcemanager.address.rm1</name>
+            <value>hadoop102:8032</value>
+        </property>
+        <!-- 指定AM向rm1申请资源的地址 -->
+        <property>
+            <name>yarn.resourcemanager.scheduler.address.rm1</name>  
+            <value>hadoop102:8030</value>
+        </property>
+        <!-- 指定供NM连接的地址 -->  
+        <property>
+            <name>yarn.resourcemanager.resource-tracker.address.rm1</name>
+            <value>hadoop102:8031</value>
+        </property>
+    <!-- ========== rm2的配置 ========== -->
+        <property>
+            <name>yarn.resourcemanager.hostname.rm2</name>
+            <value>hadoop103</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.webapp.address.rm2</name>
+            <value>hadoop103:8088</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.address.rm2</name>
+            <value>hadoop103:8032</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.scheduler.address.rm2</name>
+            <value>hadoop103:8030</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.resource-tracker.address.rm2</name>
+            <value>hadoop103:8031</value>
+        </property>
+    <!-- ========== rm3的配置 ========== -->
+        <property>
+            <name>yarn.resourcemanager.hostname.rm3</name>
+            <value>hadoop104</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.webapp.address.rm3</name>
+            <value>hadoop104:8088</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.address.rm3</name>
+            <value>hadoop104:8032</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.scheduler.address.rm3</name>  
+            <value>hadoop104:8030</value>
+        </property>
+        <property>
+        <name>yarn.resourcemanager.resource-tracker.address.rm3</name>
+            <value>hadoop104:8031</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.zk-address</name>
+            <value>hadoop102:2181,hadoop103:2181,hadoop104:2181</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.recovery.enabled</name>
+            <value>true</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.store.class</name>     <value>org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore</value>
+        </property>
+        <property>
+            <name>yarn.nodemanager.env-whitelist</name>
+            <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+        </property>
+    2. 分发配置文件
+## 6.启动YARN
+    1. 在hadoop102或者hadoop103中执行
+        start-yarn.sh
+    2. 查看服务状态
+        yarn rmadmin -getServiceState rm1
+    3. 可以去zkCli.sh客户端查看ResourceManager选举锁节点内容
+        zkCli.sh
+        get -s /yarn-leader-election/cluster-yarn1/ActiveStandbyElectorLock

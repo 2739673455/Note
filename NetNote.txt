@@ -1,0 +1,1112 @@
+hping3 --udp -p 1687 -d 1200 -i u10 --flood --rand-source <target_ip>
+
+1.概述
+	1.虚拟化技术
+		寄生架构 | 原生架构
+	2.格式化类型
+		- ntfs  #文件系统可以存储几乎无限制的文件大小
+		- fat  #文件系统最大文件大小为4GB
+	3.子网掩码
+		1个IP地址必须配1个子网掩码
+		子网掩码分类：
+			- A类
+				#1.0.0.0~126.0.0.0#
+				#默认子网掩码255.0.0.0#
+				#保留私有地址:10.0.0.0～10.255.255.255
+			- B类
+				#128.0.0.0~191.255.255.255#
+				#默认子网掩码255.255.0.0#
+				#保留私有地址:172.16.0.0～172.31.255.255
+			- C类
+				#192.0.0.0~223.255.255.255#
+				#默认子网掩码255.255.255.0#
+				#保留私有地址:192.168.0.0～192.168.255.255
+			- D类  #224~239 组播地址
+			- E类  #240~255 科研使用
+			主机位全为0:网段地址，主机位全为255:广播地址
+			127.0.0.1 本地回环地址
+	4.网关
+		一个网络的出口，Gateway=GW，一般网关在路由器上
+		网关IP一般是第一个10.1.1.1或最后一个10.1.1.254
+
+2.DNS(Domain Name Service)
+	- ipconfig
+		#查看IP信息#
+		#/all  查看IP详细信息
+	- ping [ip]
+		#-t  一直ping#
+		#-n <num>  指定ping几个包#
+		#-l <size>  指定ping包大小
+	手动解析域名:nslookup www.jd.com
+
+3.Windows文件处理
+	浏览文件：
+		type [文件名.扩展名] | more 分页显示
+		dir c:\windows | more
+		dir /a 浏览所有文件
+		dir /s 显示指定目录和所有子目录中的文件
+		dir /b 使用空格式(没有标题信息或摘要)
+	创建文件：
+		echo "xxx" > [文件名.扩展名] 一行
+		echo "xxx" >> [文件名.扩展名] 追加
+		copy con [文件名.扩展名] 多行
+		md [目录名] 创建文件夹
+	删除文件：
+		del [文件名.扩展名]
+		del *.txt 删除所有该类型文件
+		del *.* 删除所有文件
+		rd [文件名] 删除文件夹
+		rd [文件名] /s 删除指定目录和所有子目录及其包含的所有件
+	修改文件属性：
+		attrib +h [文件名] 对文件添加属性
+		+h:隐藏; -h:取消隐藏; +s:将文件夹提升为受保护的系统级
+	复制/移动文件：
+		copy [文件名.扩展名] [目标路径]
+		move [文件名.扩展名] [目标路径]
+		xcopy [目录] [目标路径] /e 拷贝文件夹
+	重命名：
+		ren [旧名] [新名]
+	快速生成指定大小字节的空文件：
+		fsutil file createnew d:\system.ini 409600000
+	修改关联性：
+		assoc .txt=exefile 将.txt文件修改为可执行程序
+	系统定时关机：
+		shutdown -s -t 60 -c "xxx"
+		-s:关机; -r:重启; -t:指定时间; -f:强制; -c:注释
+		shutdown -a取消一切定时
+
+4.批处理 .bat
+	@echo off 关闭回显
+	echo. 空一行
+	pause 暂停
+	\>nul 屏蔽输出
+	2>nul 屏蔽输出与报错
+	:1 标签名
+	goto 1 跳转到指定标签
+	%userprofile% 用户文件夹
+	set a=100 定义变量a
+	%a% 使用变量a
+	set /p a= 变量a来自输入
+	timeout /t 1 等待1秒
+	for /l %a in ([start],[step],[end]) do [command] for循环
+	taskkill /f /im explorer.exe 关闭资源管理器进程
+	start c:\windows\explorer.exe 开启资源管理器
+
+5.用户与组管理
+	①用户管理
+		每个账户有唯一的SID，windows管理员uid500，普通用户uid从1000开始
+		账户密码存储位置：c:\windows\system32\config\SAM
+		内置账户:
+			可用账户:
+				administrator管理员账户
+				guest来宾账户
+			计算机服务组件相关的系统账号:
+				system系统账户
+				local services本地服务账户
+				network services网络服务账户
+		用户管理指令:
+			net user 查看用户列表
+			net user [用户名] [密码] 改密码
+			net user [用户名] [密码] /add 创建新用户
+			net user [用户名] /del 删除用户
+			net user [用户名] /active:yes/no 激活或禁用账户
+	②组管理
+		简化权限的赋予
+		内置组:内置组的权限默认已经被系统赋予
+			administrators管理员组
+			guests来宾组
+			users普通用户组
+			network网络配置组
+			print打印机组
+			remote desktop远程桌面组
+		组管理指令:
+			net localgroup 查看组
+			net localgroup [组] [用户] /add将用户加入组
+			net localgroup [组] [用户] /del将用户移除组
+			net localgroup [组名] /add创建组
+
+6.渗透测试
+	1.信息收集->2.扫描漏洞->3.漏洞利用->4.提权->5.擦除痕迹->6.留后门
+
+	Nmap:
+		-sn 10.1.1.1/24 扫描整个网段
+		-p 21,23-25,3389 指定端口范围
+		-F 扫描常用端口
+		-sV 服务版本探测
+		-O 10.1.1.1 操作系统探测
+		-A 10.1.1.1 全面扫描
+		-oN d:\result.txt 保存txt
+
+	IPC$,445:
+		net use \\[ip]\ipc$ [密码] /user:[用户] 创建ipc$连接
+		net use z: \\[ip]\c$ [密码] /user:[用户] c$映射到z:
+		net use z: /del 删除连接 
+		net use * /del 删除所有连接 
+		net share ipc$ 创建ipc$
+		net share ipc$ /del 删除ipc$
+		net share [共享名称]=[路径] /grant:administrator,full 创建共享目录，设置用户访问权限
+		powershell.exe -command New-SmbShare -Name dshare -Path d:\ -FullAccess administrator 创建共享目录，设置用户访问权限
+		powershell.exe -command Remove-SmbShare -Name dshare -Force 删除共享文件夹
+		./psexec.exe \\[ip] -u [username] -p [password] -i cmd psexec 远程获取shell
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\FilterAdministratorToken 筛选管理员令牌
+
+	SAM破解密码:
+		reg save hklm\sam sam.hive 抓取SAM文件
+		reg save hklm\system system.hive 抓取SYSTEM文件
+		将sam.hive和system.hive文件放在mimikatz.exe同一目录下
+		mimikatz.exe lsadump::sam /sam:sam.hive /system:system.hive 得到hash值
+
+	Schtasks定时任务:
+		创建任务，与指定用户交互式运行:
+			schtasks /create /s [ip] /u [username] /p [password] /tn [任务名] /tr [任务指令] /sc [执行频率] /f
+			schtasks /create /tn [任务名] /tr [任务指令] /sc [执行频率] /st [执行时间] /ru [username] /rp [password] /it /f
+		创建任务，后台运行:
+			schtasks /create /s [ip] /u administrator /p [password] /tn [任务名] /tr [任务指令] /sc [执行频率]/ru system /f
+		立即运行任务:
+			schtasks /run /s [ip] /u administrator /p [password] /tn [任务名]
+
+	注册表查询与修改:
+		查询所有用户的SID:
+			wmic useraccount get name,sid
+		查询SID对应用户的环境变量:
+			reg query "HKU\[sid]\Environment"
+		查询当前用户环境变量:
+			reg query "HKCU\Environment"
+		查询系统环境变量:
+			reg query "HKLM\System\CurrentControlSet\Control\Session Manager\Environment"
+		修改系统环境变量:
+			reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" /v PATH /t REG_EXPAND_SZ /d "%PATH%;C:\new\path" /f
+		登陆界面隐藏账户:
+			reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /v [username] /t REG_DWORD /d 0
+		修改网卡MAC:
+			HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002BE10318}\ ->新建NetworkAddress 字符串值
+			第二个字符必须2,6,A,E其中之一
+
+	wmic远程控制:
+		netsh advfirewall set currentprofile state off 关闭防火墙
+		netsh firewall set service RemoteAdmin enable 开启远程管理
+		netsh wlan show profile name="[网络名]" key=clear 查看wlan密码
+		远程创建进程:
+			wmic /node:[ip] /user:[用户名] /password:[密码] process call create "[指令]"
+		查看文件夹共享:
+			wmic share list
+		开启指定文件夹共享(只读权限):
+			wmic share call create "","","MaximumAllowed","Name","","Path",0
+		删除指定共享文件夹:
+			wmic share where "name='[共享目录名称]'" delete
+		查询进程:
+			wmic process list brief
+		终止进程:
+			wmic process where processid="[pid]" delete
+			wmic process where name="[processName]" delete
+			taskkill /f /pid [pid]
+		事件查看器:
+			wevtutil qe
+
+13.远程管理
+	mstsc  远程登录
+	netstat -an 查看本机开放的所有端口
+	netstat -an|findstr "445"  查看445端口连接状态
+	telnet:23
+	远程桌面协议RDP:3389
+
+14.NTFS安全权限
+	设置NTFS,实现不同的用户访问不同的对象的权限
+	分配了正确的访问权限后，用户才能访问其资源
+	设置权限防止资源被篡改
+	文件系统概述：
+	文件系统即在外部储存设备上组织文件的方法
+	常用的文件系统：
+	FAT  windows
+	NTFS  windows
+	EXT  linux
+
+	NTFS：
+		提高读写性能
+		可靠性，加密文件系统，访问控制列表(设置权限)
+		磁盘利用率，压缩，磁盘配额
+		支持单个文件大于4G
+
+	修改NTFS权限：
+		用户权限可以累加
+		拒绝可以覆盖允许权限
+		文件复制后权限会被目标文件夹权限覆盖
+
+15.文件共享服务器(cifs)
+	cmd输入//10.1.1.1
+	用户远程访问时取共享权限与本地权限的交集
+	whoami 查看本用户
+	whoami /user 查看本用户详细信息
+	文件夹名$ 隐藏共享文件夹
+	net share 查看共享文件夹
+	net share 共享文件名 取消文件共享
+	关闭共享：
+		445端口
+		打开services.msc,停止并禁用server服务
+
+16.DHCP部署与安全
+	DHCP:Dynamic Host Configure Protocol,自动分配IP地址
+	地址池/作用域：(IP、子网掩码、网关、DNS、租期)
+	DHCP优点：减少工作量，避免IP冲突，提高地址利用率
+	DHCP原理：
+		1.发送DHCP Discovery广播包：
+			客户机广播请求IP地址(包含客户机的MAC地址)
+		2.响应DHCP Offer广播包：
+			服务器响应提供的IP地址(无子网掩码、网关、DNS)
+			DHCP协议端口为UDP 67/68
+		3.客户机发送DHCP Request广播包：
+			客户机选择IP
+		4.服务器发送DHCP ACK广播包：
+			服务器确定了租约，并提供网卡详细参数IP、子网掩码、网关、DNS、租期等
+	DHCP续约：
+		当50%过后，客户机会再次发送DHCP Request包，如服务器无响应，则继续使用并在87.5%再次发送包，进行续约，如仍无响应，释放IP地址并重新发送DHCP Discovery广播包获取IP地址
+		当无任何服务器响应时，自动给自己分配一个169.254.x.x/16，该地址属于全球统一的无效地址，用于临时内网通信
+		ipconfig /release  释放IP地址
+		ipconfig /renew  重新获取IP地址(有IP时续约)
+	选项优先级：
+		作用域选项大于服务器选项
+		服务器上有多个作用域时，可以在服务器选项上设置DNS服务器
+	DHCP攻击与防御：
+		[1]频繁发送伪装DHCP请求，直到将DHCP地址池资源耗尽
+		在交换机(管理型)端口上做动态MAC地址绑定
+		[2]伪装DHCP服务器，将自己部署为DHCP服务器，为客户提供非法IP地址
+		在交换机上，除合法的服务器所在接口外，全部设置为禁止发送DHCP Offer包
+
+17.DNS部署与安全
+	TCP端口53
+	UDP端口53
+	Domain Name Service,为客户提供域名解析服务
+	"主机名.域名"称为完全限定域名(FQDN)
+	如www.baidu.com. :
+		.为根域
+		.com为顶级域
+		baidu为二级域名
+		www为主机名
+	DNS解析种类：
+		[1]按查询方式分类：
+			递归查询：客户机与本地DNS服务器之间
+			迭代查询：本地DNS服务器与根等其他DNS服务器的解析过程
+		[2]按查询内容分类：
+			正向解析：已知域名，解析IP地址
+			反向解析：已知IP地址，解析域名
+	ipconfig /displaydns  展示DNS缓存
+	ipconfig /flushdns  清空DNS缓存
+
+18.WEB服务器
+	HTTP协议端口号:TCP 80
+	HTTPS协议端口号:TCP 443
+	WEB服务器发布软件：
+		微软:IIS(可以发布WEB网站和FTP站点)
+		linux:Apache/LAMP/Tomcat/nginx
+		第三方:phpstudt,XAMPP
+	部署WEB服务器：
+		[1]配置静态IP
+		[2]安装IIS-WEB插件
+		[3]停用默认站点
+		[4]新建网站-地址端口绑定-指定站点路径-设置权限
+		[5]设置默认文档(设置首页)
+	网站类型：
+		[1]静态网站：一般扩展名为.html或.htm，无后台数据
+		[2]动态网站：一般扩展名为.asp或.php，有后台数据库，asp或php可以连接前台页面与后台数据库
+
+19.FTP服务器
+	File Transfer Protocol 文件传输协议
+	端口号：TCP 20/21
+	FTP工作方式：
+		[1]主动模式:
+			21端口：控制端口
+			20端口：数据端口
+		[2]被动模式:
+			21端口+随机端口作为数据传输端口
+		注意:主被动模式，选择权在客户机
+			主被动模式指的是在服务器的角度
+			主被动模式阐述的数据传输过程
+	部署FTP服务器：
+		[1]配置静态IP
+		[2]安装IIS-FTP软件
+		[3]使用默认站点或创建新的站点
+		注意：用户最终权限为FTP权限与NTFS权限取交集
+		建议：FTP权限全部勾选，然后具体的在NTFS里做
+		[4]关闭匿名访问
+
+20.域(Domain)
+	内网环境：
+		[1]工作组:默认模式，人人平等，不方便管理
+		[2]域：不平等，集中统一管理
+	域的组成：
+		[1]域控制器:DC(Domain Controller)
+		[2]成员机
+	域的部署：
+		[1]安装域控制器--生成了域环境
+		[2]安装活动目录--生成了域控制器
+		[3]活动目录：Active Directory = AD
+	活动目录：
+		特点：集中管理/统一管理
+	组策略GPO
+	部署安装活动目录：
+		[1]配置静态IP
+		[2]开始-运行-dcpromo，安装活动目录
+			弹出向导：
+				勾选DNS-新林中新建域-功能级别设置为2003-域的FQDN-设置目录服务还原密码
+		[3]登录域
+			DC的本地管理员升级为域管理员
+		[4]验证AD是否安装成功：
+			1-计算机右键属性-所属域
+			2-DNS服务器中是否自动创建qf.com区域文件
+			3-自动注册DC的域名解析记录
+			4-开始-管理工具-A D用户和计算机
+				computer:普通域成员机列表
+				Domain Controller:DC列表
+				users:域账号
+	PC加入域：
+		[1]配置IP,并指定DNS
+		[2]计算机右键属性-更改-加入qf.com
+		[3]重启加入域后，成功使用域用户登录成员机
+	OU(组织单位)：
+		用于归类域资源(域用户、域计算机、域组)
+		组策略(Group Policy=GPO)：
+		通过组策略可以修改计算机的各种属性，如开始菜单、桌面背景、网络参数等。
+		LSDOU顺序：
+			在组策略应用过程中，如果冲突，后应用的生效。下级OU会覆盖上级OU
+			当上级强制和下级阻止继承同时配置，上级强制生效
+
+21.PKI(公钥基础设施 public key infrastructure):
+作用：通过加密技术和数字签名保证信息的安全
+组成：公钥加密技术、数字证书、CA、RA
+信息安全三要素：
+	[1]机密性
+	[2]完整性
+	[3]身份验证/操作的不可否认性
+用到PKI技术的领域：
+	[1]SSL/HTTPS
+	[2]IPsecVPN
+	[3]部分远程访问VPN
+公钥加密技术：
+	作用：实现对信息加密、数字签名等安全保障
+	加密算法：
+		[1]对称加密算法：加解密密钥一致
+		[2]非对称加密算法：
+			通信双方各自产生一对公私钥
+			双方各自交换公钥
+			公钥和私钥为互相加解密关系
+			使用对方的公钥加密
+			使用自己的私钥进行签名，实现身份验证
+			公私钥不可互相逆推
+			常见算法：RSA DH
+		[3]hash算法：MD5 SHA 不可逆，(用于验证完整性)
+			hash值=摘要
+数字签名：用自己的私钥对摘要加密得出的密文就是数字签名
+
+证书：
+	用于保证公密的合法性
+	证书格式遵循X.509标准
+	数字证书包含的信息：
+		使用者公钥值
+		使用者标识信息(如名称、电子邮件)
+		证书有效期
+		颁发者标识信息
+		颁发者数字签名
+	数字证书由权威公正的第三方机构即CA签发
+
+CA是全为证书颁发机构，为了公证"公钥"的合法性
+机密性：使用对方的公钥加密
+身份验证/数字签名：使用自己的私钥
+certmgr.msc  查看证书
+
+23.扫描与爆破
+常见端口号：
+	21 FTP
+	22 SSH
+	23 telnet
+	25 SMTP
+	80 HTTP
+	443 HTTPS
+	1433 SQL Server
+	1521 Oracle
+	3306 MySQL
+	3389 RDP
+	
+nmap:
+	重要常用参数：
+		-sn  10.1.1.1/24 扫描整个网段
+		-p 21,23-25,3389 指定端口范围
+		-sV 服务版本探测
+		-O 10.1.1.1 操作系统探测
+		-A 10.1.1.1 全面扫描
+		-oN d:\result.txt 保存txt
+
+hydra:
+	hydra -l 用户名 -p 123.com 10.1.1.1
+	hydra -l a -P d:\pass.txt 10.1.1.1 telnet
+	hydra -l a -P d:\pass.txt 10.1.1.1 smb
+	hydra -L d:\user.txt -P d:\pass.txt 10.1.1.1 smb
+	
+本地破解：
+	getpass 从内存中提取密码
+本地暴力破解：
+	pwdump 提取sam中的hash值
+
+24.TCP/IP 五层协议簇/协议栈
+应用层(只有应用层才有端口号,PC,防火墙)-->数据
+传输层(防火墙)                     -->数据段(fragment)
+三层)网络层(路由器)                -->报文/包/IP包(packet)
+二层)数据链路层(交换机,网卡)         -->帧(frame)
+物理层(网线)                      -->比特(bit)
+8bit比特=1Byte字节
+协议：
+	应用层:HTTP-80,HTTPS-443,DNS-53,SSH-22,Telnet-23,FTP-20/21,DHCP-67/68,SMTP-25,POP3-110,RDP-3389,SMB-445,Mysql-3306
+	传输层:TCP,UDP
+	网络层:ICMP,IP,ARP
+	数据链路层:MAC子层协议
+	物理层:网线：
+			T568A标准-白绿、绿、白橙、蓝、白蓝、橙、白棕、棕
+			T568B标准-白橙、橙、白绿、蓝、白蓝、绿、白棕、棕
+			交叉线,一端为A,一端为B-在同种设备间使用
+			直通线,两端都是B(A)-异种设备间使用
+			全返线,一端为A,另一端为反A,也称console线
+			三层以上属于同种设备
+
+25.数据链路层(2层 data link layer):
+	帧结构:
+		帧头(6+6+2=14字节)
+			目标MAC
+			源MAC
+			类型[识别上层协议，为上层提供服务
+				-0x0800:IP协议、0x0806:ARP协议]
+		MTU值(最大传输单元):1500字节
+		帧尾(4字节)
+	MAC地址:也叫物理地址，全球唯一，48位、6字节
+	一个帧最长长度为1518字节
+	帧格式:802.3(有线)、802.11(无线)
+	
+	交换机工作原理:
+		收到一个数据帧后：
+			学习帧的源MAC地址来形成MAC地址表
+			检查帧的目标MAC地址并匹配MAC地址表，如表中有匹配项，单播转发。如无匹配项，则除接收端口外广播转发
+		MAC地址表的老化时间默认是300秒(可修改)
+	交换机的端口：
+		E  10Mb
+		F  100Mb
+		G  1000Mb
+		Te 10000Mb
+		F0/1 0模块号 1接口号
+		接口速率自适应：1000/100/10M自适应
+		端口状态:
+			up
+			down:
+				[1]人工dwon掉
+				[2]速率不匹配
+				[3]双工(duplex)模式不匹配
+				   双工模式：单工、半双工、全双工
+	交换机基本工作模式及命令：
+		第一次配置网络设备需要使用console线
+		在PC上需要使用"超级终端"或其他软件
+		[1]用户模式
+			switch>
+			可以查看交换机的基本简单信息，不能做任何修改配置
+		[2]特权模式
+			switch> enable
+			switch#
+			可以查看所有配置，不能修改，但可以做测试、保存、初始化等操作
+		[3]全局配置模式
+			switch# configure terminal
+			switch(config)#
+			默认不能查看配置，可以修改配置，且全局生效
+		[4]接口配置模式
+			switch(config)# interface f0/1
+			switch(config-if)#
+			默认不能查看配置，可以修改配置，对该端口生效
+		[5]console口配置模式/线模式/控制台模式
+			switch(config)# line console 0
+			默认不能查看配置，可以修改配置，对该console口生效
+		exit 退出一级
+		end 直接退到特权模式
+		支持命令缩写，e? 显示该模式下e开头的所有命令
+		configure terminal>
+			hostname 主机名  修改主机名
+		line console 0>
+			password 密码,login  设置密码
+		在内存中存在一个文件:running-config,第一次开机时，系统会自动在内存中创建一个新的干净的running-config
+		保存配置:
+			enable
+			copy running-config startup-config(write)
+		交换机开机动作：
+			[1]先去硬盘中查找startup-config是否存在
+			[2]若不存在，在内存中创建新的running-config。若存在，复制到内存中并改名为running-config
+		查看running-config配置：
+			enable
+			show running-config
+		重启设备：
+			enable 
+			reload
+		配置特权密码：
+			configure terminal
+			enable password 密码 (明文)
+			enable secret 密码 (密文)
+		清除配置：
+			enable
+			erase startup-config
+		查看MAC地址表：
+			show mac-address-table
+		查看接口列表：
+			show ip interface brief
+		关闭接口:
+			interface f0/1
+			shutdown
+			no shutdown 开启接口
+		do 命令  在其他模式下使用特权命令
+		删除配置：
+			no 命令
+			在哪配置在哪删除
+			原命令有参数并且参数具有唯一性，则删除时不需要加参数
+			如：
+				configure terminal
+				hostname sw1
+				
+				configure terminal
+				no hostname
+		为路由器3层端口配置IP：
+			interface f0/0
+			ip add 10.1.1.254 255.255.255.0
+			no shutdown
+		开启路由器远程控制：
+			[1]
+			configure terminal
+			line vty 0 4
+			transport input telnet/ssh/none/all
+			password 密码
+			login
+			
+			[2]
+			configure terminal
+			"ssh">hostname r1
+				  ip domain-name r1.qf.com
+				  crypto key generate rsa(生成密钥对)
+			line vty 0 4
+			transport input telnet /ssh/none/all
+			login local
+			exit
+			username xx password 123.com
+		为交换机配置管理IP：
+			configure terminal
+			interface vlan 1
+			ip add 10.1.1.253 255.255.255.0
+		为交换机配置默认网关(跨网段管理)：
+			configure terminal
+			ip default-gateway 10.1.1.254
+		关闭自动解析命令：
+			configure terminal
+			no ip domain-lookup
+
+26.IP
+IP包头长度20-60字节
+IP数据包格式：
+	[1]版本(4bit):
+		ipv4为0100，ipv6为0110
+	[2]首部长度(4bit)
+	[3]优先级与服务类型(8bit):
+		前3位为优先级，后4位为标志位，最后1位保留未用
+	[4]总长度(16bit)：
+		最大包长1500字节
+	[5]标识符(16bit)：
+		用于数据包在分段重组时标识其序列号
+	[6]标志(3bit)：
+		长度为3位，三位从左到右分别是MF、DF、未用
+		MF=1表示后面还有分段的数据包
+		MF=0表示没有更多分片（即最后一个分片）
+		DF=1表示路由器不能对该数据包分段
+		DF=0表示数据包可以被分段
+	[7]段偏移量(13bit)：
+		用于标识该数据段在上层初始数据报文中的偏移量
+	[8]TTL:time to live(8bit) :
+		每经过一台路由器TTL值减一，防止数据包在网络上永久循环
+		tracert www.baidu.com
+	[9]协议号(8bit)：
+		标识上层所使用的协议
+	[10]首部校验和(16bit)
+	[11]源IP地址(32bit)
+	[12]目IP标地址(32bit)
+	[13]可选项
+	[14]数据
+
+27.路由概述
+路由：跨越从源主机到目标主机的一个互联网络来转发数据包的过程
+路由表：路由器转发数据的唯一依据
+	直连路由
+	静态路由：
+		configure terminal
+		ip route 目标网段 子网掩码 下一跳IP
+		ip route 70.1.1.0 255.255.255.0 20.1.1.2
+	默认路由：
+		configure terminal
+		ip route 0.0.0.0 0.0.0.0 下一跳IP
+		ip route 0.0.0.0 0.0.0.0 20.1.1.0
+	浮动路由：
+		在静态或默认路由后加空格+数字(正整数)
+	do show ip route  查看路由表
+	no ip route 目标网段 子网掩码 下一跳IP  删除路由
+路由器工作原理：
+[1]一个帧到达路由器，路由器首先检查目标MAC地址是否是自己，如果不是则丢弃。是则解封装，并将IP包送到路由器内部
+
+[2]检查IP包头中的目标IP并匹配路由表，匹配失败则丢弃并向源IP回馈错误信息。如匹配成功则将IP包路由到出接口
+
+[3]封装帧，首先将出接口的MAC地址作为源MAC封装好，然后检查ARP缓存表，检查是否有下一跳的MAC地址，如有将提取并作为目标MAC地址封装到帧中。如没有则发送ARP广播请求下一跳的MAC地址，获取MAC地址后记录缓存，封装帧并将帧发送出去
+
+28.ARP(address resolution protocol 地址解析协议)
+将一个已知的IP地址解析为MAC地址
+广播: 将广播地址作为目的地址的数据帧
+广播域: 网络中能接收到同一个广播所有节点的集合
+MAC地址广播: FF-FF-FF-FF-FF-FF
+IP地址广播: 255.255.255.255/IP地址网段的广播如192.168.1.255/24
+windows系统中的ARP命令：
+	arp -a 查看ARP缓存表
+	arp -d 清除ARP缓存
+	arp -s ARP绑定
+原理：
+	[1]发送ARP广播请求
+		我是10.1.1.1 我的MAC:AA
+		谁是10.1.1.2 你的MAC:??
+	[2]接收ARP单播应应答
+攻击或欺骗的原理(ARP缓存投毒)：(后到覆盖)
+	通过发送伪造虚假的ARP报文(广播或单播)来实现攻击或欺骗
+	伪造虚假MAC实现攻击，中断通信
+	伪造为自身MAC实现监听、窃取、篡改、控制流量，不中断通信
+ARP协议没有验证机制
+ARP攻击防御：
+	[1]静态ARP绑定
+		手工绑定/双向绑定
+		windows客户机上：
+		arp -s 10.1.1.254 00-01-2c-a0-e1-09
+	[2]ARP防火墙
+		自动绑定静态ARP
+		主动防御
+	[3]硬件级ARP防御
+		交换机支持端口做动态ARP绑定(配合DHCP服务器)
+		或静态ARP绑定
+		如：
+		configure terminal
+		ip dhcp snooping
+		interface range f0/1 - 48 交换机端口批量操作
+		switch(config-if-range)#
+
+29.VLAN(Virtual LAN虚拟局域网)
+VLAN是二层技术
+[1]广播的危害：
+	增加网络/终端负担
+	传播病毒
+	安全性降低
+[2]如何控制广播(隔离广播域)：
+	路由器隔离广播(物理隔离)
+		缺点：成本高、不灵活
+使用VLAN控制广播，VLAN技术在交换机上实现，通过逻辑隔离划分的广播域
+一个VLAN = 一个广播域 = 一个网段
+
+VLAN的类型：
+	[1]静态VLAN
+		手工配置
+		基于端口划分的VLAN
+	[2]动态VLAN
+		手工配置
+		基于MAC划分的VLAN/采用802.1x端口认证，基于账号划分VLAN
+	
+静态VLAN命令：
+	[1]创建VLAN
+	configure terminal
+		vlan ID,ID,ID-ID 
+			[name 自定义名称]
+			exit
+	[2]查看VLAN表
+		show vlan brief
+	[3]将端口加入VLAN
+		interface f0/x
+		switchport access vlan ID
+
+trunk/中继链路/公共链路
+作用：允许所有VLAN数据通过trunk链路
+方法：通过在数据帧上加标签来区分不同的vlan数据
+trunk标签：
+	[1]ISL标签:cisco私有，标签大小30字节26+4
+	[2]802.1q标签:公有协议，标签大小4字节，属于内部标签
+
+交换机端口链路类型：
+	[1]接入端口：也称access端口，一般用于连接PC，只能属于某1个VLAN，也只能传输1个VLAN数据
+	[2]中继端口：也称trunk端口，一般用于连接其他交换机，属于公共端口，允许所有VLAN数据通过
+
+配置trunk命令：
+	interface f0/x (interface range f0/1-x)
+		[switchport trunk encapsulation dot1q/isl](核心路由器)
+		swicthport mode trunk
+		exit
+		
+单臂路由：
+	创建路由器子接口，每个接口对应一个vlan
+	configure terminal
+	interface f0/0.1
+		encapsulation dot1q 10
+		ip add 10.1.1.254 255.255.255.0
+		no shutdown
+		exit
+	interface f0/0.2
+		encapsulation dot1q 20
+		ip add 20.1.1.254 255.255.255.0
+		no shutdown
+		exit
+	interface f0/0
+		no shutdown
+	不同vlan间靠路由通信
+
+vtp:
+	交换机trunk端口间共享vlan配置
+	vtp domain 名称
+
+在三层路由器上部署DHCP服务器:
+	configure terminal
+		ip dhcp excluded-address 10.1.1.1 10.1.1.99(排除IP)
+		ip dhcp pool v10(配置vlan10的地址池)
+			network 10.1.1.0 255.255.255.0
+			default-router 10.1.1.254
+			dns-server 40.1.1.1
+			lease 1 12 0(租约 天 小时 分钟)
+			exit
+			
+DHCP中继(跨网段获取IP地址)：
+	interface f0/0.1  进入路由器端口
+	ip helper-address 40.1.1.1 指向DHCP服务器IP地址
+
+单臂路由缺点：
+	[1]网络瓶颈
+	[2]容易发生单点物理故障(所有子接口依赖于物理接口)
+	[3]VLAN间通信的每个帧都单独进行路由
+
+30.ICMP协议
+ICMP协议端口号：没有端口号
+用途：网络探测与回馈机制
+	[1]网络探测
+	[2]路由跟踪
+		windows: tracert IP
+		linux或路由: traceroute IP
+	[3]错误反馈
+ICMP协议封装格式：
+	ICMP头:
+		ICMP类型字段、代码:8(ping请求)
+						0(ping应答)
+						3(目标主机不可达)
+						11(TTL超时)
+	数据
+
+31.三层交换机
+三层交换机=三层路由+二层交换机
+三层路由引擎可以开启与关闭
+	configure terminal
+	ip routing  开启三层路由
+	no ip routing  关闭三层路由功能
+	
+三层交换机的优点：
+	与单臂路由相比：
+	[1]解决了网络瓶颈问题
+	[2]解决了单点故障(虚拟接口不再依赖物理接口)
+	[3]一次路由，永久交换
+	CEF表-快速转发表    邻接关系表
+	vlan20 20.1.1.1    BB CC
+
+三层交换机上配置虚拟接口(配置VLAN网关)
+	ip routing
+	interface vlan 10  在路由器上创建虚拟端口vlan 10
+		ip add 10.1.1.254 255.255.255.0
+		no shutdown
+		exit
+	interface vlan 20
+		ip add 20.1.1.254 255.255.255.0
+		no shutdown
+		exit
+
+二层端口升级为三层端口：
+	interface f0/x
+		no switchport
+		ip add ...
+		no shutdown
+
+32.HSRP/VRRP协议
+热备份路由协议(备份网关)
+	[1]HSRP组:组号1-255，没有大小之分
+	[2]虚拟路由器的IP称为虚拟IP
+	[3]HSRP组的成员：
+		[1]虚拟路由器(老大)
+		[2]活跃路由器
+		[3]备份路由器
+		[4]其他路由器
+	[4]HSRP优先级：1-255，越高优先级越大，默认100
+	[5]HSRP组成员通过定时发送hello包交流，默认每隔3秒
+		hello时间3秒，坚持时间10秒
+	[6]占先权preempt
+		当检测不到对方，或检测到对方优先级比自己低，立即抢占活跃路由。
+	[7]配置跟踪track，跟踪外网端口状态，当外网端口down,自降优先级
+	
+interface f0/0
+	standby 1 ip 10.1.1.254--指定虚拟路由器IP
+	standby 1 priority 200--指定优先级
+	standby 1 preempt--开启占先权
+	standby 1 track f0/1--跟踪端口状态
+	exit
+
+STP 生成树：作用是防止网桥网络中的冗余链路形成环路工作
+
+33.ACL(Access Control List)
+ACL是一种包过滤技术，基于IP包头的IP地址、四层TCP,UDP头部的端口号、[5层数据]
+(基于三层和四层过滤)
+ACL在路由器上配置，也可以在防火墙上配置(一般称为策略)
+ACL主要分为2大类：
+	[1]标准ACL
+		表号:1-99
+		特点:只能基于源IP对包进行过滤
+		
+		配置ACL表:
+		configure terminal
+		access-list 表号 permit/deny 源IP或源网段 反子网掩码
+			(将子网掩码01倒置):255.255.255.0--0.0.0.255
+			反子网掩码用来匹配，与0对应的需要严格匹配，与1对应的忽略
+		例：
+		access-list 1 deny 10.0.0.0 0.255.255.255
+		--拒绝所有源IP为10开头的主机
+		
+		access-list 1 deny 10.1.1.1 0.0.0.0
+		--拒绝所有源IP为10.1.1.1的主机
+		简写：access-list 1 deny host 10.1.1.1
+		
+		access-list 1 deny 0.0.0.0 255.255.255.255
+		--拒绝所有主机
+		简写：access-list 1 deny any
+		
+		查看ACL表:
+		show ip access-list [表ID]
+		
+		应用ACL到接口:
+		interface f0/x
+		ip access-group 表号 in/out
+		exit
+		
+	[2]扩展ACL
+		表号:100-199
+		特点:可以基于源IP、目标IP、端口号、协议等对包进行过滤
+		
+		命令：
+		access-list 表号 permit/deny 协议 源IP或源网段 反子网掩码 目标IP或目标网段 反子网掩码 [eq 端口号]
+		注释：协议：tcp/udp/icmp/ip
+		
+		例：
+		access-list 100 permit tcp host 10.1.1.1 host 20.1.1.3 eq80
+		access-list 100 deny ip host 10.1.1.1 20.1.1.0 0.0.0.255
+		access-list 100 permit ip any any
+		
+
+ACL原理：
+	[1]ACL表必须应用到接口的进或出方向才生效
+	[2]一个接口的一个方向只能应用一张表
+	[3]进方向还是出方向应用，取决于流量控制总方向
+	[4]ACL表是严格自上而下检查每一条，所以注意书写顺序
+	[5]每一条由条件和动作组成，当流量完全满足条件，执行动作。当某流量没有满足某条件，继续检查下一条
+	[6]标准ACL尽量写在靠近目标的地方
+	[7]一般情况下，ACL写好后无法修改或删除或插入条目，只能在最后添加新条目。若想修改，只能删除整张表重新写
+	configure terminal
+	no access-list 表号
+	[8]命名ACL：
+		作用：可以对ACL进行自定义命名
+		优点：容易辨认
+			 可以修改、删除、插入某一条目
+		ip access-list extended/standard 名称
+			permit tcp 192.168.0.0 0.255.255.255 host 10.1.1.1 eq 80
+			permit tcp 172.16.0.0 0.0.255.255 host 10.1.1.1 eq 80
+			deny ip 192.168.0.0 0.0.255.255 host 10.1.1.0
+			
+			no 20(删除20条目)
+			15 permit tcp 172.16.0.0 0.0.255.255 host 10.1.1.1 eq www(插入条目序号为15)
+			
+		ip access-list extended/standard 100(对表号为100的标准或扩展ACL进行修改)
+
+34.NAT(Network Address Translations 网络地址转换)
+ipv4地址严重不够用
+IP地址分为公网IP和私网IP
+公网IP只能在公网使用
+私网IP只能在内网使用
+公网不允许出现私有IP
+私网IP可以重复在内网使用
+
+私网IP地址范围：
+	[1]10.0.0.0/8 (10开头的)
+	[2]172.16.0.0/16-172.31.0.0/16 (172.16开头到172.31开头)
+	[3]192.168.0.0/16 (192.168开头的)
+
+NAT主要实现公私有IP地址转换，一般是路由器或防火墙上完成，不建议在三层交换机上配置
+
+NAT有三大类：
+	[1]静态NAT(1对1映射、静态PAT、端口映射技术)
+	[2]动态NAT
+	[3]PAT(端口地址转换，端口复用技术)
+	
+NAT命令：
+	[1]定义内外网端口：
+		interface f0/0
+			ip nat inside
+			exit
+	[2]定义外网端口：
+		interface f0/1
+			ip nat outside
+			exit
+	[3]配置PAT：
+		定义内部地址池：(ACL表)
+		access-list 1 permit 192.168.0.0 0.0.255.255
+		做PAT动态映射：
+		configure terminal
+		ip nat inside source list 1 int f0/1 overload
+	[4]配置静态端口转换：
+		conf t
+		ip nat inside source static tcp 192.168.1.3 80 100.1.1.2 80
+	[5]查看NAT地址转换表：
+		show ip nat translations
+
+35.动态路由
+动态路由协议概述： 路由器之间用来交换信息的语言
+度量值： 跳数、带宽、负载、时延、可靠性、成本
+收敛： 使所有路由表都达到一致状态的过程
+RIP 距离-矢量路由选择协议：
+	定期更新
+	邻居
+	广播更新
+	全路由表更新
+RIP度量值为跳数： 最大跳数为15跳，16跳为不可达
+RIP更新时间： 每隔30s发送路由更新消息，UDP520端口
+RIP路由更新消息： 发送整个路由表信息
+水平分割阻止路由环路的产生：
+	从一个接口学到的路由信息不再从该接口发送出去
+	同时也减少路由更新信息占用的链路带宽资源
+命令：
+	router rip  开启路由协议
+		version 2
+		no auto-summary  关闭自动配置子网掩码
+		network 10.0.0.0
+		network 20.0.0.0
+		exit
+
+36.VPN(Virtual Private Network 虚拟专有网络)
+VPN可以实现在不安全的网络上安全的传输数据，好似专网
+VPN只是一个技术，使用PKI技术来保证数据的安全三要素(机密性、完整性、身份验证)
+VPN的类型：
+	[1]远程访问VPN(Remote Access VPN)
+		一般用于个人到安全连接企业内部(出差员工，在家办公使用)
+		一般公司部署VPN服务器，员工在外拨号连接VPN即可
+		常见RA-VPN协议：PPTP VPN,L2TP VPN,SSTP VPN,EZvpn,SSL VPN
+	[2]点到点VPN
+		一般用于企业对企业安全连接
+		一般需要在两个企业总出口设备之间建立VPN通道
+		常见的点到点VPN:IPsecVPN
+
+IPsecVPN:
+	[1]属于点到点VPN,可以在两家企业之间建立VPN隧道
+	[2]VPN隧道优点：
+		安全性
+		合并两家企业内网
+	[3]VPN隧道技术：
+		传输模式：只加密上层数据，不加密私有IP包头，速度快
+		隧道模式：加密整个私有IP包，包括IP包头，更安全，速度慢
+	[4]重新封装技术+加密认证技术
+	[5]IPsecVPN分为两大阶段：
+		第一阶段：管理连接
+			目的：通信双发设备通过非对称加密算法 加密 对称加密算法 所使用的对称密钥
+			命令：
+			configure terminal
+			crypto isakmp policy 1  (传输集/策略集)
+				encryption des/3des/aes
+				hash md5/sha
+				group 1/2/5
+				authentication pre-share
+				lifetime 秒  (默认86400秒)
+				exit
+			crypto isakmp key 预共享密钥 address 对方公网IP
+		第二阶段：数据连接
+			目的：通过对称加密算法加密实际所要传输的私网数据
+			命令：
+			定义VPN触发流量
+			access-list 100 permit ip 192.168.0.0 0.0.255.255 172.16.0.0 0.0.255.255
+			定义加密和认证方式
+			crypto ipsec transform-set 传输模式名 esp-des/3des/aes esp/ah-md5/sha-hmac
+			例：
+			crypto ipsec teansform-set xxx esp-aes esp-sha-hmac
+			esp:支持加密及认证
+			ah:只支持认证
+			创建MAP映射表：
+			conf t
+			crypto map map名称 1 ipsec-isakmp
+				match address acl表名
+				set transform-set 传输模式名
+				set peer 对方公网IP
+				exit
+			例：
+			conf t
+			crypto map wenmap 1 iesec-isakmp
+				match address 100
+				set transform-set xxx
+				set peer 200.1.1.2
+				exit
+			将map表应用到外网端口：
+			inter f0/1
+				crypto map wenmap
+				exit
+			一个接口只能应用一个map表
+			do show crypto isakmp sa  查看阶段一状态
+			do show crypto isakmp policy  查看阶段一的策略配置集
+			do show crypto ipsec sa  查看阶段二状态
+			do show crypto ipesc transform-set  查看阶段二的传输模式
+			
+		路由器工作原理：
+			内网 to 外网：路由->NAT->VPN->出去
+			
+远程访问VPN：
+	在公司需要搭建VPN服务器
+	VPN服务器需要对VPN客户端进行身份验证
+	VPN服务器需要给VPN客户端下发权限及IP
+
+37.防火墙
+隔离网络：将需要保护的网络与不可信任的网络进行隔离，隐藏信息并进行安全防护
+防火墙基本功能：
+	访问控制
+	攻击防护
+	冗余设计
+	路由、交换
+	日志记录
+	虚拟专网VPN
+	NAT
+	
+防火墙区域：
+	内部区域
+	DMZ区域：称为"隔离区"，也称"非军事化区/停火区"
+	外部区域
+	
+防火墙分类：
+	按防火墙形态：
+		软件防火墙
+		硬件防火墙
+	按技术实现：
+		包过滤防火墙
+			最早的防火墙技术之一，功能简单，配置复杂
+		应用(代理)防火墙
+			最早的防火墙技术之二，连接效率低，速度慢
+		状态检测包过滤防火墙
+			现在主流防火墙，速度快，配置方便，功能较多
+		WAF防火墙
+		应用层防火墙
+
+衡量防火墙五大指标：
+	吞吐量：在不丢包的情况下单位时间内通过的数据包数量
+	时延：数据包第一个比特进入防火墙到最后一比特从防火墙输出的时间间隔
+	丢包率：通过防火墙传送时所丢失数据包数量占所发送数据包的比率
+	并发连接数：防火墙能够同时处理的点对点最大连接数
+	新建连接数：在不丢包的情况下每秒可以建立的最大连接数
+	
+防火墙的工作模式：
+	标准应用：
+		透明模式/桥模式(二层)
+			一般用于用户网络已经建设完毕，网络功能基本已经实现的情况下，用户需要加装防火墙以实现安全区域的隔离要求
+			一般将网络划分为内部网，DMZ区和外部网
+		路由模式(三层)
+		混杂模式(二、三层)
+			一般网络情况为透明模式和路由模式的混合
