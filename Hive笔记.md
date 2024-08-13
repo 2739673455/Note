@@ -8,7 +8,7 @@
     1. 下载hive，解压
     2. 添加环境变量，source更新环境变量
     3. 初始化元数据库
-        schematool -dbType derby -initSchema
+        xxx/hive/bin/schematool -dbType derby -initSchema
 ## 3.mysql安装
     1. 下载mysql安装包
     2. 卸载系统自带的mariadb
@@ -49,9 +49,9 @@
         create database metastore;
         quit;
     2. 将mysql的JDBC驱动拷贝到hive的lib目录下
-        cp /opt/software/mysql-connector-java-5.1.37.jar $hive_HOME/lib
-    3. 在hive目录下新建hive-site.xml文件
-        vim $hive_HOME/conf/hive-site.xml
+        cp /opt/software/mysql-connector-java-5.1.37.jar $HIVE_HOME/lib
+    3. 在hive/conf目录下新建hive-site.xml文件
+        vim $HIVE_HOME/conf/hive-site.xml
         添加如下内容:
         <?xml version="1.0"?>
         <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
@@ -96,9 +96,13 @@
             select * from DBS;  #查看元数据库中存储的库信息
             select * from TBLS;  #查看元数据库中存储的表信息
             select * from COLUMNS_V2;  #查看元数据库中存储的表中列相关信息
-## 6.hive部署
+## 6.hive服务部署
 ### 1.hiveserver2服务
     hive的hiveserver2服务的作用是提供jdbc/odbc接口，为用户提供远程访问hive数据的功能
+    1. 用户说明
+        在远程访问Hive数据时，客户端并未直接访问Hadoop集群，而是由Hivesever2代理访问。
+        具体使用什么身份访问，由Hiveserver2的hive.server2.enable.doAs参数决定，该参数的含义是是否启用Hiveserver2用户模拟的功能。
+        若启用，则Hiveserver2会模拟成客户端的登录用户去访问Hadoop集群的数据，不启用，则Hivesever2会直接使用启动用户访问Hadoop集群数据。默认是开启的
     1. hadoop端配置  #修改core-site.xml，分发
         <!--配置所有节点的atguigu用户都可作为代理用户-->
         <property>
@@ -715,22 +719,22 @@
         使用自动转换SMB Join
 ## 4.数据倾斜
 ### 1.分组聚合导致的数据倾斜
-#### 1.Map-Side聚合
-    开启Map-Side聚合后，数据会现在Map端完成部分聚合工作。这样一来即便原始数据是倾斜的，经过Map端的初步聚合后，发往Reduce的数据也就不再倾斜了。最佳状态下，Map端聚合能完全屏蔽数据倾斜问题
+#### 1.Map Side聚合
+    开启Map Side聚合后，数据会现在Map端完成部分聚合工作。这样一来即便原始数据是倾斜的，经过Map端的初步聚合后，发往Reduce的数据也就不再倾斜了。最佳状态下，Map端聚合能完全屏蔽数据倾斜问题
     1. set hive.map.aggr=true;
-        启用map-side聚合
+        启用Map Side聚合
     2. set hive.map.aggr.hash.min.reduction=0.5;
-        用于检测源表数据是否适合进行map-side聚合。检测的方法是:先对若干条数据进行map-side聚合，若聚合后的条数和聚合前的条数比值小于该值，则认为该表适合进行map-side聚合；否则，认为该表数据不适合进行map-side聚合，后续数据便不再进行map-side聚合
+        用于检测源表数据是否适合进行Map Side聚合。检测的方法是:先对若干条数据进行Map Side聚合，若聚合后的条数和聚合前的条数比值小于该值，则认为该表适合进行Map Side聚合；否则，认为该表数据不适合进行Map Side聚合，后续数据便不再进行Map Side聚合
     3. set hive.groupby.mapaggr.checkinterval=100000;
-        用于检测源表是否适合map-side聚合的条数
+        用于检测源表是否适合Map Side聚合的条数
     4. set hive.map.aggr.hash.force.flush.memory.threshold=0.9;
-        map-side聚合所用的hash table，占用map task堆内存的最大比例，若超出该值，则会对hash table进行一次flush
-#### 2.Skew-GroupBy优化
-    Skew-GroupBy的原理是启动两个MR任务，第一个MR按照随机数分区，将数据分散发送到Reduce，完成部分聚合，第二个MR按照分组字段分区，完成最终聚合
+        Map Side聚合所用的hash table，占用map task堆内存的最大比例，若超出该值，则会对hash table进行一次flush
+#### 2.Skew GroupBy优化
+    Skew GroupBy的原理是启动两个MR任务，第一个MR按照随机数分区，将数据分散发送到Reduce，完成部分聚合，第二个MR按照分组字段分区，完成最终聚合
     1. set hive.groupby.skewindata=true;
-        启用skew-groupby
+        启用Skew GroupBy
     2. set hive.map.aggr=false;
-        关闭map-side聚合
+        关闭Map Side聚合
 ### 2.Join导致的数据倾斜
 #### 1.Map Join
     使用map join算法，join操作仅在map端就能完成，没有shuffle操作，没有reduce阶段，自然不会产生reduce端的数据倾斜。该方案适用于大表join小表时发生数据倾斜的场景

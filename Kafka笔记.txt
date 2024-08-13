@@ -385,16 +385,16 @@
 		4. controller不再动态选举，而是由配置文件规定。这样我们可以有针对性的加强controller节点的配置，而不是像以前一样对随机controller节点的高负载束手无策
 	2.Kafka-Kraft集群部署
 		1. 修改/opt/module/kafka-kraft/config/kraft/server.properties配置文件
-			#kafka的角色(controller相当于主机、broker节点相当于从机，主机类似zk功能)
 			process.roles=broker, controller
-			#节点ID
+				#kafka的角色(controller相当于主机、broker节点相当于从机，主机类似zk功能)
 			node.id=2
-			#全Controller列表
+				#节点ID
 			controller.quorum.voters=2@hadoop102:9093,3@hadoop103:9093,4@hadoop104:9093
-			#broker对外暴露的地址
+				#全Controller列表
 			advertised.Listeners=PLAINTEXT://hadoop102:9092
-			#kafka数据存储目录
+				#broker对外暴露的地址
 			log.dirs=/opt/module/kafka-kraft/datas
+				#kafka数据存储目录
 
 			分发配置文件
 		2. 初始化集群数据目录

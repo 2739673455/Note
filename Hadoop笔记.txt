@@ -551,17 +551,18 @@
 							status = submitClient.submitJob(jobId, submitJobDir.toString(), job.getCredentials())
 			3. FileInputFormat切片源码解析
 				1. 程序先找到数据存储的目录
-				2. 开始遍历处理(规划切片)目录下的每一个文件
-				3. 遍历第一个文件ss.txt
+				2. 开始遍历处理(规划切片)目录下的每一个文件，如果存在文件夹则报错或者跳过
+				3. 判断文件是否可切(bzip2v,LZO格式的压缩文件可切)
+				4. 遍历第一个文件ss.txt
 					1. 获取文件大小fs.sizeOf(ss.txt)
-					2. 计算切片大小
+					2. 计算每一个切片大小
 					computeSplitSize(Math.max(minSize,Math.min(maxSize,blocksize)))=blocksize=128M
-					3. 默认情况下，切片大小=blocksize
-					4. 开始切，形成第1个切片:ss.txt—0:128M 第2个切片ss.txt—128:256M 第3个切片ss.txt—256M:300M(每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，不大于1.1倍就划分一个切片)
+					3. 默认情况下，片大小=blocksize
+					4. 开始切，每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，不大于1.1倍就划分一个切片
 					5. 将切片信息写到一个切片规划文件中
 					6. 整个切片的核心过程在getSplit()方法中完成
 					7. InputSplit只记录了切片的元数据信息，比如起始位置、长度以及所在的节点列表等
-				4. 提交切片规划文件到YARN上，YARN上的MrAppMaster就可以根据切片规划文件计算开启MapTask个数
+				5. 提交切片规划文件到YARN上，YARN上的MrAppMaster就可以根据切片规划文件计算开启MapTask个数
 			4. TextInputFormat
 				TextInputFormat是默认的FileInputFormat实现类。按行读取每条记录。key是存储该行在整个文件中的起始字节偏移量， LongWritable类型。value是这行的内容，不包括任何行终止符(换行符和回车符)，Text类型
 			5. CombineTextInputFormat切片机制
@@ -778,6 +779,13 @@
 					相同，则按照提交时间顺序
 				先平均分配，在将多余的资源取出对缺少资源的job(平均或是按权重)进行分配
 	4.Yarn生产环境核心参数配置
+		1. 配置调度器，默认使用容量调度器
+		2. 配置RM处理调度器请求的线程数，但不能超过机器数*每台机器线程数
+		3. 是否开启Yarn自动检测硬件进行配置，开启后会争抢资源
+		4. 是否开启虚拟核；以及设置虚拟核数和物理核数的乘数，默认1.0
+		5. 是否开启虚拟内存检查，默认开启，开启后无法使用虚拟内存；以及虚拟内存和物理内存比例
+		6. 配置NodeManager的内存，CPU核数
+		7. 配置Container最大最小内存，最大最小CPU核数
 		yarn-site.xml
 		<!-- 选择调度器，默认容量 -->
 		<property>
@@ -1101,6 +1109,7 @@
 				// 设置reduce端输出压缩的方式
 				FileOutputFormat.setOutputCompressorClass(job, BZip2Codec.class);
 	5.Hadoop企业优化
+		1.
 
 7.Zookeeper
 	1.特点
@@ -1196,19 +1205,18 @@
 		1. HDFS HA功能通过配置多个NameNodes(Active/Standby)实现在集群中对NameNode的热备来解决上述问题。如果出现故障，如机器崩溃或机器需要升级维护，这时可通过此种方式将NameNode很快的切换到另外一台机器
 		2. 怎么保证三台NameNode的数据一致
 			1. Fsimage:让一台NN生成数据，让其他机器NN同步
-			2. Edits:需要引进新的模块JournalNode来保证edtis的文件的数据一致性
-		3. 怎么让同时只有一台NN是active，其他所有是standby的
-			Zookeeper居中协调，选举active
-		4. 2NN在ha架构中并不存在，定期合并fsimage和edtis的活谁来干
-			由standby的NN来干
+			2. Edits:需要引进新的模块JournalNode来保证Edits的文件的数据一致性
+		3. 怎么让同时只有一台NN是Active，其他所有是Standby的
+			Zookeeper居中协调，选举Active
+		4. 2NN在ha架构中并不存在，定期合并Fsimage和Edits的活谁来干
+			由Standby的NN来干
 		5. 自动故障转移
-			1. Active的NameNode通过zkfc(zookeeper failover controller)向zookeeper中临时节点写入数据
-			2. 其他NameNode从临时节点中读取数据
-			3. 如果Active的NameNode假死，临时节点会被删除
-			4. zookeeper会反向通知其他节点的zkfc
-			5. 其他节点并通过 ssh kill -9 杀死故障NameNode，防止脑裂
+			1. ZKFC(Zookeeper Failover Controller)定期对本地的NN发起健康检查(health-check)的命令，如果NN正确返回(以健康的状态及时响应)，那么这个NN被认为是健康的。否则被认为是失效节点
+			2. 当本地NN是健康的时候，ZKFC将会在Zookeeper中持有一个Session。如果本地NN又正好是Active的，那么ZKFC还有持有一个"ephemeral"的节点作为锁，一旦本地NN失效了，那么这个节点将会被自动删除
+			4. Zookeeper会反向通知其他节点的ZKFC
+			5. 其他NN竞争锁，竞争成功NN的通过 ssh kill -9 杀死故障NameNode，防止脑裂
 			6. 如果补刀失败则调用用户自定义脚本程序
-			7. 其他节点先抢到临时节点的会变为Active
+			7. 之后NN转换为Active状态
 	2.HDFS-HA搭建
 		1. 在opt目录下创建一个ha文件夹
 			sudo mkdir /opt/ha
