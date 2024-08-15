@@ -18,6 +18,7 @@
         useradd atguigu
         passwd atguigu
         visudo  #赋予root权限
+        atguigu ALL=(ALL) NOPASSWD:ALL
     5. 创建目录
         mkdir /opt/module
         mkdir /opt/software
@@ -55,7 +56,7 @@
     fi
     hosts=(`cat /home/atguigu/bin/hosts.sh`)
     for host in ${hosts[@]};do
-        echo ========== $host ==========
+        echo ------- $host -------
         for file in $@;do
             if [ -e $file ];then
                 pdir=$(cd -P $(dirname $file); pwd)
@@ -73,35 +74,29 @@
     hdfs_host=${hosts[0]}
     yarn_host=${hosts[1]}
     histoty_host=${hosts[0]}
-    function start(){
-        echo ========== hadoop start ==========
+    function hadoop_start(){
+        echo ------- hadoop start -------
         ssh $hdfs_host start-dfs.sh
         ssh $yarn_host start-yarn.sh
         ssh $histoty_host mapred --daemon start historyserver
     }
-    function stop(){
-        echo ========== hadoop stop ==========
+    function hadoop_stop(){
+        echo ------- hadoop stop -------
         ssh $histoty_host mapred --daemon stop historyserver
         ssh $yarn_host stop-yarn.sh
         ssh $hdfs_host stop-dfs.sh
     }
-    function clean(){
-        echo ========== hadoop clean ==========
+    function hadoop_clean(){
+        echo ------- hadoop clean -------
         for host in ${hosts[@]};do
             ssh $host rm -rf $HADOOP_HOME/data        
             ssh $host rm -rf $HADOOP_HOME/logs        
             ssh $host sudo rm -rf /tmp/*
         done
-        echo ========== clean finish ==========
+        echo ------- clean finish -------
     }
-    function jpsall(){
-        for host in ${hosts[@]};do
-            echo ========== $host ==========
-            ssh $host jps
-        done
-    }
-    function compare(){
-        echo ========== hadoop compare ==========
+    function hadoop_compare(){
+        echo ------- hadoop compare -------
         files=(
             $HADOOP_HOME/etc/hadoop/core-site.xml
             $HADOOP_HOME/etc/hadoop/hdfs-site.xml
@@ -118,37 +113,40 @@
                 ssh $host cat $file | diff $file - > /dev/null || echo $file on  $host is different
             done
         done
-        echo ========== compare finish ==========
+        echo ------- compare finish -------
+    }
+    function jpsall(){
+        for host in ${hosts[@]};do
+            echo ------- $host -------
+            ssh $host jps -m | grep -v Jps
+        done
     }
     function zk(){
-        echo ========== zookeeper $1 ==========
+        echo ------- zookeeper $1 -------
         for host in ${hosts[@]};do
-            echo ========== $host ==========
+            echo ------- $host -------
             ssh $host zkServer.sh $1
         done
     }
     function kafka(){
-        echo ========== kafka $1 ==========
+        echo ------- kafka $1 -------
         for host in ${hosts[@]};do
-            echo ========== $host ==========
+            echo ------- $host -------
             case $1 in
             "start") ssh $host kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties;;
-            "stop") ssh $host kafka-server-stop.sh
+            "stop") ssh $host kafka-server-stop.sh;;
             esac
         done
     }
     case $1 in
-    "start")start;;
-    "stop")stop;;
-    "clean")clean;;
+    "start")hadoop_start;;
+    "stop")hadoop_stop;;
+    "clean")hadoop_clean;;
+    "compare")hadoop_compare;;
     "jps")jpsall;;
-    "compare")compare;;
     "zk")zk $2;;
     "kafka")kafka $2;;
-    *)
-        echo argument error
-        echo "start|stop|clean|jps|compare|zk|kafka" 
-    ;;
+    *)echo "start|stop|clean|compare|jps|zk|kafka";;
     esac
 ## 3.集群配置文件
     $HADOOP_HOME/etc/hadoop
@@ -371,7 +369,7 @@
         -text [-ignoreCrc] <src> ...
         -setrep [-R] [-w] <rep> <path> ...  设置HDFS中文件的副本数量
 ## 3.HDFS读写数据流程
-### 1.HDFS读数据流程
+### 1.HDFS写数据流程
     1. 客户端通过Distributed FileSystem模块向NameNode请求上传文件，NameNode检查目标文件是否已存在，父目录是否存在
     2. NameNode返回是否可以上传
     3. 客户端请求第一个 Block上传到哪几个DataNode服务器上
@@ -380,7 +378,7 @@
     6. dn1、dn2、dn3逐级应答客户端
     7. 客户端开始往dn1上传第一个Block(先从磁盘读取数据放到一个本地内存缓存)，以Packet为单位，dn1收到一个Packet就会传给dn2，dn2传给dn3；dn1每传一个packet会放入一个应答队列等待应答
     8. 当一个Block传输完成之后，客户端再次请求NameNode上传第二个Block的服务器
-### 2.HDFS写数据流程
+### 2.HDFS读数据流程
     1. 客户端通过DistributedFileSystem向NameNode请求下载文件，NameNode通过查询元数据，找到文件块所在的DataNode地址
     2. 挑选一台DataNode(就近原则，然后随机)服务器，请求读取数据
     3. DataNode开始传输数据给客户端(从磁盘里面读取数据输入流，以Packet为单位来做校验)
@@ -484,9 +482,9 @@
     6. 不擅长流式计算，MapReduce的输入数据集是静态的
     7. 不擅长有向无环图计算，多个应用程序存在依赖关系，后一个应用程序的输入为前一个的输出。在这种情况下，每个MapReduce作业的输出结果都会写入到磁盘，造成大量磁盘IO，导致性能低下
 ### 2.MapReduce进程
-    MrAppMaster负责整个程序的过程调度及状态协调
-    第一个阶段的MapTask并发实例，完全并行运行，互不相干
-    第二个阶段的ReduceTask并发实例互不相干，但是他们的数据依赖于上一个阶段的所有MapTask并发实例的输出
+    1. MrAppMaster负责整个程序的过程调度及状态协调
+    2. MapTask并发实例，完全并行运行，互不相干
+    3. ReduceTask并发实例互不相干，但是他们的数据依赖于上一个阶段的所有MapTask并发实例的输出
     MapReduce编程模型只能包含一个Map阶段和一个Reduce阶段，如果用户的业务逻辑非常复杂，那就只能多个MapReduce程序，串行运行
 ### 3.MapReduce编程规范
     用户编写的程序分成三个部分:Mapper、Reducer、Driver
@@ -1074,7 +1072,63 @@
         // 设置reduce端输出压缩的方式
         FileOutputFormat.setOutputCompressorClass(job, BZip2Codec.class);
 ## 5.Hadoop企业优化
-    1.
+### 1.Map端优化
+    1. 合并小文件
+        采用CombineTextInputformat切片规则
+    2. 自定义分区，减少数据倾斜
+        自定义类继承Partitioner，重写getPartition方法
+    3. 减少溢写的次数
+        mapreduce.task.io.sort.mb
+            #Shuffle的环形缓冲区大小，默认100m，可以提高到200m
+        mapreduce.map.sort.spill.percent
+            #环形缓冲区溢出的阈值，默认80% ，可以提高的90%
+    4. 增加每次Merge合并次数
+        mapreduce.task.io.sort.factor
+            #默认10，可以提高到20
+    5. 在不影响业务结果的前提条件下可以提前采用Combiner
+        job.setCombinerClass(xxxReducer.class);
+    6. 为了减少磁盘IO，可以采用Snappy或者LZO压缩
+        conf.setBoolean("mapreduce.map.output.compress", true);
+        conf.setClass("mapreduce.map.output.compress.codec", SnappyCodec.class,CompressionCodec.class);
+    7. 增大MapTask内存上限
+        mapreduce.map.memory.mb
+            #默认MapTask内存上限1024MB，可以根据128m数据对应1G内存原则提高该内存
+    8. 增加MapTaskCPU核数
+        mapreduce.map.cpu.vcores
+            #默认MapTask的CPU核数1，计算密集型任务可以增加CPU核数
+    9. 异常重试
+        mapreduce.map.maxattempts
+            #每个Map Task最大重试次数，一旦重试次数超过该值则认为Map Task运行失败，默认值4，根据机器性能适当提高
+### 2.Reduce端优化
+    1. mapreduce.reduce.shuffle.parallelcopies
+        每个Reduce去Map中拉取数据的并行数，默认值是5，可以提高到10
+    2. mapreduce.reduce.shuffle.input.buffer.percent 
+        Buffer大小占Reduce可用内存的比例，默认值0.7，可以提高到0.8
+    3. mapreduce.reduce.shuffle.merge.percent
+        Buffer中的数据达到多少比例开始写入磁盘，默认值0.66，可以提高到0.75
+    4. mapreduce.reduce.memory.mb
+        默认ReduceTask内存上限1024MB，根据128m数据对应1G内存原则，适当提高内存到4-6G
+    5. mapreduce.reduce.cpu.vcores
+        默认ReduceTask的CPU核数1个，可以提高到2-4个
+    6. mapreduce.reduce.maxattempts
+        每个Reduce Task最大重试次数，一旦重试次数超过该值，则认为Map Task运行失败，默认值4，根据机器性能适当提高
+    7. mapreduce.job.reduce.slowstart.completedmaps
+        当MapTask完成的比例达到该值后才会为ReduceTask申请资源，默认是0.05
+    8. mapreduce.task.timeout
+        如果一个Task在一定时间内没有任何进入，即不会读取新的数据，也没有输出数据，则认为该Task处于Block状态
+        为了防止程序永远Block住不退出，则强制设置了一个超时时间(单位毫秒)，默认是600000(10分钟)
+        如果程序对每条输入数据的处理时间过长，建议将该参数调大
+### 3.小文件优化方法
+    1. Hadoop小文件弊端
+        HDFS上每个文件都要在NameNode上创建对应的元数据，这个元数据的大小约为150byte
+        当小文件比较多的时候，就会产生很多的元数据文件
+        一方面会大量占用NameNode的内存空间，另一方面就是元数据文件过多，使得寻址索引速度变慢
+        小文件过多，在进行MR计算时，会生成过多切片，需要启动过多的MapTask，每个MapTask处理的数据量小，导致MapTask的处理时间比启动时间还小，白白消耗资源
+    2. Hadoop小文件解决方案
+        1. Hadoop Archive(HAR归档)
+            是一个高效的将小文件放入HDFS块中的文件存档工具，能够将多个小文件打包成一个HAR文件，从而达到减少NameNode的内存使用
+        2. CombineTextInputFormat
+            CombineTextInputFormat用于将多个小文件在切片过程中生成一个单独的切片或者少量的切片
 # 7.Zookeeper
 ## 1.特点
     1. Zookeeper:一个领导者(Leader)，多个跟随者(Follower)组成的集群
@@ -1201,7 +1255,6 @@
             <name>hadoop.tmp.dir</name>
             <value>/opt/ha/hadoop-3.3.4/data</value>
         </property>
-        
         <!-- 指定zkfc要连接的zkServer地址 -->
         <property>
             <name>ha.zookeeper.quorum</name>
@@ -1262,7 +1315,7 @@
         <!-- 指定NameNode元数据在JournalNode上的存放位置 -->
         <property>
             <name>dfs.namenode.shared.edits.dir</name>
-        <value>qjournal://hadoop102:8485;hadoop103:8485;hadoop104:8485/mycluster</value>
+            <value>qjournal://hadoop102:8485;hadoop103:8485;hadoop104:8485/mycluster</value>
         </property>
         <!-- 访问代理类:client用于确定哪个NameNode为Active -->
         <property>
@@ -1305,7 +1358,7 @@
     6. 在所有节点上，启动datanode
         hdfs --daemon start datanode
     7. 格式化zkfc
-        hdfs zkfs -formatZK
+        hdfs zkfc -formatZK
     8. 在所有nn节点启动zkfc
         hdfs --daemon start zkfc
     9. 第二次启动可以通过脚本启动和关闭集群
@@ -1338,7 +1391,6 @@
             <name>yarn.resourcemanager.ha.enabled</name>
             <value>true</value>
         </property>
-    
         <!-- 声明两台resourcemanager的地址 -->
         <property>
             <name>yarn.resourcemanager.cluster-id</name>
@@ -1414,7 +1466,7 @@
             <value>hadoop104:8030</value>
         </property>
         <property>
-        <name>yarn.resourcemanager.resource-tracker.address.rm3</name>
+            <name>yarn.resourcemanager.resource-tracker.address.rm3</name>
             <value>hadoop104:8031</value>
         </property>
         <property>
@@ -1426,7 +1478,8 @@
             <value>true</value>
         </property>
         <property>
-            <name>yarn.resourcemanager.store.class</name>     <value>org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore</value>
+            <name>yarn.resourcemanager.store.class</name>
+            <value>org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore</value>
         </property>
         <property>
             <name>yarn.nodemanager.env-whitelist</name>

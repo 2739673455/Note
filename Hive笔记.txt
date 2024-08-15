@@ -1,15 +1,40 @@
 1.hive简介
 	1.hive本质
+		hive是基于Hadoop的一个数据仓库工具，可以将结构化的数据文件映射为一张表，并提供类SQL查询功能
 		hive是一个hadoop客户端，用于将HQL(hive SQL)转化成MapReduce程序
 		1. hive中每张表的数据存储在HDFS
 		2. hive分析数据底层的实现是MapReduce(也可配置为Spark或者Tez)
 		3. 执行程序运行在Yarn上
-	2.hive安装
+	2.hive架构
+		1. 用户接口 Client
+			CLI（command-line interface）、JDBC/ODBC
+		2. 元数据 Metastore
+			元数据包括:数据库(默认是default)、表名、表的拥有者、列/分区字段、表的类型(是否是外部表)、表的数据所在目录等
+			默认存储在自带的derby数据库中，由于derby数据库只支持单客户端访问，生产环境中为了多人开发，推荐使用MySQL存储Metastore
+		3. 驱动器 Driver
+			1. 解析器(SQLParser):将SQL字符串转换成抽象语法树(AST)
+			2. 语义分析(Semantic Analyzer):将AST进一步划分为QeuryBlock
+			3. 逻辑计划生成器(Logical Plan Gen):将语法树生成逻辑计划
+			4. 逻辑优化器(Logical Optimizer):对逻辑计划进行优化
+			5. 物理计划生成器(Physical Plan Gen):根据优化后的逻辑计划生成物理计划
+			6. 物理优化器(Physical Optimizer):对物理计划进行优化
+			7. 执行器(Execution):执行该计划，得到查询结果并返回给客户端
+		4. Hadoop
+			使用HDFS进行存储，可以选择MapReduce/Tez/Spark进行计算
+		5. 架构原理
+			1. 用户创建table
+			2. Metastore中记录对应表的路径
+			3. 映射表关系
+			4. 用户根据业务需求编写相应的HQL语句
+			5. 经过Driver调用MapReduce进行计算，返回计算结果
+	3.hive安装
 		1. 下载hive，解压
 		2. 添加环境变量，source更新环境变量
 		3. 初始化元数据库
 			xxx/hive/bin/schematool -dbType derby -initSchema
-	3.mysql安装
+		Hive默认使用的元数据库为derby。derby数据库的特点是同一时间只允许一个客户端访问。如果多个Hive客户端同时访问，就会报错
+		由于在企业开发中，都是多人协作开发，需要多客户端同时访问Hive，可以将Hive的元数据改为用MySQL存储，MySQL支持多客户端同时访问
+	4.mysql安装
 		1. 下载mysql安装包
 		2. 卸载系统自带的mariadb
 			sudo rpm -qa | grep mariadb | xargs sudo rpm -e --nodeps
@@ -21,29 +46,44 @@
 			sudo rpm -ivh mysql-community-client-5.7.28-1.el7.x86_64.rpm
 		5. 安装mysql-server
 			sudo rpm -ivh mysql-community-server-5.7.28-1.el7.x86_64.rpm
-	4.配置mysql
+	5.配置mysql
 		1. 启动mysql
 			sudo systemctl start mysqld
 		2. 查看mysql密码
 			sudo cat /var/log/mysqld.log | grep password
 		3. 进入mysql
-			mysql -uroot -p'password'
-		4. 更改密码策略
+			mysql -uroot -p"password"
+		4. 设置复杂密码(由于MySQL密码策略，此密码必须足够复杂)
+			set password=password("password")
+		5. 更改密码策略
 			set global validate_password_policy=0
 			set global validate_password_length=4
-		5. 设置新密码
+		6. 设置新密码
 			set password=password('123456')
-		6. 进入mysql库
+		7. 进入mysql库
 			use mysql
-		7. 查询user表
+		8. 查询user表
 			select host,user from user
-		8. 修改user表，把host内容修改为%
+		9. 修改user表，把host内容修改为%
 			update user set host='%' where user='root'
-		9. 刷新
+		10. 刷新
 			flush privileges
-		10. 退出
+		11. 退出
 			quit
-	5.配置元数据到mysql
+		12. 若因为安装失败或者其他原因，MySQL需要卸载重装
+			1. 清空原有数据
+				通过/etc/my.cnf查看MySQL数据的存储位置
+					sudo cat /etc/my.cnf
+				去往/var/lib/mysql路径需要root权限
+					su - root
+					cd /var/lib/mysql
+					rm -rf *
+			2. 卸载MySQL相关包
+				查看安装过的MySQL相关包
+					sudo rpm -qa | grep -i -E mysql
+				一键卸载
+					rpm -qa | grep -i -E mysql\|mariadb | xargs -n1 sudo rpm -e --nodeps
+	6.配置hive元数据到mysql
 		1. 新建元数据
 			mysql -uroot -p
 			create database metastore;
@@ -90,23 +130,20 @@
 		4. 初始化hive元数据库(修改为采用MySQL存储元数据)
 			schematool -dbType mysql -initSchema -verbose
 		5. 查看mysql中的元数据信息
-			1. 登录mysql
-				mysql -uroot -p
-			2. 查看元数据库metastore
-				show databases;
-				use metastore;
-				show tables;
-				select * from DBS;  #查看元数据库中存储的库信息
-				select * from TBLS;  #查看元数据库中存储的表信息
-				select * from COLUMNS_V2;  #查看元数据库中存储的表中列相关信息
-	6.hive服务部署
+			use metastore;
+			select * from DBS;  #查看元数据库中存储的库信息
+			select * from TBLS;  #查看元数据库中存储的表信息
+			select * from COLUMNS_V2;  #查看元数据库中存储的表中列相关信息
+	7.hive服务部署
 		1.hiveserver2服务
 			hive的hiveserver2服务的作用是提供jdbc/odbc接口，为用户提供远程访问hive数据的功能
 			1. 用户说明
-				在远程访问Hive数据时，客户端并未直接访问Hadoop集群，而是由Hivesever2代理访问。
-				具体使用什么身份访问，由Hiveserver2的hive.server2.enable.doAs参数决定，该参数的含义是是否启用Hiveserver2用户模拟的功能。
+				在远程访问Hive数据时，客户端并未直接访问Hadoop集群，而是由Hivesever2代理访问
+				具体使用什么身份访问，由Hiveserver2的hive.server2.enable.doAs参数决定，该参数的含义是是否启用Hiveserver2用户模拟的功能
 				若启用，则Hiveserver2会模拟成客户端的登录用户去访问Hadoop集群的数据，不启用，则Hivesever2会直接使用启动用户访问Hadoop集群数据。默认是开启的
-			1. hadoop端配置  #修改core-site.xml，分发
+				生产环境，推荐开启用户模拟功能，因为开启后才能保证各用户之间的权限隔离
+				hivesever2的模拟用户功能，依赖于Hadoop提供的proxy user（代理用户功能），只有Hadoop中的代理用户才能模拟其他用户的身份访问Hadoop集群。因此，需要将hiveserver2的启动用户设置为Hadoop的代理用户
+			2. hadoop端配置  #修改core-site.xml，分发
 				<!--配置所有节点的atguigu用户都可作为代理用户-->
 				<property>
 					<name>hadoop.proxyuser.atguigu.hosts</name>
@@ -124,7 +161,7 @@
 					<name>hadoop.proxyuser.atguigu.users</name>
 					<value>*</value>
 				</property>
-			2. hive端配置  #在hive-site.xml文件中添加如下配置信息
+			3. hive端配置  #在hive-site.xml文件中添加如下配置信息
 				<!-- 指定hiveserver2连接的host -->
 				<property>
 					<name>hive.server2.thrift.bind.host</name>
@@ -136,13 +173,13 @@
 					<name>hive.server2.thrift.port</name>
 					<value>10000</value>
 				</property>
-			3. 测试
+			4. 测试
 				1. 启动hiveserver2
 					hive --service hiveserver2
 				2. 使用命令行客户端beeline进行远程访问
 					beeline -u jdbc:hive2://hadoop102:10000 -n atguigu
 		2.metastore服务
-			为hive CLI或者hiveserver2提供元数据访问接口，嵌入式模式和独立服务模式
+			为hive CLI或者hiveserver2提供元数据访问接口，有嵌入式模式和独立服务模式
 			1. 嵌入式模式 
 				每个hive CLI都需要直接连接元数据库，当hive CLI较多时，数据库压力会比较大
 				每个客户端都需要用户元数据库的读写权限，元数据库的安全得不到很好的保证
@@ -171,6 +208,7 @@
 					<value>123456</value>
 				</property>
 			2. 独立服务模式
+				每个hive CLI都通过metastore服务连接元数据库
 				1. 首先，保证metastore服务的配置文件hive-site.xml中包含连接元数据库所需的以下参数:
 					<!-- jdbc连接的URL -->
 					<property>
@@ -204,10 +242,10 @@
 					注意:主机名需要改为metastore服务所在节点，端口号无需修改，metastore服务的默认端口就是9083
 				3. 测试
 					hive --service metastore  #启动metastore
-	7.hive常用交互命令
+	8.hive常用交互命令
 		hive -e 'sql语句'  #不进入hive的交互窗口执行hql语句
 		hive -f sql文件  #执行脚本中的hql语句
-	8.hive参数配置方式
+	9.hive参数配置方式
 		1. 在客户端中设置(当前窗口中当次有效)
 			hive > set 参数名=参数值
 		2. 在启动客户端时设置参数(当前窗口中当次有效)
@@ -219,7 +257,7 @@
 				<name>mapreduce.job.reduces</name>
 				<value>9</value>
 			</property>
-	9.常见属性配置
+	10.常见属性配置
 		1. hive客户端显示当前库和表头
 			hive-site.xml
 			<property>
@@ -237,9 +275,9 @@
 			2. 在hive-log4j2.properties文件中修改log存放位置
 				property.hive.log.dir=/opt/module/hive/logs
 		3. hive的JVM堆内存设置
-			新版本的Hive启动的时候，默认申请的JVM堆内存大小为256M，JVM堆内存申请的太小，导致后期开启本地模式，执行复杂的SQL时经常会报错:java.lang.OutOfMemoryError: Java heap space，因此最好提前调整一下HADOOP_HEAPSIZE这个参数
+			新版本的hive启动的时候，默认申请的JVM堆内存大小为256M，JVM堆内存申请的太小，导致后期开启本地模式，执行复杂的SQL时经常会报错:java.lang.OutOfMemoryError: Java heap space，因此最好提前调整一下HADOOP_HEAPSIZE这个参数
 			1. 修改$HIVE_HOME/conf下的hive-env.sh.template为hive-env.sh
-			2. 将hive-env.sh其中的参数 export HADOOP_HEAPSIZE修改为2048，重启Hive
+			2. 将hive-env.sh其中的参数 export HADOOP_HEAPSIZE 修改为2048，重启hive
 		4. 关闭Hadoop虚拟内存检查
 			yarn-site.xml添加如下配置
 			<property>
@@ -248,7 +286,19 @@
 			</property>
 		5. 开启本地模式
 			set hive.exec.mode.local.auto=true;
-	10.hive启停脚本
+		6. 单个MR的中间结果进行压缩
+			单个MR的中间结果是指Mapper输出的数据，对其进行压缩可降低shuffle阶段的网络IO，可通过以下参数进行配置:
+			set mapreduce.map.output.compress=true;
+				开启MapReduce中间数据压缩功能
+			set mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.SnappyCodec;
+				设置MapReduce中间数据数据的压缩方式为Snappy
+		7. 单条SQL语句的中间结果进行压缩
+			单条SQL语句的中间结果是指，两个MR(一条SQL语句可能需要通过MR进行计算)之间的临时数据，可通过以下参数进行配置:
+			set hive.exec.compress.intermediate=true;
+				是否对两个MR之间的临时数据进行压缩
+			set hive.intermediate.compression.codec= org.apache.hadoop.io.compress.SnappyCodec;
+				设置压缩方式为Snappy
+	11.hive启停脚本
 		#!/bin/bash
 		HIVE_LOG_DIR=$HIVE_HOME/logs
 		if [ ! -d $HIVE_LOG_DIR ]
@@ -335,11 +385,6 @@
 
 3.表操作
 	1.建表语句格式
-		#temporary  创建临时表，客户端退出删除临时表
-		#external  创建外部表，否则是管理表
-		#删除管理表时会将元数据和HDFS上的数据全部删除掉
-		#删除外部表时只会删除元数据
-		#truncate table时只能清空管理表。清空外部表时会报错
 		create [temporary] [external] table [if not exists] [库名.]表名
 		[(
 			字段名 字段类型 [comment 字段描述信息，注释],...
@@ -348,86 +393,46 @@
 		[partitioned by (字段名 字段类型 [comment 字段描述信息，注释],...)]  #创建分区表
 		[clustered by (分桶字段名1,分桶字段名2,...)]  #创建分桶表
 		[row format row_format]  #用来对数据和元数据的匹配进行说明
-			[fields terminated by 分隔字符]  #每个字段用什么分隔
-			[collection items terminated by 分隔字符]  #复杂数据类型中的元素之间用什么分隔
-			[map keys terminated by 分隔字符]  #map中的元素的key和value用什么分隔
-			[lines terminated by 分隔字符]  #每条数据之间用什么分隔
-			[null defined as 字符]  #表中的null值在HDFS上的文件中用什么字符表示，默认\N
 		[stored as file_format]  #数据的存储格式，默认是textfile
 		[location 路径]  #创建库和表在hdfs上对应的路径
 		[tblproperties ('属性名'='属性值',...)]
-	2.案例
-		1.创建表
-			create table if not exists db1.employee
-			(
-			id int comment 'this is id',
-			name string comment 'this is name'
-			)
-			comment 'this is table'
-			location '/demo/employee'
-			tblproperties('ver'='1.0');	
-		2.创建临时表
-			create temporary table tem_tbl
-			(
-			id int,
-			name string
-			);
-		3.将查询的结果创建成一张表
-			create table 表名
-			as
-			select .....
-		4.基于现有的表创建一张新表(没有数据只有表结构)
-			create table 新表的表名 like 存在的表的表名;
-		5.创建表(数据只有value)
-			create table stu
-			(
-			name string,
-			friends array<string>,
-			students map<string,int>,
-			address struct<street:string,city:string,postal_code:int>
-			)
-			row format delimited
-			fields terminated by ','
-			collection items terminated by '-'
-			map keys terminated by ':';
-		6.创建表(数据为json)
-			create table stu2
-			(
-			name string,
-			friends array<string>,
-			students map<string,int>,
-			address struct<street:string,city:string,postal_code:int>
-			)
-			row format serde 'org.apache.hadoop.hive.serde2.JsonSerDe';
-		7.查询复杂数据
-			select 数组[索引],map['key值'],struct.字段名 from 表名;
-		8.创建外部表
-			create external table ext_tbl
-			(
-			id int,
-			name string
-			)
-			row format delimited fields terminated by '\t';
-		9.创建管理表
-			create table man_tbl
-			(
-			id int,
-			name string
-			)
-			row format delimited fields terminated by '\t';
-		10.外部表和管理表的转换
-			desc formatted 表名  #查看表信息
-			alter table 表名 set tblproperties('EXTERNAL'='TRUE/FALSE')  #通过修改表的属性修改表的类型
-		11.创建分区表
-			create table dept_partition
-			(
-				deptno int,
-				dname  string,
-				loc    string
-			)
-			partitioned by (day string)  #指定分区字段
-			row format delimited fields terminated by '\t';
-		12.分区表操作
+	2.关键字说明
+		1.temporary 临时表
+			该表只在当前会话可见，会话结束，表会被删除
+		2.external 外部表
+			外部表，与之相对应的是内部表(管理表)
+			管理表意味着Hive会完全接管该表，包括元数据和HDFS中的数据。而外部表则意味着Hive只接管元数据，而不完全接管HDFS中的数据
+			删除管理表时会将元数据和HDFS上的数据全部删除掉
+			删除外部表时只会删除元数据
+			truncate table时只能清空管理表，清空外部表时会报错
+			外部表和管理表的转换:
+				desc formatted 表名  #查看表信息
+				alter table 表名 set tblproperties('EXTERNAL'='TRUE/FALSE')  #通过修改表的属性修改表的类型
+		3.数据类型
+			- tinyint  #1byte，有符号整数
+			- smallint  #2byte，有符号整数
+			- int  #4byte，有符号整数
+			- bigint  #8byte，有符号整数
+			- boolean  #布尔类型，true或者false
+			- float  #单精度浮点数
+			- double  #双精度浮点数
+			- decimal  #十进制精准数字类型，decimal(16,2)
+			- varchar  #字符序列，需指定最大长度，最大长度的范围是[1,65535]，varchar(32)
+			- string  #字符串，无需指定最大长度
+			- timestamp  #时间类型
+			- binary  #二进制数据
+			- array  #数组是一组相同类型的值的集合，array<string>，arr[0]
+			- map  #map是一组相同类型的键-值对集合，map<string,int>，map['key']
+			- struct  #结构体由多个属性组成，每个属性都有自己的属性名和数据类型，struct\<id:int,name:string>，struct.id
+			数据类型转换:
+			1. 隐式类型转换
+				任何整数类型都可以隐式地转换为一个范围更广的类型，如tinyint可以转换成int，int可以转换成bigint
+				所有整数类型、float和string类型都可以隐式地转换成double
+				tinyint、smallint、int都可以转换为float
+				boolean类型不可以转换为任何其它的类型
+			2. 显式类型转换
+				cast('1' as int)
+		4.partitioned by 分区表(分目录)
 			1. 查看分区
 				show partitions 表名
 			2. 添加分区
@@ -483,7 +488,7 @@
 						dname,
 						loc
 					from dept;
-		13.分桶表
+		5.clustered by ... sorted by ... into ... buckets 分桶表(分文件)
 			1. 创建分桶表
 				create table stu_buck_sort
 				(
@@ -498,7 +503,42 @@
 				insert / load
 				#向分桶表中导入的数据(load data方式)必须放在HDFS上
 				load data inpath '/demo/datas2/student2.txt' into table stu_buck;
-		14.存储格式
+		6.row format 数据匹配
+			指定serde，serde是Serializer and Deserializer的简写。hive使用serde序列化和反序列化每行数据
+			1. delimited
+				表示对文件中的每个字段按照特定分割符进行分割，其会使用默认的serde对每行数据进行序列化和反序列化
+				row format delimited
+				[fields terminated by 分隔字符]  #每个字段用什么分隔
+				[collection items terminated by 分隔字符]  #复杂数据类型中的元素之间用什么分隔
+				[map keys terminated by 分隔字符]  #map中的元素的key和value用什么分隔
+				[lines terminated by 分隔字符]  #每条数据之间用什么分隔
+				[null defined as 字符]  #表中的null值在HDFS上的文件中用什么字符表示，默认\N
+				案例:
+				create table stu
+				(
+				name string,
+				friends array<string>,
+				students map<string,int>,
+				address struct<street:string,city:string,postal_code:int>
+				)
+				row format delimited
+				fields terminated by ','
+				collection items terminated by '-'
+				map keys terminated by ':';
+			2. serde
+				指定其他内置的serde或者用户自定义的serde。例如JSON serde，可用于处理JSON字符串
+				row format serde SERDE名 [with serdeproperties (property_name=property_value,property_name=property_value,...)]
+				案例:
+				create table stu2
+				(
+				name string,
+				friends array<string>,
+				students map<string,int>,
+				address struct<street:string,city:string,postal_code:int>
+				)
+				row format serde 'org.apache.hadoop.hive.serde2.JsonSerDe';
+		7.stored as 数据的存储格式
+			默认是textfile，还有sequence file，orc file、parquet file等
 			1. textfile
 				1. 创建表
 					create table textfile_table
@@ -512,7 +552,7 @@
 					set mapreduce.output.fileoutputformat.compress.codec =org.apache.hadoop.io.compress.SnappyCodec;  #输出结果的压缩格式]
 				2. 导入数据
 					load data local inpath '/opt/module/hive/datas/student2.txt' into table textfile_table;
-			2. orc
+			2. orc(列存储)
 				1. 创建表
 					create table orc_table
 					(
@@ -525,7 +565,7 @@
 					/ tblproperties ("orc.compress"="snappy");  #开启压缩
 				2. 导入数据，只能通过insert
 					insert into table orc_table select * from textfile_table;
-			3. parquet
+			3. parquet(列存储)
 				1. 创建表
 					create table parquet_table
 					(
@@ -537,6 +577,16 @@
 					[tblproperties ("parquet.compression"="snappy");  #开启压缩]
 				2. 导入数据，只能通过insert
 					insert into table parquet_table select * from textfile_table;
+		8.location 数据的存储路径
+			创建库和表在hdfs上对应的路径，若不指定路径，其默认值为${hive.metastore.warehouse.dir}/db_name.db/table_name
+		9.tblproperties 表的键值对参数
+	2.特殊建表
+		1.将查询的结果创建成一张表
+			create table 表名
+			as
+			select .....
+		2.基于现有的表创建一张新表(没有数据只有表结构)
+			create table 新表的表名 like 存在的表的表名;
 	3.表操作
 		1.查看表
 			show tables [in 库名] like ['匹配规则'](可使用 *、|)
@@ -643,7 +693,7 @@
 				select date_format('2022-08-08','yyyy年-MM月-dd日');
 		3.流程控制函数if
 			if(boolean testCondition, T valueTrue, T valueFalseOrNull)
-				select if(10 > 5,true,false);
+			select if(10 > 5,true,false);
 		4.集合函数
 			1. array  #array(val1, val2,...) 
 				select array('1','2','3','4');
@@ -724,44 +774,67 @@
 					from order_info;
 
 5.hive调优
-	1.Explain执行计划概述
-		explain [ formatted | extended | dependency ]
-		sql语句;
-		# formatted  #将执行计划以JSON字符串的形式输出
-		# extended  #输出执行计划中的额外信息，通常是读写的文件名等信息
-		# dependency  #输出执行计划读取的表及分区
+	1.Explain查看执行计划
+		1. Explain执行计划概述
+			Explain呈现的执行计划，由一系列Stage组成，这一系列Stage具有依赖关系，每个Stage对应一个MapReduce Job，或者一个文件系统操作等。若某个Stage对应的一个MapReduce Job，其Map端和Reduce端的计算逻辑分别由Map Operator Tree和Reduce Operator Tree进行描述，Operator Tree由一系列的Operator组成，一个Operator代表在Map或Reduce阶段的一个单一的逻辑操作，例如TableScan Operator，Select Operator，Join Operator等
+			常见的Operator及其作用如下:
+			- TableScan  #表扫描操作，通常map端第一个操作肯定是表扫描操作
+			- Select Operator  #选取操作
+			- Group By Operator  #分组聚合操作
+			- Reduce Output Operator  #输出到 reduce 操作
+			- Filter Operator  #过滤操作
+			- Join Operator  #join 操作
+			- File Output Operator  #文件输出操作
+			- Fetch Operator  #客户端获取数据操作
+		2. Explain基本语法
+			explain [ formatted | extended | dependency ]
+			sql语句;
+			formatted:将执行计划以JSON字符串的形式输出
+			extended:输出执行计划中的额外信息，通常是读写的文件名等信息
+			dependency:输出执行计划读取的表及分区
 	2.分组聚合优化
-		map-side聚合，就是在map端维护一个hash table，利用其完成部分的聚合，然后将部分聚合的结果，按照分组字段分区，发送至reduce端，完成最终的聚合。map-side聚合能有效减少shuffle的数据量，提高分组聚合运算的效率
+		hive对分组聚合的优化主要围绕着减少Shuffle数据量进行，具体做法是Map-Side聚合
+		所谓Map-Side聚合，就是在map端维护一个hash table，利用其完成部分的聚合，然后将部分聚合的结果，按照分组字段分区，发送至reduce端，完成最终的聚合
+		Map-Side聚合能有效减少shuffle的数据量，提高分组聚合运算的效率
 		1. set hive.map.aggr=true;
-			启用map-side聚合
+			启用Map-Side聚合
 		2. set hive.map.aggr.hash.min.reduction=0.5;
-			用于检测源表数据是否适合进行map-side聚合。检测的方法是:先对若干条数据进行map-side聚合，若聚合后的条数和聚合前的条数比值小于该值，则认为该表适合进行map-side聚合；否则，认为该表数据不适合进行map-side聚合，后续数据便不再进行map-side聚合
+			用于检测源表数据是否适合进行Map-Side聚合。检测的方法是:先对若干条数据进行Map-Side聚合，若聚合后的条数和聚合前的条数比值小于该值，则认为该表适合进行Map-Side聚合；否则，认为该表数据不适合进行Map-Side聚合，后续数据便不再进行Map-Side聚合
 		3. set hive.groupby.mapaggr.checkinterval=100000;
-			用于检测源表是否适合map-side聚合的条数
+			用于检测源表是否适合Map-Side聚合的条数
 		4. set hive.map.aggr.hash.force.flush.memory.threshold=0.9;
-			map-side聚合所用的hash table，占用map task堆内存的最大比例，若超出该值，则会对hash table进行一次flush
+			Map-Side聚合所用的hash table，占用map task堆内存的最大比例，若超出该值，则会对hash table进行一次flush
 	3.Join优化
 		1.Common Join
-			Common Join是Hive中最稳定的join算法，其通过一个MapReduce Job完成一个join操作。Map端负责读取join操作所需表的数据，并按照关联字段进行分区，通过Shuffle，将其发送到Reduce端，相同key的数据在Reduce端完成最终的Join操作
+			是Hive中最稳定的join算法，其通过一个MapReduce Job完成一个join操作
+			Map端负责读取join操作所需表的数据，并按照关联字段进行分区，通过Shuffle，将其发送到Reduce端，相同key的数据在Reduce端完成最终的Join操作
+			sql语句中的join操作和执行计划中的Common Join任务并非一对一的关系，一个sql语句中的相邻的且关联字段相同的多个join操作可以合并为一个Common Join任务
 		2.Map Join
-			Map Join算法可以通过两个只有map阶段的Job完成一个join操作。其适用场景为大表join小表。若某join操作满足要求，则第一个Job会读取小表数据，将其制作为hash table，并上传至Hadoop分布式缓存(本质上是上传至HDFS)。第二个Job会先从分布式缓存中读取小表数据，并缓存在Map Task的内存中，然后扫描大表数据，这样在map端即可完成关联操作
-		3.Bucket Map Join
-			Bucket Map Join是对Map Join算法的改进，其打破了Map Join只适用于大表join小表的限制，可用于大表join大表的场景。
-			Bucket Map Join的核心思想是:若能保证参与join的表均为分桶表，且关联字段为分桶字段，且其中一张表的分桶数量是另外一张表分桶数量的整数倍，就能保证参与join的两张表的分桶之间具有明确的关联关系，所以就可以在两表的分桶间进行Map Join操作了。这样一来，第二个Job的Map端就无需再缓存小表的全表数据了，而只需缓存其所需的分桶即可
-		4.Sort Merge Bucket Map Join
-			Sort Merge Bucket Map Join(简称SMB Map Join)基于Bucket Map Join。SMB Map Join要求，参与join的表均为分桶表，且需保证分桶内的数据是有序的，且分桶字段、排序字段和关联字段为相同字段，且其中一张表的分桶数量是另外一张表分桶数量的整数倍。
-			SMB Map Join同Bucket Join一样，同样是利用两表各分桶之间的关联关系，在分桶之间进行join操作，不同的是，分桶之间的join操作的实现原理。Bucket Map Join，两个分桶之间的join实现原理为Hash Join算法；而SMB Map Join，两个分桶之间的join实现原理为Sort Merge Join算法
-			Hash Join和Sort Merge Join均为关系型数据库中常见的Join实现算法。Hash Join的原理相对简单，就是对参与join的一张表构建hash table，然后扫描另外一张表，然后进行逐行匹配。Sort Merge Join需要在两张按照关联字段排好序的表中进行
-		5.Map Join设置
+			可以通过两个只有map阶段的Job完成一个join操作。其适用场景为大表join小表
+			若某join操作满足要求，则第一个Job会读取小表数据，将其制作为hash table，并上传至Hadoop分布式缓存(本质上是上传至HDFS)
+			第二个Job会先从分布式缓存中读取小表数据，并缓存在Map Task的内存中，然后扫描大表数据，这样在map端即可完成关联操作
+			Map Join设置:
 			1. set hive.auto.convert.join=true;
 				启动Map Join自动转换
 			2. set hive.mapjoin.smalltable.filesize=250000;
-				一个Common Join operator转为Map Join operator的判断条件,若该Common Join相关的表中,存在n-1张表的已知大小总和<=该值,则生成一个Map Join计划,此时可能存在多种n-1张表的组合均满足该条件,则hive会为每种满足条件的组合均生成一个Map Join计划,同时还会保留原有的Common Join计划作为后备(back up)计划,实际运行时,优先执行Map Join计划，若不能执行成功，则启动Common Join后备计划
+				一个Common Join operator转为Map Join operator的判断条件
+				若该Common Join相关的表中,存在n-1张表的已知大小总和<=该值,则生成一个Map Join计划
+				此时可能存在多种n-1张表的组合均满足该条件,则hive会为每种满足条件的组合均生成一个Map Join计划,同时还会保留原有的Common Join计划作为后备(back up)计划
+				实际运行时,优先执行Map Join计划，若不能执行成功，则启动Common Join后备计划
 			3. set hive.auto.convert.join.noconditionaltask=true;
 				开启无条件转Map Join
 			4. set hive.auto.convert.join.noconditionaltask.size=10000000;
-				无条件转Map Join时的小表之和阈值,若一个Common Join operator相关的表中，存在n-1张表的大小总和<=该值,此时hive便不会再为每种n-1张表的组合均生成Map Join计划,同时也不会保留Common Join作为后备计划。而是只生成一个最优的Map Join计划
-		6.Bucket Map Join设置
+				无条件转Map Join时的小表之和阈值
+				若一个Common Join operator相关的表中，存在n-1张表的大小总和<=该值,此时hive便不会再为每种n-1张表的组合均生成Map Join计划,同时也不会保留Common Join作为后备计划。而是只生成一个最优的Map Join计划
+		3.Bucket Map Join
+			是对Map Join算法的改进，其打破了Map Join只适用于大表join小表的限制，可用于大表join大表的场景
+			Bucket Map Join的核心思想是:
+			若能保证参与join的表均为分桶表
+			且关联字段为分桶字段
+			且其中一张表的分桶数量是另外一张表分桶数量的整数倍
+			就能保证参与join的两张表的分桶之间具有明确的关联关系，所以就可以在两表的分桶间进行Map Join操作了
+			这样一来，第二个Job的Map端就无需再缓存小表的全表数据了，而只需缓存其所需的分桶即可
+			Bucket Map Join设置
 			1. Hint提示
 				select /*+ mapjoin(ta) */
 					ta.id,
@@ -774,47 +847,74 @@
 				map join hint默认会被忽略(因为已经过时)，需将如下参数设置为false
 			4. set hive.optimize.bucketmapjoin = true;
 				启用bucket map join优化功能
-		7.Sort Merge Bucket Map Join设置
+		4.Sort Merge Bucket Map Join
+			基于Bucket Map Join，SMB Map Join要求:
+			参与join的表均为分桶表
+			且需保证分桶内的数据是有序的
+			且分桶字段、排序字段和关联字段为相同字段
+			且其中一张表的分桶数量是另外一张表分桶数量的整数倍
+			SMB Map Join同Bucket Join一样，同样是利用两表各分桶之间的关联关系，在分桶之间进行join操作
+			不同的是分桶之间的join操作的实现原理:
+			Bucket Map Join，两个分桶之间的join实现原理为Hash Join算法
+			而SMB Map Join，两个分桶之间的join实现原理为Sort Merge Join算法
+			Hash Join和Sort Merge Join均为关系型数据库中常见的Join实现算法
+			Hash Join的原理相对简单，就是对参与join的一张表构建hash table，然后扫描另外一张表，然后进行逐行匹配
+			Sort Merge Join需要在两张按照关联字段排好序的表中进行
+			SMB Map Join与Bucket Map Join相比，在进行Join操作时，Map端是无需对整个Bucket构建hash table，也无需在Map端缓存整个Bucket数据的，每个Mapper只需按顺序逐个key读取两个分桶的数据进行join即可
+			Sort Merge Bucket Map Join设置:
 			1. set hive.optimize.bucketmapjoin.sortedmerge=true;
 				启动Sort Merge Bucket Map Join优化
 			2. set hive.auto.convert.sortmerge.join=true;
 				使用自动转换SMB Join
 	4.数据倾斜
+		数据倾斜问题，通常是指参与计算的数据分布不均，即某个key或者某些key的数据量远超其他key，导致在shuffle阶段，大量相同key的数据被发往同一个Reduce，进而导致该Reduce所需的时间远超其他Reduce，成为整个任务的瓶颈
+		hive中的数据倾斜常出现在分组聚合和join操作的场景中
 		1.分组聚合导致的数据倾斜
-			1.Map Side聚合
-				开启Map Side聚合后，数据会现在Map端完成部分聚合工作。这样一来即便原始数据是倾斜的，经过Map端的初步聚合后，发往Reduce的数据也就不再倾斜了。最佳状态下，Map端聚合能完全屏蔽数据倾斜问题
+			1.Map-Side聚合
+				开启Map-Side聚合后，数据会先在Map端完成部分聚合工作
+				这样一来即便原始数据是倾斜的，经过Map端的初步聚合后，发往Reduce的数据也就不再倾斜了
+				最佳状态下，Map端聚合能完全屏蔽数据倾斜问题
 				1. set hive.map.aggr=true;
-					启用Map Side聚合
+					启用Map-Side聚合
 				2. set hive.map.aggr.hash.min.reduction=0.5;
-					用于检测源表数据是否适合进行Map Side聚合。检测的方法是:先对若干条数据进行Map Side聚合，若聚合后的条数和聚合前的条数比值小于该值，则认为该表适合进行Map Side聚合；否则，认为该表数据不适合进行Map Side聚合，后续数据便不再进行Map Side聚合
+					用于检测源表数据是否适合进行Map-Side聚合
+					检测的方法是:先对若干条数据进行Map-Side聚合，若聚合后的条数和聚合前的条数比值小于该值，则认为该表适合进行Map-Side聚合；否则，认为该表数据不适合进行Map-Side聚合，后续数据便不再进行Map-Side聚合
 				3. set hive.groupby.mapaggr.checkinterval=100000;
-					用于检测源表是否适合Map Side聚合的条数
+					用于检测源表是否适合Map-Side聚合的条数
 				4. set hive.map.aggr.hash.force.flush.memory.threshold=0.9;
-					Map Side聚合所用的hash table，占用map task堆内存的最大比例，若超出该值，则会对hash table进行一次flush
-			2.Skew GroupBy优化
-				Skew GroupBy的原理是启动两个MR任务，第一个MR按照随机数分区，将数据分散发送到Reduce，完成部分聚合，第二个MR按照分组字段分区，完成最终聚合
+					Map-Side聚合所用的hash table，占用map task堆内存的最大比例，若超出该值，则会对hash table进行一次flush
+			2.Skew-GroupBy优化
+				Skew-GroupBy的原理是启动两个MR任务
+				第一个MR按照随机数分区，将数据分散发送到Reduce，完成部分聚合
+				第二个MR按照分组字段分区，完成最终聚合
 				1. set hive.groupby.skewindata=true;
-					启用Skew GroupBy
+					启用Skew-GroupBy
 				2. set hive.map.aggr=false;
 					关闭Map Side聚合
 		2.Join导致的数据倾斜
 			1.Map Join
-				使用map join算法，join操作仅在map端就能完成，没有shuffle操作，没有reduce阶段，自然不会产生reduce端的数据倾斜。该方案适用于大表join小表时发生数据倾斜的场景
+				使用Map Join算法，join操作仅在map端就能完成，没有shuffle操作，没有reduce阶段，自然不会产生reduce端的数据倾斜
+				该方案适用于大表join小表时发生数据倾斜的场景
 				1. set hive.auto.convert.join=true;
 					启动Map Join自动转换
 				2. set hive.mapjoin.smalltable.filesize=250000;
-					一个Common Join operator转为Map Join operator的判断条件,若该Common Join相关的表中,存在n-1张表的大小总和<=该值,则生成一个Map Join计划,此时可能存在多种n-1张表的组合均满足该条件,则hive会为每种满足条件的组合均生成一个Map Join计划,同时还会保留原有的Common Join计划作为后备(back up)计划,实际运行时,优先执行Map Join计划，若不能执行成功，则启动Common Join后备计划
+					一个Common Join operator转为Map Join operator的判断条件
+					若该Common Join相关的表中,存在n-1张表的大小总和<=该值,则生成一个Map Join计划
+					此时可能存在多种n-1张表的组合均满足该条件,则hive会为每种满足条件的组合均生成一个Map Join计划,同时还会保留原有的Common Join计划作为后备(back up)计划,实际运行时,优先执行Map Join计划，若不能执行成功，则启动Common Join后备计划
 				3. set hive.auto.convert.join.noconditionaltask=true;
 					开启无条件转Map Join
 				4. set hive.auto.convert.join.noconditionaltask.size=10000000;
-					无条件转Map Join时的小表之和阈值,若一个Common Join operator相关的表中，存在n-1张表的大小总和<=该值,此时hive便不会再为每种n-1张表的组合均生成Map Join计划,同时也不会保留Common Join作为后备计划。而是只生成一个最优的Map Join计划
+					无条件转Map Join时的小表之和阈值
+					若一个Common Join operator相关的表中，存在n-1张表的大小总和<=该值
+					此时hive便不会再为每种n-1张表的组合均生成Map Join计划,同时也不会保留Common Join作为后备计划。而是只生成一个最优的Map Join计划
 			2.Skew Join
-				Skew join的原理是，为倾斜的大key单独启动一个map join任务进行计算，其余key进行正常的common join
+				Skew join的原理是，为倾斜的大key单独启动一个Map Join任务进行计算，其余key进行正常的Common Join
 				1. set hive.optimize.skewjoin=true;
 					启用skew join优化
 				2. set hive.skewjoin.key=100000;
 					触发skew join的阈值，若某个key的行数超过该参数值，则触发
 			3.调整SQL语句
+				若参与join的两表均为大表，其中一张表的数据是倾斜的，此时也可对SQL语句进行相应的调整
 				select *
 				from(
 					select  #打散操作
@@ -835,18 +935,22 @@
 	5.任务并行度
 		1.Map端并行度
 			Map端的并行度，也就是Map的个数。是由输入文件的切片数决定的。一般情况下，Map端的并行度无需手动调整
-			以下特殊情况可考虑调整map端并行度:
+			以下特殊情况可考虑调整Map端并行度:
 			1. 查询的表中存在大量小文件
-				按照Hadoop默认的切片策略，一个小文件会单独启动一个map task负责计算。若查询的表中存在大量小文件，则会启动大量map task，造成计算资源的浪费。这种情况下，可以使用Hive提供的CombineHiveInputFormat，多个小文件合并为一个切片，从而控制map task个数
+				按照Hadoop默认的切片策略，一个小文件会单独启动一个Map Task负责计算
+				若查询的表中存在大量小文件，则会启动大量Map Task，造成计算资源的浪费
+				这种情况下，可以使用Hive提供的CombineHiveInputFormat，多个小文件合并为一个切片，从而控制Map Task个数
 				set hive.input.format=org.apache.hadoop.hive.ql.io.CombineHiveInputFormat;
 					#使用Hive提供的CombineHiveInputFormat
-			2. map端有复杂的查询逻辑
-				若SQL语句中有正则替换、json解析等复杂耗时的查询逻辑时，map端的计算会相对慢一些。若想加快计算速度，在计算资源充足的情况下，可考虑增大map端的并行度，令map task多一些，每个map task计算的数据少一些
+			2. Map端有复杂的查询逻辑
+				若SQL语句中有正则替换、json解析等复杂耗时的查询逻辑时，Map端的计算会相对慢一些
+				若想加快计算速度，在计算资源充足的情况下，可考虑增大Map端的并行度，令Map Task多一些，每个Map Task计算的数据少一些
 				set mapreduce.input.fileinputformat.split.maxsize=256000000
 					#一个切片的最大值
 		2.Reduce端并行度
-			Reduce端的并行度，也就是Reduce个数。相对来说，更需要关注。Reduce端的并行度，可由用户自己指定，也可由Hive自行根据该MR Job输入的文件大小进行估算
-			Hive自行估算Reduce并行度时，是以整个MR Job输入的文件大小作为依据的。因此，在某些情况下其估计的并行度很可能并不准确，此时就需要用户根据实际情况来指定Reduce并行度了
+			Reduce端的并行度，也就是Reduce个数。相对来说更需要关注
+			Reduce端的并行度，可由用户自己指定，也可由Hive自行根据该MR Job输入的文件大小进行估算
+			Hive自行估算Reduce并行度时，是以整个MR Job输入的文件大小作为依据的。因此，在某些情况下其估计的并行度很可能并不准确，此时就需要用户根据实际情况来指定Reduce并行度
 			Reduce端的并行度的相关参数如下:
 			1. set mapreduce.job.reduces
 				指定Reduce端并行度，默认值为-1，表示用户未指定
@@ -856,12 +960,14 @@
 				单个Reduce Task计算的数据量，用于估算Reduce并行度
 	6.小文件合并
 		1.Map端输入文件合并
-			合并Map端输入的小文件，是指将多个小文件划分到一个切片中，进而由一个Map Task去处理。目的是防止为单个小文件启动一个Map Task，浪费计算资源
+			合并Map端输入的小文件，是指将多个小文件划分到一个切片中，进而由一个Map Task去处理
+			目的是防止为单个小文件启动一个Map Task，浪费计算资源
 			相关参数为:
 			1. set hive.input.format=org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
 				可将多个小文件切片，合并为一个切片，进而由一个map任务处理
 		2.Reduce输出文件合并
-			合并Reduce端输出的小文件，是指将多个小文件合并成大文件。目的是减少HDFS小文件数量。其原理是根据计算任务输出文件的平均大小进行判断，若符合条件，则单独启动一个额外的任务进行合并
+			合并Reduce端输出的小文件，是指将多个小文件合并成大文件
+			目的是减少HDFS小文件数量。其原理是根据计算任务输出文件的平均大小进行判断，若符合条件，则单独启动一个额外的任务进行合并
 			相关参数为:
 			1. set hive.merge.mapfiles=true
 				开启合并map only任务输出的小文件
@@ -877,7 +983,7 @@
 			目前CBO在hive的MR引擎下主要用于join的优化，例如多表join的join顺序
 			set hive.cbo.enable=true
 		2.谓词下推
-			谓词下推（predicate pushdown）是指，尽量将过滤操作前移，以减少后续计算步骤的数据量
+			谓词下推(predicate pushdown)是指，尽量将过滤操作前移，以减少后续计算步骤的数据量
 			set hive.optimize.ppd = true
 		3.矢量化查询
 			set hive.vectorized.execution.enabled=true
@@ -890,6 +996,8 @@
 			# minimal 表示支持select *，分区字段过滤，Limit等
 			# more 表示支持select 任意字段,包括函数，过滤，和limit等
 		5.本地模式
+			有时Hive的输入数据量是非常小的。在这种情况下，为查询触发执行任务消耗的时间可能会比实际job的执行时间要多的多
+			对于大多数这种情况，Hive可以通过本地模式在单台机器上处理所有的任务。对于小数据集，执行时间可以明显被缩短
 			1. set hive.exec.mode.local.auto=true
 				开启自动转换为本地模式
 			2. set hive.exec.mode.local.auto.inputbytes.max=50000000
@@ -897,7 +1005,8 @@
 			3. set hive.exec.mode.local.auto.input.files.max=10
 				设置local MapReduce的最大输入文件个数，当输入文件个数小于这个值时采用local MapReduce的方式，默认为4
 		6.并行执行
-			Hive会将一个SQL语句转化成一个或者多个Stage，每个Stage对应一个MR Job。默认情况下，Hive同时只会执行一个Stage。但是某SQL语句可能会包含多个Stage，但这多个Stage可能并非完全互相依赖，也就是说有些Stage是可以并行执行的
+			Hive会将一个SQL语句转化成一个或者多个Stage，每个Stage对应一个MR Job
+			默认情况下，Hive同时只会执行一个Stage。但是某SQL语句可能会包含多个Stage，但这多个Stage可能并非完全互相依赖，也就是说有些Stage是可以并行执行的
 			1. set hive.exec.parallel=true
 				启用并行执行优化
 			2. set hive.exec.parallel.thread.number=8

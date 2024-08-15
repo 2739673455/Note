@@ -5,6 +5,7 @@ if [ $# -lt 1 ];then
 	echo "all | tableName"
 	exit
 fi
+database_name="gmall"
 MAXWELL_HOME=/opt/module/maxwell-1.29.2
 table_list=(
 	"cart_info"
@@ -22,7 +23,7 @@ table_list=(
 	"user_info"
 )
 import_data() {
-	$MAXWELL_HOME/bin/maxwell-bootstrap --database gmall --table $1 --config $MAXWELL_HOME/config.properties
+	$MAXWELL_HOME/bin/maxwell-bootstrap --database $database_name --table $1 --config $MAXWELL_HOME/config.properties
 }
 
 case $1 in
@@ -33,18 +34,13 @@ case $1 in
 	done
 	;;
 *)
-	flag=false
 	for table in "${table_list[@]}"; do
 		if [[ "$table" == "$1" ]]; then
-			flag=true
-			break
+			echo "--- mysql $1 数据首次采集历史全量到kafka ---"
+			import_data $table
+			exit
 		fi
 	done
-	if [[ $flag == true ]]; then
-		echo "--- mysql $1 数据首次采集历史全量到kafka ---"
-		import_data $1
-	else
-		echo "table not exist"
-	fi
+	echo "table not exist"
 	;;
 esac

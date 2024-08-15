@@ -352,11 +352,11 @@
 				-d  #分隔符，按照指定分隔符分割列，默认是制表符"\t"
 				-c  #按字符进行切割,后加n,表示取第几列,比如 -c 1
 		2. awk
-			awk 选项 '/pattern1/{action1} /pattern2/{action2}' 文件名
-				pattern  #查找的内容，就是匹配模式
-				action  #找到匹配内容时所执行的命令
+			awk 选项参数 '/pattern1/{action1} /pattern2/{action2}' 文件名
 				-F  #指定输入文件折分隔符
 				-v  #赋值一个用户定义变量
+				pattern  #查找的内容，就是匹配模式
+				action  #找到匹配内容时所执行的命令
 			awk内置变量
 				FILENAME  #文件名
 				NR  #已读的记录数(行号)
