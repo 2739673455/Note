@@ -1,0 +1,663 @@
+1.项目需求集架构设计
+	1.项目需求
+		1. 用户行为数据采集平台搭建
+		2. 业务数据采集平台搭建
+			增量采集:行为数据，用于统计
+			全量采集:状态数据，用于分析
+	2.项目框架
+		1.技术选型
+			技术选型主要考虑因素:数据量大小，业务需求，行业内经验，技术成熟度，开发维护成本，总成本预算
+			1. 数据采集传输:Flume，Kafka，DataX，Maxwell
+			2. 数据存储:MySQL，HDFS，HBase，Redis
+			3. 数据计算:Hive，Spark，Flink
+			4. 数据查询:Presto，ClickHouse
+			5. 数据可视化:Superset，Sugar
+			6. 任务调度:DolphinScheduler
+			7. 集群监控:Zabbix，Prometheus
+			8. 元数据管理:Atlas
+			9. 权限管理:Ranger，Sentry
+		2.框架发行版本选择
+			Apache / CDP
+		3.服务器选型
+			物理机 / 云主机
+		4.集群规模
+			如何确认集群规模?(假设:每台服务器16T磁盘，128G内存)
+			1. 每天日活跃用户100万，每人一天平均100条: 100万*100条=1亿条
+			2. 每条日志1K左右，每天1亿条: 100000000 / 1024 / 1024= 约100G
+			3. 1年内不扩容服务器来算: 100G*365天=约36T
+			4. 保存3副本: 36T*3=108T
+			5. 预留20%~30%Buf: 108T/0.7=154T
+			6. 算到这: 约16T*10台服务器
+			如果考虑数仓分层?数据采用压缩?需要重新再计算
+		5.集群资源规划设计
+			在企业中通常会搭建一套生产集群和一套测试集群。生产集群运行生产任务，测试集群用于上线前代码编写和测试
+			1. 参考腾讯云EMR官方推荐部署
+				Master节点:管理节点，保证集群的调度正常进行；主要部署NameNode、ResourceManager、HMaster 等进程；非 HA 模式下数量为1，HA 模式下数量为2
+				Core节点:为计算及存储节点，您在 HDFS 中的数据全部存储于 core 节点中，因此为了保证数据安全，扩容 core 节点后不允许缩容；主要部署 DataNode、NodeManager、RegionServer 等进程。非 HA 模式下数量≥2，HA 模式下数量≥3
+				Common 节点:为 HA 集群 Master 节点提供数据共享同步以及高可用容错服务；主要部署分布式协调器组件，如 ZooKeeper、JournalNode 等节点。非HA模式数量为0，HA 模式下数量≥3
+			2. 消耗内存的分开部署
+			3. 数据传输数据比较紧密的放在一起(Kafka、clickhouse)
+			4. 客户端尽量放在一到两台服务器上，方便外部访问
+			5. 有依赖关系的尽量放到同一台服务器(例如:Ds-worker和hive/spark)
+
+2.用户行为日志
+	1.用户行为日志概述
+		用户行为日志的内容，主要包括用户的各项行为信息以及行为所处的环境信息
+		收集这些信息的主要目的是优化产品和为各项分析统计指标提供数据支撑
+		收集这些信息的手段通常为埋点
+		目前主流的埋点方式，有代码埋点(前端/后端)、可视化埋点、全埋点等:
+		1. 代码埋点是通过调用埋点SDK函数，在需要埋点的业务逻辑功能位置调用接口，上报埋点数据。例如，我们对页面中的某个按钮埋点后，当这个按钮被点击时，可以在这个按钮对应的 OnClick 函数里面调用SDK提供的数据发送接口，来发送数据
+		2. 可视化埋点只需要研发人员集成采集 SDK，不需要写埋点代码，业务人员就可以通过访问分析平台的“圈选”功能，来“圈”出需要对用户行为进行捕捉的控件，并对该事件进行命名。圈选完毕后，这些配置会同步到各个用户的终端上，由采集 SDK 按照圈选的配置自动进行用户行为数据的采集和发送
+		3. 全埋点是通过在产品中嵌入SDK，前端自动采集页面上的全部用户行为事件，上报埋点数据，相当于做了一个统一的埋点。然后再通过界面配置哪些数据需要在系统里面进行分析
+	2.用户行为日志内容
+		本项目收集和分析的用户行为信息主要有页面浏览记录、动作记录、曝光记录、启动记录和错误记录
+		1. 页面浏览记录
+			记录的是访客对页面的浏览行为，该行为的环境信息主要有用户信息、时间信息、地理位置信息、设备信息、应用信息、渠道信息及页面信息等
+		2. 动作记录
+			记录的是用户的业务操作行为，该行为的环境信息主要有用户信息、时间信息、地理位置信息、设备信息、应用信息、渠道信息 及动作目标对象信息等
+		3. 曝光记录
+			记录的是曝光行为，该行为的环境信息主要有用户信息、时间信息、地理位置信息、设备信息、应用信息、渠道信息及曝光对象信息等
+		4. 启动记录
+			记录的是用户启动应用的行为，该行为的环境信息主要有用户信息、时间信息、地理位置信息、设备信息、应用信息、渠道信息、启动类型及开屏广告信息等
+		5. 错误记录
+			记录的是用户在使用应用过程中的报错行为，该行为的环境信息主要有用户信息、时间信息、地理位置信息、设备信息、应用信息、渠道信息、以及可能与报错相关的页面信息、动作信息、曝光信息和动作信息
+	3.用户行为日志格式
+		1. 页面日志
+			以页面浏览为单位，即一个页面浏览记录，生成一条页面埋点日志
+			一条完整的页面日志包含，一个页面浏览记录，若干个用户在该页面所做的动作记录，若干个该页面的曝光记录，以及一个在该页面发生的报错记录
+			除上述行为信息，页面日志还包含了这些行为所处的各种环境信息，包括用户信息、时间信息、地理位置信息、设备信息、应用信息、渠道信息等
+		2. 启动日志
+			以启动为单位，一次启动行为，生成一条启动日志
+			一条完整的启动日志包括一个启动记录，一个本次启动时的报错记录，以及启动时所处的环境信息，包括用户信息、时间信息、地理位置信息、设备信息、应用信息、渠道信息等
+
+3.电商业务流程
+	电商的业务流程可以以一个普通用户的浏览足迹为例进行说明
+	用户点开电商首页开始浏览，可能会通过分类查询也可能通过全文搜索寻找自己中意的商品，这些商品无疑都是存储在后台的管理系统中的
+	当用户寻找到自己中意的商品，可能会想要购买，将商品添加到购物车后发现需要登录，登录后对商品进行结算，这时候购物车的管理和商品订单信息的生成都会对业务数据库产生影响，会生成相应的订单数据和支付数据
+	订单正式生成之后，还会对订单进行跟踪处理，直到订单全部完成
+	电商的主要业务流程包括:
+		用户前台浏览商品时的商品详情的管理
+		用户商品加入购物车进行支付时用户个人中心&支付服务的管理
+		用户支付完成后订单后台服务的管理
+		这些流程涉及到了十几个甚至几十个业务数据表，甚至更多
+
+4.用户行为数据采集流程
+	1.上游用户行为日志采集
+		使用Flume，从log文件中采集数据到Kafa
+		选择TailDirSource和KafkaChannel
+		TailDirSource:断点续传、多目录
+		Kafka Channel:省去了Sink，提高了效率
+		1. 配置文件file_to_kafka.conf:
+			#定义组件
+			a1.sources = r1
+			a1.channels = c1
+			#配置source
+			a1.sources.r1.type = TAILDIR
+			a1.sources.r1.filegroups = f1
+			a1.sources.r1.filegroups.f1 = /opt/module/applog/log/app.*
+			a1.sources.r1.positionFile = /opt/module/flume-1.10.1/filetokafka/taildir_position.json
+			#配置channel
+			a1.channels.c1.type = org.apache.flume.channel.kafka.KafkaChannel
+			a1.channels.c1.kafka.bootstrap.servers = hadoop102:9092,hadoop103:9092,hadoop104:9092
+			a1.channels.c1.kafka.topic = topic_log
+			kafka.consumer.group.id = log1
+			a1.channels.c1.parseAsFlumeEvent = false
+			#组装 
+			a1.sources.r1.channels = c1
+		2. 启动Flume
+			/opt/module/flume-1.10.1/bin/flume-ng agent -n a1 -c /opt/module/flume-1.10.1/conf -f /opt/module/flume-1.10.1/job/file_to_kafka.conf
+	2.下游用户行为日志采集
+		使用Flume，将Kafka中topic_log的数据发往HDFS，并且对每天产生的用户行为日志进行区分，将不同天的数据发往HDFS不同的路径
+		选择KafkaSource、FileChannel、HDFSSink
+		1. 配置文件 kafka_to_hdfs_log.conf:
+			#定义组件
+			a1.sources = r1
+			a1.channels = c1
+			a1.sinks = k1
+			#配置source1
+			a1.sources.r1.type = org.apache.flume.source.kafka.KafkaSource
+			a1.sources.r1.batchSize = 5000
+			a1.sources.r1.batchDurationMillis = 2000
+			a1.sources.r1.kafka.bootstrap.servers = hadoop102:9092,hadoop103:9092,hadoop104:9092
+			a1.sources.r1.kafka.topics = topic_log
+			a1.sources.r1.kafka.consumer.group.id = log1
+			#拦截器
+			a1.sources.r1.interceptors = i1
+			a1.sources.r1.interceptors.i1.type = com.atguigu.gmall.flume.interceptor.TimestampInterceptor$Builder
+			#配置channel
+			a1.channels.c1.type = file
+			a1.channels.c1.checkpointDir = /opt/module/flume-1.10.1/checkpoint/behavior1
+			a1.channels.c1.dataDirs = /opt/module/flume-1.10.1/data/behavior1
+			a1.channels.c1.maxFileSize = 2146435071
+			a1.channels.c1.capacity = 1000000
+			a1.channels.c1.keep-alive = 6
+			#配置sink
+			a1.sinks.k1.type = hdfs
+			a1.sinks.k1.hdfs.path = /gmall/log/%Y-%m-%d
+			a1.sinks.k1.hdfs.filePrefix = log
+			a1.sinks.k1.hdfs.round = false
+			a1.sinks.k1.hdfs.rollInterval = 10
+			a1.sinks.k1.hdfs.rollSize = 134217728
+			a1.sinks.k1.hdfs.rollCount = 0
+			#控制输出文件类型
+			a1.sinks.k1.hdfs.fileType = CompressedStream
+			a1.sinks.k1.hdfs.codeC = gzip
+			#组装 
+			a1.sources.r1.channels = c1
+			a1.sinks.k1.channel = c1
+		2. 编写拦截器 com.atguigu.gmall.flume.interceptor.TimestampInterceptor:
+			package com.atguigu.gmall.flume.interceptor;
+			import com.alibaba.fastjson.JSONObject;
+			import org.apache.flume.Context;
+			import org.apache.flume.Event;
+			import org.apache.flume.interceptor.Interceptor;
+			import java.nio.charset.StandardCharsets;
+			import java.util.Iterator;
+			import java.util.List;
+
+			public class TimestampInterceptor implements Interceptor {
+				@Override
+				public void initialize() {}
+
+				@Override
+				public Event intercept(Event event) {
+					byte[] body = event.getBody();
+					String data = new String(body, StandardCharsets.UTF_8);
+					try {
+						JSONObject jsonObject = JSONObject.parseObject(data);
+						String ts = jsonObject.getString("ts");
+						event.getHeaders().put("timestamp", ts);
+						return event;
+					} catch (Exception e) {
+						e.printStackTrace();
+						return null;
+					}
+				}
+
+				@Override
+				public List<Event> intercept(List<Event> list) {
+					Iterator<Event> iterator = list.iterator();
+					while (iterator.hasNext()) {
+						Event next = iterator.next();
+						Event evnet = intercept(next);
+						if (evnet == null) {
+							iterator.remove();
+						}
+					}
+					return list;
+				}
+
+				@Override
+				public void close() {}
+
+				public static class Builder implements Interceptor.Builder {
+					@Override
+					public Interceptor build() {
+						return new TimestampInterceptor();
+					}
+
+					@Override
+					public void configure(Context context) {}
+				}
+			}
+			打包放入/opt/module/flume-1.10.1/lib
+		3. 启动Flume
+			/opt/module/flume-1.10.1/bin/flume-ng agent -n a1 -c /opt/module/flume-1.10.1/conf -f /opt/module/flume-1.10.1/job/kafka_to_hdfs_log.conf
+
+5.业务数据采集
+	1.上游业务数据增量采集
+		使用Maxwell，从MySQL中增量采集业务数据到Kafka
+		有时只有增量数据是不够的，可能需要使用到MySQL数据库中从历史至今的一个完整的数据集。这就需要在进行增量同步之前，先进行一次历史数据的全量同步
+		1. 搭建Maxwell
+			安装Maxwell
+			启用MySQL Binlog
+			创建Maxwell所需数据库和用户
+			配置Maxwell config.properties:
+				#Maxwell数据发送目的地，可选配置有stdout|file|kafka|kinesis|pubsub|sqs|rabbitmq|redis
+				producer=kafka
+				# 目标Kafka集群地址
+				kafka.bootstrap.servers=hadoop102:9092,hadoop103:9092,hadoop104:9092
+				#目标Kafka topic，可静态配置，例如:maxwell，也可动态配置，例如：%{database}_%{table}
+				kafka_topic=topic_db
+
+				# MySQL相关配置
+				host=hadoop102
+				user=maxwell
+				password=maxwell
+				jdbc_options=useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+
+				# 过滤gmall中的z_log表数据，该表是日志数据的备份，无须采集
+				filter=exclude:gmall.z_log
+				# 指定数据按照主键分组进入Kafka不同分区，避免数据倾斜
+				producer_partition_by=primary_key
+		2. 启动Maxwell
+			/opt/module/maxwell-1.29.2/bin/maxwell --config /opt/module/maxwell-1.29.2/config.properties --daemon
+		3. 启动Maxwell采集历史全量
+			/opt/module/maxwell-1.29.2/bin/maxwell-bootstrap --database gmall --table user_info --config /opt/module/maxwell-1.29.2/config.properties
+	2.下游业务数据采集
+		使用Flume，将Kafka中topic_db主题的数据传输到HDFS，需将不同MySQL业务表的数据写到不同的路径，并且路径中需包含一层日期，用于区分每天的数据
+		选择KafkaSource、FileChannel、HDFSSink
+		1. 配置文件 kafka_to_hdfs_db.conf:
+			#定义组件
+			a1.sources = r1
+			a1.channels = c1
+			a1.sinks = k1
+			#配置source1
+			a1.sources.r1.type = org.apache.flume.source.kafka.KafkaSource
+			a1.sources.r1.batchSize = 5000
+			a1.sources.r1.batchDurationMillis = 2000
+			a1.sources.r1.kafka.bootstrap.servers = hadoop102:9092,hadoop103:9092,hadoop104:9092
+			a1.sources.r1.kafka.topics = topic_db
+			a1.sources.r1.kafka.consumer.group.id = db1
+			#拦截器
+			a1.sources.r1.interceptors = i1
+			a1.sources.r1.interceptors.i1.type = com.atguigu.gmall.flume.interceptor.TimestampAndTableNameInterceptor$Builder
+			#配置channel
+			a1.channels.c1.type = file
+			a1.channels.c1.checkpointDir = /opt/module/flume-1.10.1/checkpoint/behavior2
+			a1.channels.c1.dataDirs = /opt/module/flume-1.10.1/data/behavior2/
+			a1.channels.c1.maxFileSize = 2146435071
+			a1.channels.c1.capacity = 1000000
+			a1.channels.c1.keep-alive = 6
+			#配置sink
+			a1.sinks.k1.type = hdfs
+			a1.sinks.k1.hdfs.path = /gmall/db_inc/%{tableName}_inc/%Y-%m-%d
+			a1.sinks.k1.hdfs.filePrefix = db
+			a1.sinks.k1.hdfs.round = false
+			a1.sinks.k1.hdfs.rollInterval = 10
+			a1.sinks.k1.hdfs.rollSize = 134217728
+			a1.sinks.k1.hdfs.rollCount = 0
+			#控制输出文件类型
+			a1.sinks.k1.hdfs.fileType = CompressedStream
+			a1.sinks.k1.hdfs.codeC = gzip
+			#组装 
+			a1.sources.r1.channels = c1
+			a1.sinks.k1.channel = c1
+		2. 编写拦截器 com.atguigu.gmall.flume.interceptor.TimestampAndTableNameInterceptor:
+			package com.atguigu.gmall.flume.interceptor;
+			import com.alibaba.fastjson.JSONObject;
+			import org.apache.flume.Context;
+			import org.apache.flume.Event;
+			import org.apache.flume.interceptor.Interceptor;
+			import java.nio.charset.StandardCharsets;
+			import java.util.Iterator;
+			import java.util.List;
+
+			public class TimestampAndTableNameInterceptor implements Interceptor {
+				@Override
+				public void initialize() {}
+
+				@Override
+				public Event intercept(Event event) {
+					byte[] body = event.getBody();
+					String data = new String(body, StandardCharsets.UTF_8);
+					try {
+						JSONObject jsonObject = JSONObject.parseObject(data);
+						String ts = jsonObject.getString("ts") + "000";
+						String tableName = jsonObject.getString("table");
+						event.getHeaders().put("timestamp", ts);
+						event.getHeaders().put("tableName", tableName);
+						return event;
+					} catch (Exception e) {
+						e.printStackTrace();
+						return null;
+					}
+				}
+
+				@Override
+				public List<Event> intercept(List<Event> list) {
+					Iterator<Event> iterator = list.iterator();
+					while (iterator.hasNext()) {
+						Event next = iterator.next();
+						Event evnet = intercept(next);
+						if (evnet == null) {
+							iterator.remove();
+						}
+					}
+					return list;
+				}
+
+				@Override
+				public void close() {}
+
+				public static class Builder implements Interceptor.Builder {
+					@Override
+					public Interceptor build() {
+						return new TimestampAndTableNameInterceptor();
+					}
+
+					@Override
+					public void configure(Context context) {}
+				}
+			}
+			打包放入/opt/module/flume-1.10.1/lib
+		3. 启动Flume:/opt/module/flume-1.10.1/bin/flume-ng agent -n a1 -c /opt/module/flume-1.10.1/conf -f /opt/module/flume-1.10.1/job/kafka_to_hdfs_db.conf
+	3.业务数据全量采集
+		使用DataX，从MySQL业务数据库直接同步到HDFS
+		1. 搭建DataX
+			下载，解压，自检
+		2. DataX配置文件
+			为每张全量表编写一个DataX的json配置文件，此处以activity_info为例，配置文件内容如下:
+			{
+				"job": {
+					"content": [
+						{
+							"reader": {
+								"name": "mysqlreader",
+								"parameter": {
+									"column": [
+										"id",
+										"activity_name",
+										"activity_type",
+										"activity_desc",
+										"start_time",
+										"end_time",
+										"create_time"
+									],
+									"connection": [
+										{
+											"jdbcUrl": [
+												"jdbc:mysql://hadoop102:3306/gmall?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=utf-8"
+											],
+											"table": [
+												"activity_info"
+											]
+										}
+									],
+									"password": "000000",
+									"splitPk": "",
+									"username": "root"
+								}
+							},
+							"writer": {
+								"name": "hdfswriter",
+								"parameter": {
+									"column": [
+										{
+											"name": "id",
+											"type": "bigint"
+										},
+										{
+											"name": "activity_name",
+											"type": "string"
+										},
+										{
+											"name": "activity_type",
+											"type": "string"
+										},
+										{
+											"name": "activity_desc",
+											"type": "string"
+										},
+										{
+											"name": "start_time",
+											"type": "string"
+										},
+										{
+											"name": "end_time",
+											"type": "string"
+										},
+										{
+											"name": "create_time",
+											"type": "string"
+										}
+									],
+									"compress": "gzip",
+									"defaultFS": "hdfs://hadoop102:8020",
+									"fieldDelimiter": "\t",
+									"fileName": "activity_info",
+									"fileType": "text",
+									"path": "${targetdir}",
+									"writeMode": "truncate",
+									"nullFormat": ""
+								}
+							}
+						}
+					],
+					"setting": {
+						"speed": {
+							"channel": 1
+						}
+					}
+				}
+			}
+			注:由于目标路径包含一层日期，用于对不同天的数据加以区分，故path参数并未写死，需在提交任务时通过参数动态传入，参数名称为targetdir
+		3. 启动DataX
+			由于DataX同步任务要求目标路径提前存在，故需手动创建路径:
+				hadoop fs -mkdir -p /origin_data/gmall/db/activity_info_full/2022-06-08
+			执行DataX同步命令:
+				python /opt/module/datax/bin/datax.py -p"-Dtargetdir=/origin_data/gmall/db/activity_info_full/2022-06-08" /opt/module/datax/job/import/gmall.activity_info.json
+
+6.脚本文件
+	1.Flume及Maxwell启停脚本
+		#!/bin/bash
+		#102从日志文件中采集用户行为数据到kafka
+		#103从kafka中采集业务数据到hdfs
+		#104从kafka中采集用户行为数据到hdfs
+		#maxwell从mysql采集增量数据到kafka
+		function flume_start(){
+			echo "nohup ${FLUME_HOME}/bin/flume-ng agent -n a1 -c ${FLUME_HOME}/conf -f ${FLUME_HOME}/job/$1 >/dev/null 2>&1 &"
+		}
+		function flume_stop(){
+			echo "ps -ef | grep $1 | grep -v grep | awk '{print \$2}' | xargs -n 1 kill -9"
+		}
+		function maxwell_status(){
+			result=`ps -ef | grep com.zendesk.maxwell.Maxwell | grep -v grep | wc -l`
+			return $result
+		}
+		function maxwell_start(){
+			maxwell_status
+			if [[ $? -lt 1 ]]; then
+				echo "--- 启动 Maxwell ---"
+				$MAXWELL_HOME/bin/maxwell --config $MAXWELL_HOME/config.properties --daemon
+			else
+				echo "--- Maxwell 正在运行 ---"
+			fi
+		}
+		function maxwell_stop(){
+			maxwell_status
+			if [[ $? -gt 0 ]]; then
+				echo "--- 停止 Maxwell ---"
+				ps -ef | grep com.zendesk.maxwell.Maxwell | grep -v grep | awk '{print $2}' | xargs kill -9
+			else
+				echo "--- Maxwell 未在运行 ---"
+			fi
+		}
+
+		FLUME_HOME=/opt/module/flume-1.10.1
+		MAXWELL_HOME=/opt/module/maxwell-1.29.2
+		flume_conf_01=file_to_kafka.conf
+		flume_conf_02=kafka_to_hdfs_db.conf
+		flume_conf_03=kafka_to_hdfs_log.conf
+
+		case $1 in
+		"102start")
+			echo "--- 启动 hadoop102 上游用户行为数据采集 ---"
+			ssh hadoop102 "$(flume_start $flume_conf_01)"
+			;;
+		"102stop")
+			echo "--- 停止 hadoop102 上游用户行为数据采集 ---"
+			ssh hadoop102 "$(flume_stop $flume_conf_01)"
+			;;
+		"103start")
+			echo "--- 启动 hadoop103 下游业务数据采集 ---"
+			ssh hadoop103 "$(flume_start $flume_conf_02)"
+			;;
+		"103stop")
+			echo "--- 停止 hadoop103 下游业务数据采集 ---"
+			ssh hadoop103 "$(flume_stop $flume_conf_02)"
+			;;
+		"104start")
+			echo "--- 启动 hadoop104 下游用户行为数据采集 ---"
+			ssh hadoop104 "$(flume_start $flume_conf_03)"
+			;;
+		"104stop")
+			echo "--- 停止 hadoop104 下游用户行为数据采集 ---"
+			ssh hadoop104 "$(flume_stop $flume_conf_03)"
+			;;
+		"maxwellstart")
+			maxwell_start
+			;;
+		"maxwellstop")
+			maxwell_stop
+			;;
+		"allstart")
+			echo "--- 启动 hadoop102 上游用户行为数据采集 ---"
+			ssh hadoop102 "$(flume_start $flume_conf_01)"
+			echo "--- 启动 hadoop103 下游业务数据采集 ---"
+			ssh hadoop103 "$(flume_start $flume_conf_02)"
+			echo "--- 启动 hadoop104 下游用户行为数据采集 ---"
+			ssh hadoop104 "$(flume_start $flume_conf_03)"
+			maxwell_start
+			;;
+		"allstop")
+			echo "--- 停止 hadoop102 上游用户行为数据采集 ---"
+			ssh hadoop102 "$(flume_stop $flume_conf_01)"
+			echo "--- 停止 hadoop103 下游业务数据采集 ---"
+			ssh hadoop103 "$(flume_stop $flume_conf_02)"
+			echo "--- 停止 hadoop104 下游用户行为数据采集 ---"
+			ssh hadoop104 "$(flume_stop $flume_conf_03)"
+			maxwell_stop
+			;;
+		*)
+			echo "102|103|104 + start|stop"
+			echo "maxwellstart|maxwellstop"
+			echo "allstart|allstop"
+			;;
+		esac
+	2.DataX启动脚本
+		#!/bin/bash
+		conf_path=/opt/module/gen_datax_config/configuration.properties
+		database_name=gmall
+		DATAX_HOME=/opt/module/datax
+		import_path=/opt/module/datax/job/import
+		hdfs_path=/$database_name/db_full
+		json_list=(
+			"activity_info"
+			"activity_rule"
+			"base_category1"
+			"base_category2"
+			"base_category3"
+			"base_dic"
+			"base_province"
+			"base_region"
+			"base_trademark"
+			"cart_info"
+			"coupon_info"
+			"sku_attr_value"
+			"sku_info"
+			"sku_sale_attr_value"
+			"spu_info"
+			"promotion_pos"
+			"promotion_refer"
+		)
+		#mysql中业务数据使用datax全量采集到hdfs
+		if [ $# -lt 1 ]; then
+			echo "all | tableName"
+			exit
+		fi
+		#如果传入日期则do_date等于传入的日期，否则等于前一天日期
+		if [ -n "$2" ]; then
+			do_date=$2
+		else
+			do_date=`date -d "-1 day" +%F`
+		fi
+		#处理目标路径，此处的处理逻辑是，如果目标路径不存在，则创建；若存在，则清空，目的是保证同步任务可重复执行
+		handle_targetdir() {
+			hadoop fs -test -e $1
+			if [[ $? -eq 1 ]]; then
+				echo "路径$1不存在，正在创建......"
+				hadoop fs -mkdir -p $1
+			else
+				echo "路径$1已经存在"
+			fi
+		}
+		#数据同步
+		import_data() {
+			datax_config=$1
+			target_dir=$2
+			handle_targetdir $target_dir
+			python $DATAX_HOME/bin/datax.py -p"-Dtargetdir=$target_dir" $datax_config
+		}
+		#使用datax配置生成器生成json配置文件
+		# active_node=`hdfs haadmin -getAllServiceState | grep active | awk -F : '{print \$1}'`  #获取HA中活动的NameNode
+		active_node=`hdfs getconf -namenodes`  #获取NameNode
+		conf_dir=`dirname $conf_path`
+		echo mysql.username=root > $conf_path
+		echo mysql.password=000000 >> $conf_path
+		echo mysql.host=hadoop102 >> $conf_path
+		echo mysql.port=3306 >> $conf_path
+		echo mysql.database.import=$database_name >> $conf_path
+		echo mysql.tables.import=$(IFS=,; echo "${json_list[*]}") >> $conf_path
+		echo is.seperated.tables=0 >> $conf_path
+		echo hdfs.uri=hdfs://$active_node:8020 >> $conf_path
+		echo import_out_dir=$import_path >> $conf_path
+		cd $conf_dir;java -jar datax-config-generator-1.0-SNAPSHOT-jar-with-dependencies.jar
+		#指定各个路径与库名
+
+		case $1 in
+		"all")
+			echo "--- mysql数据全量采集到hdfs ---"
+			for json in ${json_list[@]}; do
+				import_data $import_path/$database_name.${json}.json $hdfs_path/${json}_full/$do_date
+			done
+			;;
+		*)
+			flag=false
+			for json in "${json_list[@]}"; do
+				if [[ "$json" == "$1" ]]; then
+					echo "--- mysql $1 数据全量采集到hdfs ---"
+					import_data $import_path/$database_name.${json}.json $hdfs_path/${json}_full/$do_date
+					exit
+				fi
+			done
+			echo "table not exist"
+			;;
+		esac
+	3.Maxwell历史全量采集脚本
+		#!/bin/bash
+		#mysql中业务数据使用maxwell首次采集历史全量到kafka
+		#该脚本的作用是初始化所有的增量表，只需执行一次
+		if [ $# -lt 1 ];then
+			echo "all | tableName"
+			exit
+		fi
+		database_name="gmall"
+		MAXWELL_HOME=/opt/module/maxwell-1.29.2
+		table_list=(
+			"cart_info"
+			"comment_info"
+			"coupon_use"
+			"favor_info"
+			"order_detail"
+			"order_detail_activity"
+			"order_detail_coupon"
+			"order_info"
+			"order_refund_info"
+			"order_status_log"
+			"payment_info"
+			"refund_payment"
+			"user_info"
+		)
+		import_data() {
+			$MAXWELL_HOME/bin/maxwell-bootstrap --database $database_name --table $1 --config $MAXWELL_HOME/config.properties
+		}
+
+		case $1 in
+		"all")
+			echo "--- mysql数据首次采集历史全量到kafka ---"
+			for table in ${table_list[@]}; do
+				import_data $table
+			done
+			;;
+		*)
+			for table in "${table_list[@]}"; do
+				if [[ "$table" == "$1" ]]; then
+					echo "--- mysql $1 数据首次采集历史全量到kafka ---"
+					import_data $table
+					exit
+				fi
+			done
+			echo "table not exist"
+			;;
+		esac

@@ -1,0 +1,388 @@
+1.hping3
+	1.参数说明
+		-c  #发包的数目
+		-i  #发包的间隔时间(u1000 1000微秒)
+		--flood  #泛洪，尽最快速度发包 
+hping3 --udp -p 1687 -d 1200 --flood --rand-source <target_ip>
+
+1.概述
+	1. 格式化类型
+		ntfs  #文件系统可以存储几乎无限制的文件大小
+		fat  #文件系统最大文件大小为4GB
+	2. 子网掩码
+		1个IP地址必须配1个子网掩码
+		子网掩码分类:
+			A类
+				1.0.0.0~126.0.0.0
+				默认子网掩码255.0.0.0
+				保留私有地址:10.0.0.0～10.255.255.255
+			B类
+				128.0.0.0~191.255.255.255
+				默认子网掩码255.255.0.0
+				保留私有地址:172.16.0.0～172.31.255.255
+			C类
+				192.0.0.0~223.255.255.255
+				默认子网掩码255.255.255.0
+				保留私有地址:192.168.0.0～192.168.255.255
+			D类
+				224~239 组播地址
+			E类
+				240~255 科研使用
+			主机位全为0:网段地址
+			主机位全为255:广播地址
+			127.0.0.1:本地回环地址
+	3. 手动解析域名
+		nslookup www.jd.com
+	4. 路由跟踪
+		windows:tracert IP
+		linux或路由:traceroute IP
+	5. 私网IP地址范围
+		10.0.0.0/8 (10开头的)
+		172.16.0.0/16-172.31.0.0/16 (172.16开头到172.31开头)
+		192.168.0.0/16 (192.168开头的)
+
+2.Windows文件处理
+	修改文件属性:
+		attrib <参数> <文件名>  #对文件添加属性
+			+h:隐藏
+			-h:取消隐藏
+			+s:将文件夹提升为受保护的系统级
+	复制/移动文件:
+		copy [文件名.扩展名] [目标路径]
+		move [文件名.扩展名] [目标路径]
+		xcopy [目录] [目标路径] /e 拷贝文件夹
+	快速生成指定大小字节的空文件:
+		fsutil file createnew d:\system.ini 409600000
+	修改关联性:
+		assoc .txt=exefile 将.txt文件修改为可执行程序
+	系统定时关机:
+		shutdown -s -t 60 -c "xxx"
+			-s:关机
+			-r:重启
+			-t:指定时间
+			-f:强制
+			-c:注释
+		shutdown -a  #取消一切定时
+
+4.批处理 .bat
+	@echo off 关闭回显
+	echo. 空一行
+	pause 暂停
+	\>nul 屏蔽输出
+	2>nul 屏蔽输出与报错
+	:1 标签名
+	goto 1 跳转到指定标签
+	%userprofile% 用户文件夹
+	set a=100 定义变量a
+	%a% 使用变量a
+	set /p a= 变量a来自输入
+	timeout /t 1 等待1秒
+	for /l %a in ([start],[step],[end]) do [command] for循环
+	taskkill /f /im explorer.exe 关闭资源管理器进程
+	start c:\windows\explorer.exe 开启资源管理器
+
+5.用户与组管理
+	1.用户管理
+		每个账户有唯一的SID，windows管理员uid500，普通用户uid从1000开始
+		账户密码存储位置:c:\windows\system32\config\SAM
+		内置账户:
+			可用账户:
+				administrator 管理员账户
+				guest 来宾账户
+			计算机服务组件相关的系统账号:
+				system 系统账户
+				local services 本地服务账户
+				network services 网络服务账户
+		用户管理指令:
+			net user  #查看用户列表
+			net user 用户名  #查看用户详细信息
+			net user 用户名 密码  #改密码
+			net user 用户名 密码 /add  #创建新用户
+			net user 用户名 /del  #删除用户
+			net user 用户名 /active:yes/no  #激活或禁用账户
+	2.组管理
+		简化权限的赋予
+		内置组:内置组的权限默认已经被系统赋予
+			administrators 管理员组
+			guests 来宾组
+			users 普通用户组
+			network 网络配置组
+			print 打印机组
+			remote desktop 远程桌面组
+		组管理指令:
+			net localgroup  #查看组
+			net localgroup 组名 用户 /add  #将用户加入组
+			net localgroup 组名 用户 /del  #将用户移除组
+			net localgroup 组名 /add  #创建组
+
+6.渗透测试
+	Nmap:
+		-sn 10.1.1.1/24 扫描整个网段
+		-p 21,23-25,3389 指定端口范围
+		-F 扫描常用端口
+		-sV 服务版本探测
+		-O 10.1.1.1 操作系统探测
+		-A 10.1.1.1 全面扫描
+		-oN d:\result.txt 保存txt
+
+	IPC$,445:
+		net use \\<ip>\ipc$ <密码> /user:<用户> 创建ipc$连接
+		net use z: \\<ip>\c$ <密码> /user:<用户> c$映射到z:
+		net use z: /del 删除连接 
+		net use * /del 删除所有连接 
+		net share ipc$ 创建ipc$
+		net share ipc$ /del 删除ipc$
+		net share <共享名称>=<路径> /grant:administrator,full 创建共享目录，设置用户访问权限
+		powershell.exe -command New-SmbShare -Name dshare -Path d:\ -FullAccess administrator 创建共享目录，设置用户访问权限
+		powershell.exe -command Remove-SmbShare -Name dshare -Force 删除共享文件夹
+		./psexec.exe \\<ip> -u <username> -p <password> -i cmd psexec 远程获取shell
+		HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\FilterAdministratorToken 筛选管理员令牌
+
+	SAM破解密码:
+		reg save hklm\sam sam.hive 抓取SAM文件
+		reg save hklm\system system.hive 抓取SYSTEM文件
+		将sam.hive和system.hive文件放在mimikatz.exe同一目录下
+		mimikatz.exe lsadump::sam /sam:sam.hive /system:system.hive 得到hash值
+
+	Schtasks定时任务:
+		创建任务，与指定用户交互式运行:
+			schtasks /create /s [ip] /u [username] /p [password] /tn [任务名] /tr [任务指令] /sc [执行频率] /f
+			schtasks /create /tn [任务名] /tr [任务指令] /sc [执行频率] /st [执行时间] /ru [username] /rp [password] /it /f
+		创建任务，后台运行:
+			schtasks /create /s [ip] /u administrator /p [password] /tn [任务名] /tr [任务指令] /sc [执行频率]/ru system /f
+		立即运行任务:
+			schtasks /run /s [ip] /u administrator /p [password] /tn [任务名]
+
+	注册表查询与修改:
+		查询所有用户的SID:
+			wmic useraccount get name,sid
+		查询SID对应用户的环境变量:
+			reg query "HKU\[sid]\Environment"
+		查询当前用户环境变量:
+			reg query "HKCU\Environment"
+		查询系统环境变量:
+			reg query "HKLM\System\CurrentControlSet\Control\Session Manager\Environment"
+		修改系统环境变量:
+			reg add "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" /v PATH /t REG_EXPAND_SZ /d "%PATH%;C:\new\path" /f
+		登陆界面隐藏账户:
+			reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /v [username] /t REG_DWORD /d 0
+		修改网卡MAC:
+			HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002BE10318}\ ->新建NetworkAddress 字符串值
+			第二个字符必须2,6,A,E其中之一
+
+	wmic远程控制:
+		netsh advfirewall set currentprofile state off 关闭防火墙
+		netsh firewall set service RemoteAdmin enable 开启远程管理
+		netsh wlan show profile name="[网络名]" key=clear 查看wlan密码
+		远程创建进程:
+			wmic /node:[ip] /user:[用户名] /password:[密码] process call create "[指令]"
+		查看文件夹共享:
+			wmic share list
+		开启指定文件夹共享(只读权限):
+			wmic share call create "","","MaximumAllowed","Name","","Path",0
+		删除指定共享文件夹:
+			wmic share where "name='[共享目录名称]'" delete
+		查询进程:
+			wmic process list brief
+		终止进程:
+			wmic process where processid="[pid]" delete
+			wmic process where name="[processName]" delete
+			taskkill /f /pid [pid]
+		事件查看器:
+			wevtutil qe
+
+13.远程管理
+	mstsc  远程登录
+	netstat -an 查看本机开放的所有端口
+	netstat -an|findstr "445"  查看445端口连接状态
+	telnet:23
+	远程桌面协议RDP:3389
+
+14.NTFS安全权限
+	设置NTFS,实现不同的用户访问不同的对象的权限
+	分配了正确的访问权限后，用户才能访问其资源
+	设置权限防止资源被篡改
+	文件系统概述:
+	文件系统即在外部储存设备上组织文件的方法
+	常用的文件系统:
+	FAT  windows
+	NTFS  windows
+	EXT  linux
+
+	NTFS:
+		提高读写性能
+		可靠性，加密文件系统，访问控制列表(设置权限)
+		磁盘利用率，压缩，磁盘配额
+		支持单个文件大于4G
+
+	修改NTFS权限:
+		用户权限可以累加
+		拒绝可以覆盖允许权限
+		文件复制后权限会被目标文件夹权限覆盖
+
+15.文件共享服务器(cifs)
+	cmd输入//10.1.1.1
+	用户远程访问时取共享权限与本地权限的交集
+	whoami 查看本用户
+	whoami /user 查看本用户详细信息
+	文件夹名$ 隐藏共享文件夹
+	net share 查看共享文件夹
+	net share 共享文件名 取消文件共享
+	关闭共享:
+		445端口
+		打开services.msc,停止并禁用server服务
+
+16.DHCP部署与安全
+	DHCP:Dynamic Host Configure Protocol,自动分配IP地址
+	地址池/作用域:(IP、子网掩码、网关、DNS、租期)
+	DHCP优点:减少工作量，避免IP冲突，提高地址利用率
+	DHCP原理:
+		1.发送DHCP Discovery广播包:
+			客户机广播请求IP地址(包含客户机的MAC地址)
+		2.响应DHCP Offer广播包:
+			服务器响应提供的IP地址(无子网掩码、网关、DNS)
+			DHCP协议端口为UDP 67/68
+		3.客户机发送DHCP Request广播包:
+			客户机选择IP
+		4.服务器发送DHCP ACK广播包:
+			服务器确定了租约，并提供网卡详细参数IP、子网掩码、网关、DNS、租期等
+	DHCP续约:
+		当50%过后，客户机会再次发送DHCP Request包，如服务器无响应，则继续使用并在87.5%再次发送包，进行续约，如仍无响应，释放IP地址并重新发送DHCP Discovery广播包获取IP地址
+		当无任何服务器响应时，自动给自己分配一个169.254.x.x/16，该地址属于全球统一的无效地址，用于临时内网通信
+		ipconfig /release  释放IP地址
+		ipconfig /renew  重新获取IP地址(有IP时续约)
+	选项优先级:
+		作用域选项大于服务器选项
+		服务器上有多个作用域时，可以在服务器选项上设置DNS服务器
+	DHCP攻击与防御:
+		[1]频繁发送伪装DHCP请求，直到将DHCP地址池资源耗尽
+		在交换机(管理型)端口上做动态MAC地址绑定
+		[2]伪装DHCP服务器，将自己部署为DHCP服务器，为客户提供非法IP地址
+		在交换机上，除合法的服务器所在接口外，全部设置为禁止发送DHCP Offer包
+
+17.DNS部署与安全
+	TCP端口53
+	UDP端口53
+	Domain Name Service,为客户提供域名解析服务
+	"主机名.域名"称为完全限定域名(FQDN)
+	如www.baidu.com. :
+		.为根域
+		.com为顶级域
+		baidu为二级域名
+		www为主机名
+	DNS解析种类:
+		[1]按查询方式分类:
+			递归查询:客户机与本地DNS服务器之间
+			迭代查询:本地DNS服务器与根等其他DNS服务器的解析过程
+		[2]按查询内容分类:
+			正向解析:已知域名，解析IP地址
+			反向解析:已知IP地址，解析域名
+	ipconfig /displaydns  展示DNS缓存
+	ipconfig /flushdns  清空DNS缓存
+
+25.数据链路层(2层 data link layer):
+	帧结构:
+		帧头(6+6+2=14字节)
+			目标MAC
+			源MAC
+			类型[识别上层协议，为上层提供服务
+				-0x0800:IP协议、0x0806:ARP协议]
+		MTU值(最大传输单元):1500字节
+		帧尾(4字节)
+	MAC地址:也叫物理地址，全球唯一，48位、6字节
+	一个帧最长长度为1518字节
+	帧格式:802.3(有线)、802.11(无线)
+	
+	交换机工作原理:
+		收到一个数据帧后:
+			学习帧的源MAC地址来形成MAC地址表
+			检查帧的目标MAC地址并匹配MAC地址表，如表中有匹配项，单播转发。如无匹配项，则除接收端口外广播转发
+		MAC地址表的老化时间默认是300秒(可修改)
+
+26.IP
+IP包头长度20-60字节
+IP数据包格式:
+	[1]版本(4bit):
+		ipv4为0100，ipv6为0110
+	[2]首部长度(4bit)
+	[3]优先级与服务类型(8bit):
+		前3位为优先级，后4位为标志位，最后1位保留未用
+	[4]总长度(16bit):
+		最大包长1500字节
+	[5]标识符(16bit):
+		用于数据包在分段重组时标识其序列号
+	[6]标志(3bit):
+		长度为3位，三位从左到右分别是MF、DF、未用
+		MF=1表示后面还有分段的数据包
+		MF=0表示没有更多分片（即最后一个分片）
+		DF=1表示路由器不能对该数据包分段
+		DF=0表示数据包可以被分段
+	[7]段偏移量(13bit):
+		用于标识该数据段在上层初始数据报文中的偏移量
+	[8]TTL:time to live(8bit) :
+		每经过一台路由器TTL值减一，防止数据包在网络上永久循环
+		tracert www.baidu.com
+	[9]协议号(8bit):
+		标识上层所使用的协议
+	[10]首部校验和(16bit)
+	[11]源IP地址(32bit)
+	[12]目IP标地址(32bit)
+	[13]可选项
+	[14]数据
+
+27.路由概述
+路由:跨越从源主机到目标主机的一个互联网络来转发数据包的过程
+路由表:路由器转发数据的唯一依据
+路由器工作原理:
+[1]一个帧到达路由器，路由器首先检查目标MAC地址是否是自己，如果不是则丢弃。是则解封装，并将IP包送到路由器内部
+[2]检查IP包头中的目标IP并匹配路由表，匹配失败则丢弃并向源IP回馈错误信息。如匹配成功则将IP包路由到出接口
+[3]封装帧，首先将出接口的MAC地址作为源MAC封装好，然后检查ARP缓存表，检查是否有下一跳的MAC地址，如有将提取并作为目标MAC地址封装到帧中。如没有则发送ARP广播请求下一跳的MAC地址，获取MAC地址后记录缓存，封装帧并将帧发送出去
+
+28.ARP(address resolution protocol 地址解析协议)
+将一个已知的IP地址解析为MAC地址
+广播: 将广播地址作为目的地址的数据帧
+广播域: 网络中能接收到同一个广播所有节点的集合
+MAC地址广播: FF-FF-FF-FF-FF-FF
+IP地址广播: 255.255.255.255/IP地址网段的广播如192.168.1.255/24
+windows系统中的ARP命令:
+	arp -a 查看ARP缓存表
+	arp -d 清除ARP缓存
+	arp -s ARP绑定
+原理:
+	[1]发送ARP广播请求
+		我是10.1.1.1 我的MAC:AA
+		谁是10.1.1.2 你的MAC:??
+	[2]接收ARP单播应应答
+攻击或欺骗的原理(ARP缓存投毒):(后到覆盖)
+	通过发送伪造虚假的ARP报文(广播或单播)来实现攻击或欺骗
+	伪造虚假MAC实现攻击，中断通信
+	伪造为自身MAC实现监听、窃取、篡改、控制流量，不中断通信
+ARP协议没有验证机制
+ARP攻击防御:
+	[1]静态ARP绑定
+		手工绑定/双向绑定
+		windows客户机上:
+		arp -s 10.1.1.254 00-01-2c-a0-e1-09
+	[2]ARP防火墙
+		自动绑定静态ARP
+		主动防御
+	[3]硬件级ARP防御
+		交换机支持端口做动态ARP绑定(配合DHCP服务器)
+		或静态ARP绑定
+		如:
+		configure terminal
+		ip dhcp snooping
+		interface range f0/1 - 48 交换机端口批量操作
+		switch(config-if-range)#
+
+29.VLAN(Virtual LAN虚拟局域网)
+VLAN是二层技术
+[1]广播的危害:
+	增加网络/终端负担
+	传播病毒
+	安全性降低
+[2]如何控制广播(隔离广播域):
+	路由器隔离广播(物理隔离)
+		缺点:成本高、不灵活
+使用VLAN控制广播，VLAN技术在交换机上实现，通过逻辑隔离划分的广播域
+一个VLAN = 一个广播域 = 一个网段

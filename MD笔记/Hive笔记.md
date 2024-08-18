@@ -467,7 +467,7 @@
             row format delimited fields terminated by '\t';
         2. 设置成非严格模式
             set hive.exec.dynamic.partition.mode=nonstrict;
-        3. 只能将查询的结果插入到分区表中
+        3. 将查询的结果插入到分区表中
             insert into table dept_partition_dynamic
             partition(loc)  #指定分区字段
             select
@@ -634,52 +634,140 @@
         #只能导入到不存在的表，只能创建新表
         #导入的数据只能是通过export导出的数据，因为这个数据中才有元数据
 # 4.表查询
-## 1.关系运算符
-    A<=>B  #A和B都为null或都不为null，则返回true，如果只有一边为null，返回false
-    A rlike B, A regexp B  #B是基于java的正则表达式，如果A与其匹配，则返回true；反之返回false
-## 2.拼接
-    union  #上下拼接，去重
-    union all  #上下拼接，不去重
-    两个sql的结果，列的个数必须相同
-    两个sql的结果，上下所对应列的类型必须一致
-## 3.单行函数
+## 1.基本查询
+    select [all | distinct]
+        *,
+        字段名1 [as `别名`],
+        字段名2 [`别名`],...
+    from 表名
+    [where 过滤条件]
+    [group by 字段名]
+    [having 过滤条件]
+    [order by 字段名1 asc/desc,字段名2 asc/desc]  #排序，默认asc升序，desc降序
+    [cluster by col_list
+        [distribute by col_list] [sort by col_list]
+    ]
+    [limit num1,num2]  #从第num1行开始，向下抓取num2行
+    #null与任何类型数据计算结果都为null
+## 2.where及having关系运算符
+    1. =
+    2. <>，!  #不等于
+    3. <=>  #都为null或都不为null，则返回true，如果只有一边为null，返回false
+    4. in(值1,值2)
+    5. [not] between 值1 and 值2
+    6. is null / is not null
+    7. and / or / not
+    8. like '要匹配的字符串'
+        1. %  #代表任意长度的字符串
+        2. _  #代表1个字符
+        3. \  #代表转义字符
+        4. like 字符串 escape 字符  #使用指定字符代替转义字符
+    9. A rlike B, A regexp B  #B是基于java的正则表达式，如果A与其匹配，则返回true；反之返回false
+## 3.分组聚合函数
+    count(*)  #表示统计所有行数，包含null值
+    count(某列)  #表示该列一共有多少行，不包含null值
+    max()  #求最大值，不包含null，除非所有值都是null
+    min()  #求最小值，不包含null，除非所有值都是null
+    sum()  #求和，不包含null
+    avg()  #求平均值，不包含null
+## 4.join,union拼接
+    Hive支持通常的sql join语句，但是只支持等值连接，不支持非等值连接
+    1. join 内连接
+        只有进行连接的两个表中都存在与连接条件相匹配的数据才会被保留下来
+    2. left join 左外连接
+        join操作符左边表中符合where子句的所有记录将会被返回
+    3. right join 右外连接
+        join操作符右边表中符合where子句的所有记录将会被返回
+    4. full join 满外连接
+        将会返回所有表中符合where语句条件的所有记录。如果任一表的指定字段没有符合条件的值的话，那么就使用null值替代
+    5. 笛卡尔积
+        笛卡尔积会在下面条件下产生：
+        1. 省略连接条件
+        2. 连接条件无效
+        3. 所有表中的所有行互相连接
+    6. union 联合
+        上下拼接，去重
+        union all  #上下拼接，不去重
+        两个sql的结果，列的个数必须相同
+        两个sql的结果，上下所对应列的类型必须一致
+## 5.单行函数
     show functions  #查看系统内置函数
     desc function 函数名  #查看内置函数用法
     desc function extended 函数名  #查看内置函数详细信息
-### 1.字符串函数
-    1. 正则替换
+### 1.数值函数
+    round  #四舍五入
+    ceil  #向上取整
+    floor  #向下取整
+### 2.字符串函数
+    1. substring 截取字符串
+        substring(string A, int start, [int len])
+            #返回字符串A从start位置开始，长度为len的字符串，没有len则截取到结尾
+    2. replace 替换
+        replace(string A, string B, string C)
+            #将字符串A中的子字符串B替换为C
+    3. regexp_replace 正则替换
         regexp_replace(string A, string B, string C)
-    2. 替换null
-        nvl(A,B)
-    3. 以指定分隔符拼接字符串或者字符串数组
+            #将字符串A中的符合java正则表达式B的部分替换为C。注意，在有些情况下要使用转义字符
+    4. regexp 正则匹配
+        select A regexp B
+            #若字符串符A合正则表达式B，则返回true，否则返回false
+    5. repeat 重复字符串
+        repeat(string A, int n)
+            #将字符串A重复n遍
+    6. split 字符串切割
+        split(string str, string pat) 
+            #按照正则表达式pat匹配到的内容分割str，分割后的字符串，以数组的形式返回
+    7. nvl 替换null
+        nvl(A, B)
+    8. concat 拼接字符串
+        concat(string A, string B, string C) 
+            #将A,B,C等字符拼接为一个字符串
+    9. concat_ws 以指定分隔符拼接字符串或者字符串数组
         concat_ws(string A, string B,...| array(string))
-    4. 解析json字符串
-        get_json_object(string json_string, string path)  #解析json的字符串json_string，返回path指定的内容。如果输入的json字符串无效，那么返回NULL
+            #使用分隔符A拼接多个字符串，或者一个数组的所有元素
+    10. get_json_object 解析json字符串
+        get_json_object(string json_string, string path)
+            #解析json的字符串json_string，返回path指定的内容。如果输入的json字符串无效，那么返回NULL
         get_json_object('[{"name":"A","age":"25"},{"name":"B","age":"47"}]','$.[0].name');
 ### 2.日期函数
-    1. unix_timestamp  #返回当前或指定时间的时间戳
+    1. unix_timestamp 返回当前或指定时间的时间戳
         select unix_timestamp('2022/08/08 08-08-08','yyyy/MM/dd HH-mm-ss');
-    2. from_unixtime  #转化UNIX时间戳（从 1970-01-01 00:00:00 UTC 到指定时间的秒数）到当前时区的时间格式
+    2. from_unixtime 转化UNIX时间戳（从 1970-01-01 00:00:00 UTC 到指定时间的秒数）到当前时区的时间格式
         select from_unixtime(1659946088);
-    3. current_date  #当前日期
-    4. current_timestamp  #当前的日期加时间，并且精确到毫秒
-    5. month  #获取日期中的月
+    3. current_date 当前日期
+    4. current_timestamp 当前的日期加时间，并且精确到毫秒
+    5. month 获取日期中的月
         select month('2022-08-08 08:08:08');
-    6. day  #获取日期中的日
+    6. day 获取日期中的日
         select day('2022-08-08 08:08:08');
-    7. hour  #获取日期中的小时
+    7. hour 获取日期中的小时
         select hour('2022-08-08 08:08:08');
-    8. datediff  #两个日期相差的天数(左减右)
+    8. datediff 两个日期相差的天数(左减右)
         select datediff('2021-08-08','2022-10-09');
-    9. date_add  #日期增加指定天数
+    9. date_add 日期增加指定天数
         select date_add('2022-08-08',2);
-    10. date_sub  #日期减去指定天数
+    10. date_sub 日期减去指定天数
         select date_sub('2022-08-08',2);
-    11. date_format  #将标准日期解析成指定格式字符串
+    11. date_format 将标准日期解析成指定格式字符串
         select date_format('2022-08-08','yyyy年-MM月-dd日');
-### 3.流程控制函数if
-    if(boolean testCondition, T valueTrue, T valueFalseOrNull)
-    select if(10 > 5,true,false);
+    12. date 获取年月日
+### 3.流程控制函数
+    1. case when 条件判断函数
+        1. case
+            when 表达式1 then 返回值1
+            when 表达式2 then 返回值2
+            when 表达式3 then 返回值3
+            else 返回值4
+        end;
+        2. case 字段名
+            when 值1 then 返回值1
+            when 值2 then 返回值2
+            when 值3 then 返回值3
+            else 返回值4
+        end;
+    2. if函数
+        if(boolean testCondition, T valueTrue, T valueFalseOrNull)
+        select if(10 > 5,true,false);
 ### 4.集合函数
     1. array  #array(val1, val2,...) 
         select array('1','2','3','4');
@@ -704,7 +792,7 @@
 ### 5.高级聚合函数
     1. collect_list  #收集并形成list
     2. collect_set  #收集并形成set，去重
-## 4.高级函数
+## 6.高级函数
 ### 1.炸裂函数
     1. 格式
         select 表1字段名,字段名2

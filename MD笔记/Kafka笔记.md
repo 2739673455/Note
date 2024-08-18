@@ -35,12 +35,12 @@
 | log.dirs=/opt/module/kafka/datas | Kafka运行日志(数据)存放的路径，路径不需要提前创建，Kafka自动帮你创建，可以配置多个磁盘路径，路径与路径之间可以用","分隔 |
 | zookeeper.connect=hadoop102:2181,hadoop103:2181,hadoop104:2181/kafka | 配置连接Zookeeper集群地址(在zk根目录下创建/Kafka，方便管理) |
 ### 2.启动与关闭
-#### 1.启动
-    kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties
-    先启动Zookeeper集群，然后启动Kafka
-#### 2.关闭
-    kafka-server-stop.sh
-    停止Kafka集群时，一定要等Kafka所有节点进程全部停止后再停止Zookeeper集群，因为Zookeeper集群当中记录着Kafka集群相关信息，Zookeeper集群一旦先停止，Kafka集群就没有办法再获取停止进程的信息，只能手动杀死Kafka进程了
+    1. 启动
+        kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties
+        先启动Zookeeper集群，然后启动Kafka
+    2. 关闭
+        kafka-server-stop.sh
+        停止Kafka集群时，一定要等Kafka所有节点进程全部停止后再停止Zookeeper集群，因为Zookeeper集群当中记录着Kafka集群相关信息，Zookeeper集群一旦先停止，Kafka集群就没有办法再获取停止进程的信息，只能手动杀死Kafka进程了
 ## 2.命令行操作
 ### 1.主题命令行操作
 | 参数 | 描述 |
@@ -55,7 +55,7 @@
 | --describe | 查看主题详细描述 |
 | --partitions 分区数 | 设置分区数 |
 | --replication-factor 副本数 | 设置分区副本 |
-| --config <String:name=value> | 更新系统默认的配置 |
+| --config <name=value> | 更新系统默认的配置 |
 ### 2.生产者命令行操作
 | 参数 | 描述 |
 | --- | --- |
@@ -72,7 +72,9 @@
 | --group 消费者组名称 | 指定消费者组名称 |
 # 3.生产者
 ## 1.生产者消息发送流程
-    在消息发送的过程中，涉及到了两个线程，main线程和Sender线程，在main线程中创建双端队列RecordAccumulator，main线程将消息发送给RecordAccumulator，Sender线程不断从RecordAccumulator中拉取消息发送到Kafka Broker
+    在消息发送的过程中，涉及到了两个线程，main线程和Sender线程
+    在main线程中创建双端队列RecordAccumulator，main线程将消息发送给RecordAccumulator
+    Sender线程不断从RecordAccumulator中拉取消息发送到Kafka Broker
     1. 生产者生成消息后先经过拦截器Interceptors
     2. 经过序列化器Serializer，根据key和value的序列化配置对消息内容序列化
     3. 经过分区器Partitioner，根据分区进入相应RecordAccumulator队列(默认大小32m)
@@ -94,7 +96,7 @@
 | linger.ms | 如果数据迟迟未达到batch.size，sender等待linger.time之后就会发送数据，单位ms，默认值是0ms，表示没有延迟，生产环境建议该值大小为50-100ms之间 |
 | acks | 0:生产者发送过来的数据，不需要等数据落盘应答， 1:生产者发送过来的数据，Leader收到数据后应答， -1(all):生产者发送过来的数据，Leader+和isr队列里面的所有节点收齐数据后应答，默认值是-1，-1和all是等价的 |
 | max.in.flight.requests.per.connection | 允许最多没有返回ack的次数，默认为5，开启幂等性要保证该值是 1-5的数字 |
-| retries | 当消息发送出现错误的时候，系统会重发消息，retries表示重试次数，默认是int最大值，2147483647，如果设置了重试，还想保证消息的有序性，需要设置MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION=1否则在重试此失败消息的时候，其他的消息可能发送成功了 |
+| retries | 当消息发送出现错误的时候，系统会重发消息，retries表示重试次数，默认是int最大值，2147483647，如果设置了重试，还想保证消息的有序性，需要设置max.in.flight.requests.per.connection=1否则在重试此失败消息的时候，其他的消息可能发送成功了 |
 | retry.backoff.ms | 两次重试之间的时间间隔，默认是100ms |
 | enable.idempotence | 是否开启幂等性，默认true，开启幂等性 |
 | compression.type | 生产者发送的所有数据的压缩方式，默认是none，也就是不压缩，支持压缩类型:none、gzip、snappy、lz4和zstd |
@@ -121,7 +123,7 @@
         Partition表示分区号
         Sequence Number是单调自增的
         所以幂等性只能保证在单分区单会话内不重复
-        enable.idempotence 默认为true，开启幂等性
+        enable.idempotence  #默认为true，开启幂等性
     2. 生产者事务
         注意:提前开启幂等性
         Kafka0.11版本引入了事务的特性，为了实现跨分区跨会话的事务，需要引入一个全局唯一的Transaction ID，并将Producer获得的PID和Transaction ID绑定，这样当Producer重启后就可以通过正在进行的Transaction ID获得原来的PID
@@ -299,15 +301,15 @@
     异步提交没有失败重试机制，有可能提交失败。发送完offset提交请求后就开始消费下一批数据
 ### 4.offset消费的不同模式
     auto.offset.reset = earliest | latest | none  #默认是latest
-    当Kafka中没有初始偏移量(消费者组第一次消费)或服务器上不再存在当前偏移量时(例如该数据已被删除)如何处理
+    当Kafka中没有初始偏移量(消费者组第一次消费)或服务器上不再存在当前偏移量时(例如该数据已被删除)如何处理:
     earliest:自动将偏移量重置为最早的偏移量，--from-beginning
     latest(默认值):自动将偏移量重置为最新偏移量
     none:如果未找到消费者组的先前偏移量，则向消费者抛出异常
 ### 5.重复消费与漏消费
-#### 1.重复消费:已经消费了数据，但是offset没提交
-    offset提交后，comsumer又向后处理了数据但是还未提交offset，此时comsumer挂了，再次重启comsumer，从上次提交的offset处继续消费，导致重复消费
-#### 2.漏消费:先提交offset后消费，有可能会造成数据的漏消费
-    offset被提交时，数据还在内存中未落盘，此时消费者线程被kill掉，offset已提交，但是数据未处理，导致这部分内存中的数据丢失
+    1. 重复消费:已经消费了数据，但是offset没提交
+        offset提交后，comsumer又向后处理了数据但是还未提交offset，此时comsumer挂了，再次重启comsumer，从上次提交的offset处继续消费，导致重复消费
+    2. 漏消费:先提交offset后消费，有可能会造成数据的漏消费
+        offset被提交时，数据还在内存中未落盘，此时消费者线程被kill掉，offset已提交，但是数据未处理，导致这部分内存中的数据丢失
 ## 5.生产经验
 ### 1.分区的分配及再平衡
     Kafka有四种主流分配策略:Range，RoundRobin，Sticky，CooperactiveSticky

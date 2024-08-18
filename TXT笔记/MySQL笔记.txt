@@ -1,0 +1,104 @@
+1.函数
+	- lower(字符串) / upper(字符串)
+		字符串全部变小写/大写
+	- substr(字符串,起始位置(第1个下标为1),截取长度)
+		字符串截取
+	- length(字符串)
+		字符串长度
+	- instr(字符串,字符)
+		字符串中首个匹配字符位置
+	- lpad(字符串,总长度,填充字符) / rpad(字符串,总长度,填充字符)
+		字符串短于指定长度的从左侧/右侧使用指定字符填充
+	- trim(字符 from 字符串)
+		去除字符串两端指定的字符
+	- round(值,四舍五入到小数点后几位)
+		四舍五入
+	- truncate(值,位数)
+		截断
+	- mod(值1,值2)
+		取余,结果的正负与第一个值有关
+	- now()
+		日期
+	- version()
+		查看版本
+
+2.字段类型
+	int  4字节整型
+	char  定长字符串，默认1个字符
+	varchar  不定长字符串，必须指定长度
+	text  长文本数据，最大4G
+	blob  二进制长文本数据，最大4G
+	float(M,D)  M=整数位=小数位，D=小数位
+	double(M,D)
+	date
+	time
+	datetime
+	timestamep
+	set(值1,值2)  集合，可以写集合中的多个
+	enum(值1,值2)  枚举，只能写枚举中的一个
+
+3.数据操作
+	1.删
+		delete from 表名 [where...]
+		truncate table 表名 - 清空表中数据，不可以使用事务
+	2.改
+		update 表名 set 字段名1=值1,字段名2=值2 [where...]
+
+4.事务
+	一组逻辑操作单元，使数据从一种状态变换到另一种状态
+	1. 作用:可以将多个操作绑定在一起，要么都成功，要么都失败
+	2.
+		try{
+			#开启事务
+			'...'
+			#事务提交
+		}
+		catch(Exception e){
+			#事务回滚 - 将执行了的操作撤销
+		}
+	3. 开启事务
+		1. set autocommit = false
+			方式一:必须通过sere autocommit = true 才可以关闭事务
+		2. start transaction
+			方式二:一旦commit/rollback事务结束
+		rollback - 回滚
+		commit - 提交，一旦提交不可以回滚
+		set autocommit = true - 关闭事务
+
+5.约束
+	1.六种约束
+		not null - 非空约束
+		unique - 唯一约束
+		primary key - 主键，非空且唯一
+		foreign key - 外键
+			constraint 索引名 foreign key (本表的字段名) references 主表 (主表的字段名) [on delete casecade]
+			创建表时，先创建主表
+			插入数据时，先插入主表d
+			删除数据时，先删除从表
+			级联删除:删除主表时将从表中与主表有关的元素删除
+			级联置空:删除主表时将从表中与主表有关的元素置空
+		check - 检查约束
+		default - 默认值
+	2.约束分为:列级约束 vs 表级约束
+		1. 列级约束:同时只约束一列
+			create table 表名 (
+				id int primary key,
+				sid int unique,
+				name varchar(20) not null,
+				age int default 18,
+				score int check (score > 60)
+			);
+		2. 表级约束:同时可以约束多列,default与not null没有表级约束
+			create table 表名 (
+				id int,
+				sid int,
+				constraint 索引名 primary key (id, sid)
+			);
+		3. 自增 auto_increment
+			create table 表名 (
+				id int primary key auto_increment
+			);
+	3.创建表后添加约束
+		添加约束:alter table 表名 add primary key(字段名)
+		修改约束:alter table 表名 modify 字段名 类型 primary key
+		删除约束:alter table 表名 drop primary key

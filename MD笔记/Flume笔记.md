@@ -20,6 +20,8 @@
     传输单元，Flume数据传输的基本单元，以Event的形式将数据从源头送至目的地。Event由Header和Body两部分组成，Header用来存放该event的一些属性，为key-value结构，Body用来存放该条数据，形式为字节数组
 # 2.Flume入门
 ## 1.安装部署
+    修改conf下的log4j2.xml中运行时日志输出路径
+        21  <Property name="LOG_DIR">/opt/module/flume-1.10.1</Property>
     修改conf下的log4j2.xml确定日志打印的位置,在53行后插入
         53  <AppenderRef ref="LogFile" />
         54  <AppenderRef ref="Console" />
