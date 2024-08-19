@@ -1,9 +1,26 @@
 1.hping3
 	1.参数说明
 		-c  #发包的数目
+		-d  #发送数据包大小，缺省是0
 		-i  #发包的间隔时间(u1000 1000微秒)
-		--flood  #泛洪，尽最快速度发包 
-hping3 --udp -p 1687 -d 1200 --flood --rand-source <target_ip>
+		--flood  #泛洪，尽最快速度发包
+		-I  #指定网卡接口
+		-a  --spoof  #伪造源IP
+		--rand-source  #随机源IP
+		-s  #源端口
+		-p  #目标端口
+	2.模式选择
+		-S  --syn  #发送 TCP SYN 数据包(缺省)
+			用于发起 TCP 连接，属于三次握手的第一步
+		-R  --rst  #发送 TCP RST 数据包
+			用于立即终止一个不正常的或意外的 TCP 连接。通常用于重置连接
+		-A  --ack  #发送 TCP ACK 数据包
+			用于确认接收到的数据。通常用于 TCP 三次握手的第二步或正常数据传输的确认阶段
+		-F  --fin  #发送 TCP FIN 数据包
+			用于表示 TCP 连接的终止，属于 TCP 连接的正常关闭过程
+		-1  --icmp  #发送 IGMP 数据包，此模式下HPING会发送IGMP应答报，可以用--icmptype --icmpcode选项发送其他类型/模式的ICMP报文
+		-2  --udp  #发送 UDP 数据包，缺省发送到端口0
+
 
 1.概述
 	1. 格式化类型
@@ -42,20 +59,20 @@ hping3 --udp -p 1687 -d 1200 --flood --rand-source <target_ip>
 		192.168.0.0/16 (192.168开头的)
 
 2.Windows文件处理
-	修改文件属性:
+	1. 修改文件属性
 		attrib <参数> <文件名>  #对文件添加属性
 			+h:隐藏
 			-h:取消隐藏
 			+s:将文件夹提升为受保护的系统级
-	复制/移动文件:
-		copy [文件名.扩展名] [目标路径]
-		move [文件名.扩展名] [目标路径]
-		xcopy [目录] [目标路径] /e 拷贝文件夹
-	快速生成指定大小字节的空文件:
+	2. 复制/移动文件
+		copy <文件名.扩展名> <目标路径>
+		move <文件名.扩展名> <目标路径>
+		xcopy <目录> <目标路径> /e  #拷贝文件夹
+	3. 快速生成指定大小字节的空文件
 		fsutil file createnew d:\system.ini 409600000
-	修改关联性:
-		assoc .txt=exefile 将.txt文件修改为可执行程序
-	系统定时关机:
+	4. 修改关联性
+		assoc .txt=exefile  #将.txt文件修改为可执行程序
+	5. 系统定时关机
 		shutdown -s -t 60 -c "xxx"
 			-s:关机
 			-r:重启
@@ -237,14 +254,14 @@ hping3 --udp -p 1687 -d 1200 --flood --rand-source <target_ip>
 	地址池/作用域:(IP、子网掩码、网关、DNS、租期)
 	DHCP优点:减少工作量，避免IP冲突，提高地址利用率
 	DHCP原理:
-		1.发送DHCP Discovery广播包:
+		1. 发送DHCP Discovery广播包
 			客户机广播请求IP地址(包含客户机的MAC地址)
-		2.响应DHCP Offer广播包:
+		2. 响应DHCP Offer广播包
 			服务器响应提供的IP地址(无子网掩码、网关、DNS)
 			DHCP协议端口为UDP 67/68
-		3.客户机发送DHCP Request广播包:
+		3. 客户机发送DHCP Request广播包
 			客户机选择IP
-		4.服务器发送DHCP ACK广播包:
+		4. 服务器发送DHCP ACK广播包
 			服务器确定了租约，并提供网卡详细参数IP、子网掩码、网关、DNS、租期等
 	DHCP续约:
 		当50%过后，客户机会再次发送DHCP Request包，如服务器无响应，则继续使用并在87.5%再次发送包，进行续约，如仍无响应，释放IP地址并重新发送DHCP Discovery广播包获取IP地址
@@ -255,10 +272,10 @@ hping3 --udp -p 1687 -d 1200 --flood --rand-source <target_ip>
 		作用域选项大于服务器选项
 		服务器上有多个作用域时，可以在服务器选项上设置DNS服务器
 	DHCP攻击与防御:
-		[1]频繁发送伪装DHCP请求，直到将DHCP地址池资源耗尽
-		在交换机(管理型)端口上做动态MAC地址绑定
-		[2]伪装DHCP服务器，将自己部署为DHCP服务器，为客户提供非法IP地址
-		在交换机上，除合法的服务器所在接口外，全部设置为禁止发送DHCP Offer包
+		1. 频繁发送伪装DHCP请求，直到将DHCP地址池资源耗尽
+			防御:在交换机(管理型)端口上做动态MAC地址绑定
+		2. 伪装DHCP服务器，将自己部署为DHCP服务器，为客户提供非法IP地址
+			防御:在交换机上，除合法的服务器所在接口外，全部设置为禁止发送DHCP Offer包
 
 17.DNS部署与安全
 	TCP端口53

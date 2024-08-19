@@ -1,69 +1,74 @@
-1.各个数据类型的宽度
-	byte  1字节
-	short  2字节
-	int  4字节
-	long  8字节
-	float  4字节 1位符号位+8位指数位+23位尾数位
-	double  8字节 1位符号位+11位指数位+52位尾数位
-	char  2字节
-	boolean  1bit
-
-2.运算符
-	<< 二进制左移，右边补0，符号位可能发生变化
-	>> 二进制右移，左边按符号位补1或补0，符号位不会变化
-	>>> 二进制右移，左边补0，正数>>>等价>>，负数>>>会变为正数
-
-3.数组
-	初始化
+1.基础内容
+	1.数据类型的宽度
+		- byte     #1字节
+		- short    #2字节
+		- int      #4字节
+		- long     #8字节
+		- float    #4字节 1位符号位+8位指数位+23位尾数位
+		- double   #8字节 1位符号位+11位指数位+52位尾数位
+		- char     #2字节
+		- boolean  #1bit
+	2.运算符
+		- <<   #二进制左移，右边补0，符号位可能发生变化
+		- >>   #二进制右移，左边按符号位补1或补0，符号位不会变化
+		- >>>  #二进制右移，左边补0，正数>>>等价>>，负数>>>会变为正数
+	3.数组
 		int[] arr = new int[]{1,2,3};
 		int[] arr = {1,2,3};
 		int[] arr = new int[3];
-	数组首地址存储在虚拟机栈，数组元素存储在堆
+		数组首地址存储在虚拟机栈，数组元素存储在堆
+	4.包package
+		避免类的重名，将类放入包中后，类的全名为 包.类名
+		跨包使用时需要import
+	5.native:本地的，原生的，内置的
+		在Java中，native是用来修饰一种特殊的方法的
+		这种方法的方法体不在Java层面，在底层的C/C++语言中。在.java源文件中这些native方法也没有方法体
+		把它当做Java的普通方法即可，只要这个方法不是final，不是private，不是static，那么它也可以被重写
 
-4.类与对象
+2.类与对象
 	1.变量
 		1.静态变量
-			1.全局共享，这个类的所有对象共享
-			2.调用方法
+			1. 全局共享，这个类的所有对象共享
+			2. 调用
 				类名.静态变量名
 				对象.静态变量名
-			3.声明在类中，其他成员外
-			4.有默认值，也可手动初始化，或使用静态代码块初始化
-			5.静态变量的值存储在方法区，1个静态变量的值只存储1份
+			3. 声明在类中，其他成员外
+			4. 有默认值，也可手动初始化，或使用静态代码块初始化
+			5. 静态变量的值存储在方法区，1个静态变量的值只存储1份
 		2.实例变量
-			1.每一个对象独立
-			2.调用方法
+			1. 每一个对象独立
+			2. 调用
 				对象.实例变量名
-			3.声明在类中，其他成员外
-			4.有默认值，也可手动初始化，或使用非静态代码块和构造器初始化
-			5.实例变量的值存储在堆，1个实例变量的值会存储多份
+			3. 声明在类中，其他成员外
+			4. 有默认值，也可手动初始化，或使用非静态代码块和构造器初始化
+			5. 实例变量的值存储在堆，1个实例变量的值会存储多份
 		3.局部变量
-			1.声明在方法、构造器、代码块中
-			2.没有默认值，必须手动初始化，只能加final修饰
-			3.局部变量的值存储在栈
+			1. 声明在方法、构造器、代码块中
+			2. 没有默认值，必须手动初始化，只能加final修饰
+			3. 局部变量的值存储在栈
 		4.成员属性默认值
-			byte  0
-			short  0
-			int  0
-			long  0L
-			float  0.0F
-			double  0.0
-			char  '\u0000'
-			boolean  false
-			引用数据类型(包括数组，类等)  null
+			- byte                     #0
+			- short                    #0
+			- int                      #0
+			- long                     #0L
+			- float                    #0.0F
+			- double                   #0.0
+			- char                     #'\u0000'
+			- boolean                  #false
+			- 引用数据类型(包括数组，类等)  #null
 	2.方法
 		1.静态方法
-			1.有static修饰的方法，静态方法的调用与对象无关，本类中任意成员可调用
-			2.父类的静态方法可以被子类继承，但不能被重写
-			3.父接口的静态方法不会被实现类继承，也不能被重写
+			1. 有static修饰的方法，静态方法的调用与对象无关，本类中任意成员可调用
+			2. 父类的静态方法可以被子类继承，但不能被重写
+			3. 父接口的静态方法不会被实现类继承，也不能被重写
 		2.实例方法
-			1.没有static修饰的方法，实例方法的调用与对象有关，非静态成员可调用
+			1. 没有static修饰的方法，实例方法的调用与对象有关，非静态成员可调用
 	3.构造器
-		1.构造器没有返回值类型
-		2.构造器名称必须与类名完全一致
-		3.构造器可以重载
-		4.构造器修饰符只能是public,protected,缺省,private，不能添加static等其他修饰符
-		5.枚举类和单例类的构造器一定私有化
+		1. 构造器没有返回值类型
+		2. 构造器名称必须与类名完全一致
+		3. 构造器可以重载
+		4. 构造器修饰符只能是public,protected,缺省,private，不能添加static等其他修饰符
+		5. 枚举类和单例类的构造器一定私有化
 	4.代码块
 		1.静态代码块
 			为静态变量初始化
@@ -74,123 +79,128 @@
 			比构造器要早执行
 	5.内部类
 		1.匿名内部类
-			1.语法
-				1.new 父类名(){}
+			1. 语法
+				1. new 父类名(){}
 					声明了一个匿名的类
 					创建了这个匿名类的唯一对象
 					匿名子类在构造器首行调用的是父类的无参构造，等价于匿名子类构造器首行有super();
-				2.new 父类名(实参列表){}
+				2. new 父类名(实参列表){}
 					声明了一个匿名的类
 					创建了这个匿名类的唯一对象
 					匿名子类在构造器首行调用的是父类的有参构造，等价于匿名子类构造器首行有super(实参列表);
-				3.new 父接口名(){}
+				3. new 父接口名(){}
 					声明了一个匿名的类，这个匿名类实现了某个接口，它的父类是Object
 					创建了这个匿名类的唯一对象
 					匿名子类在构造器首行调用的是父类Object的无参构造，等价于匿名子类构造器首行有super();
 		2.静态内部类
-			1.外部类和内部类可以互相使用对方的"私有"成员
-			2.静态内部类有自己的字节码文件，外部类名$静态内部类名.class
-			3.外部类可以使用静态内部类的所有成员
-				1.访问静态内部类的静态成员：
+			1. 外部类和内部类可以互相使用对方的"私有"成员
+			2. 静态内部类有自己的字节码文件，外部类名$静态内部类名.class
+			3. 外部类可以使用静态内部类的所有成员
+				1. 访问静态内部类的静态成员
 					静态内部类名.静态成员
-				2.访问静态内部类的非静态成员：
+				2. 访问静态内部类的非静态成员
 					先创建静态内部类的对象，再用对象.进行访问
-			4.静态内部类只能使用外部类的静态成员
-			5.静态内部类可以在外部类的外面使用
-				1.访问静态内部类的静态成员：
+			4. 静态内部类只能使用外部类的静态成员
+			5. 静态内部类可以在外部类的外面使用
+				1. 访问静态内部类的静态成员
 					外部类名.静态内布类名.静态成员
-				2.访问静态内部类的非静态成员：
+				2. 访问静态内部类的非静态成员
 					先创建静态内部类的对象，再用对象.进行访问
 		3.非静态内部类
-			1.外部类和内部类可以互相使用对方的"私有"成员
-			2.非静态内部类有自己的字节码文件，外部类名$非静态内部类名.class
-			3.外部类的静态方法中，不允许创建非静态内部类的对象，其他都可以
-				1.访问非静态内部类的静态成员：
+			1. 外部类和内部类可以互相使用对方的"私有"成员
+			2. 非静态内部类有自己的字节码文件，外部类名$非静态内部类名.class
+			3. 外部类的静态方法中，不允许创建非静态内部类的对象，其他都可以
+				1. 访问非静态内部类的静态成员
 					非静态内部类名.静态成员
-				2.访问非静态内部类的非静态成员：
+				2. 访问非静态内部类的非静态成员
 					先创建非静态内部类的对象，再用对象.进行访问
-			4.非静态内部类可以使用外部类的所有成员
-			5.非静态内部类可以在外部类的外面使用
-				1.访问非静态内部类的静态成员：
+			4. 非静态内部类可以使用外部类的所有成员
+			5. 非静态内部类可以在外部类的外面使用
+				1. 访问非静态内部类的静态成员
 					外部类名.非静态内部类名.静态成员
-				2.访问非静态内部类的非静态成员：
+				2. 访问非静态内部类的非静态成员
 					先创建外部类的对象
 					再创建非静态内部类的对象，此时需要依赖外部类的对象
 					再用非静态内部类的对象.进行访问
-		4.面向对象语法中的几个原则：
-			1.同一个类中，静态成员不允许直接使用非静态成员
-			2.在A类的外部，使用A类的静态成员，那么直接“A类名.静态成员”
-			3.在A类的外部，使用A类的非静态成员，那么先创建A类的对象，然后“对象.非静态成员”
-			4.同一个类中，非静态成员中可以使用本类所有其他成员
+	6.面向对象语法中的几个原则
+		1. 同一个类中，静态成员不允许直接使用非静态成员
+		2. 在A类的外部，使用A类的静态成员，那么直接“A类名.静态成员”
+		3. 在A类的外部，使用A类的非静态成员，那么先创建A类的对象，然后“对象.非静态成员”
+		4. 同一个类中，非静态成员中可以使用本类所有其他成员
 
-5.包
-	1.避免类的重名，将类放入包中后，类的全名为 包.类名
-	2.跨包使用时需要import
+3.封装
+	1. 通过权限修饰符来限定类或类的成员的可见性范围
+	2. 权限修饰符范围:
+		- private    #本类
+		- 缺省        #本类，本包
+		- protected  #本类，本包，其他包子类
+		- public     #任意位置
 
-6.封装
-	1.通过权限修饰符来限定类或类的成员的可见性范围
-	2.权限修饰符范围
-		private:本类
-		缺省:本类，本包
-		protected:本类，本包，其他包子类
-		public:任意位置
-
-7.继承
-	1.代码的复用：子类可以复用父类的代码
-	2.代码的扩展：子类可以对父类进行扩展，增加新成员或重写父类方法
-	3.单继承：1个子类只能继承1个父类，extends后只能写1个父类
-	4.多层继承：父类的父类成员也会被子类继承
-	5.java.lang.Object是根父类
-	6.子类不会继承父类的任何构造器，但是子类必须调用父类的某个构造器，默认情况下调用父类的无参构造，或使用super()与super(实参列表)来调用父类构造器，调用父类构造器必须在子类构造器首行
-	7.子类重写父类方法时
-		1.返回值类型
-			<=父类返回值类型
-		2.权限修饰符
-			>=父类权限
-		3.抛出的异常列表
-			要么不throws
-			要么throws的异常类型<=父类的异常类型
-			对非受检异常/运行时异常不做限制
-		父类中被重写的方法修饰符不能为private，不能为static，final
-	8.final
-		1.修饰类，表示该类不允许有子类
-		2.修饰方法，表示该方法子类可以继承但不能重写
-		3.修饰变量
+4.继承
+	1.继承的作用
+		1. 代码的复用: 子类可以复用父类的代码
+		2. 代码的扩展: 子类可以对父类进行扩展，增加新成员或重写父类方法
+	2.继承的特点与要求
+		1. 单继承: 1个子类只能继承1个父类，extends后只能写1个父类
+		2. 多层继承: 父类的父类成员也会被子类继承
+		3. java.lang.Object是根父类
+		4. 子类会继承父类所有的成员变量、成员方法
+			但是父类中private修饰的成员变量，成员方法，子类不能直接使用，需要间接使用它
+		5. 子类不会继承父类的任何构造器
+			但是子类必须调用父类的某个构造器，默认情况下调用父类的无参构造，或使用super()与super(实参列表)来调用父类构造器
+			调用父类构造器必须在子类构造器首行
+		6. 子类可以重写父类方法
+			子类中要调用父类被重写的方法时，需要加 super.方法名()
+			子类重写父类方法时:
+				1. 返回值类型
+					<=父类返回值类型
+				2. 权限修饰符
+					>=父类权限
+				3. 抛出的异常列表
+					要么不throws
+					要么throws的异常类型<=父类的异常类型
+					对非受检异常/运行时异常不做限制
+				4. 父类中被重写的方法修饰符不能为private，不能为static，final
+	3.final
+		1. 修饰类，表示该类不允许有子类
+		2. 修饰方法，表示该方法子类可以继承但不能重写
+		3. 修饰变量
 			修饰局部变量，表示该变量为常量
 			修饰成员变量，该变量必须手动赋值，直接在变量声明时初始化或在有参构造或无参构造中初始化，且没有set方法
-	9.this
-		1.代表当前对象
-		2.可以出现在
+	4.this
+		1. 代表当前对象
+		2. 可以出现在
 			构造器中
 			成员方法中
 			非静态代码块中
-		不允许出现在静态代码块、静态方法中
-		3.用法
-			1.this.成员属性
+		3. 不允许出现在静态代码块、静态方法中
+		4. 用法
+			1. this.成员属性
 				当局部变量与成员变量重名时，使用this来表示使用的是成员变量
-			2.this.成员方法
+			2. this.成员方法
 				完全可以省略this
-			3.this()或this.(实参列表)
+			3. this()或this.(实参列表)
 				调用本类的构造器
 				必须在构造器的首行
-	10.super
-		1.引用父类的某个成员
-		2.可以出现在
+	5.super
+		1. 引用父类的某个成员
+		2. 可以出现在
 			构造器中
 			成员方法中
 			非静态代码块中
-		不允许出现在静态代码块、静态方法中
-		3.用法
-			1.super.成员属性
+		3. 不允许出现在静态代码块、静态方法中
+		4. 用法
+			1. super.成员属性
 				调用父类的成员变量，如果父类的成员变量私有化了，会报错
-			2.super.成员方法
+			2. super.成员方法
 				子类重写了父类的某个方法后，子类需要调用父类方法时需要使用super
-			3.super()或super.(实参列表)
+			3. super()或super.(实参列表)
 				调用父类的构造器
 				必须在构造器的首行
 
-8.多态
+5.多态
 	1.什么是多态
+		一个对象在不同场景下展现不同的形态
 		同一方法，在父类和子类中实现不同，或者在不同的子类中实现不同
 		同一变量，在编译时的类型，和在运行时的类型不一致
 	2.多态引用
@@ -200,87 +210,118 @@
 			编译时看左边，以父类为主，只能调用父类中声明的方法，否则编译器报错
 			运行时看右边，以子类为主，执行子类重写的方法体
 	3.多态的应用
-		1.多态数组
+		1. 多态数组
 			数组中元素类型声明为父类/父接口的类型，实际元素存储的是子类对象
 			使用多态数组，可以方便的管理一组子类的对象
-		2.多态参数
+		2. 多态参数
 			方法的形参是父类类型，实参是子类的对象
-		3.多态返回值
+		3. 多态返回值
 			方法的返回值类型是父类类型，实际返回的是子类对象
 	4.没有多态的情况
-		1.静态方法
-		2.直接访问成员变量
 		只看编译时类型，或只看左边，除非进行强制类型转换
+		1. 静态方法
+		2. 直接访问成员变量
 	5.向上转型与向下转型
-		1.向上转型与向下转型只对编译器有效，对象的类型不会真的发生变化，从它new的时候就已确定
-		2.向上转型
+		1. 向上转型与向下转型只对编译器有效，对象的类型不会真的发生变化，从它new的时候就已确定
+		2. 向上转型
 			让一个对象在编译时以父类类型处理
 			为了统一处理大家的共性，即调用所有子类共有的方法
-		3.向下转型
-			让一个对象在编译时重新以子类类型进行处理，向下转型有风险，可能发生ClassCastException(类型转换异常)，为避免异常可在向下转型之前使用instanceof进行类型判断
+		3. 向下转型
+			让一个对象在编译时重新以子类类型进行处理
+			向下转型有风险，可能发生ClassCastException(类型转换异常)，为避免异常可在向下转型之前使用instanceof进行类型判断
 			为了调用子类特有/扩展的方法
 
-9.抽象类
-	1.抽象方法没有方法体
-	2.包含抽象方法的类，必须声明为抽象类
-	3.抽象类不能直接new对象
-	4.子类继承抽象类后，若子类不是抽象类，子类必须重写父类所有的抽象方法，重写时要去掉abstract
-	5.抽象类拥有类的所有成员，除了包含抽象方法，不能new对象外，和普通类没有区别
+6.抽象类
+	1. 包含抽象方法的类，必须声明为抽象类
+	2. 抽象方法没有方法体
+	3. 抽象类不能直接new对象
+	4. 抽象类是用来被继承的，子类继承抽象类后，若子类不是抽象类，子类必须重写父类所有的抽象方法，重写时要去掉abstract
+	5. 抽象类拥有类的所有成员，除了包含抽象方法，不能new对象外，和普通类没有区别
 
-10.接口
-	1.接口像是一个父类，但没有单继承限制，用于表示多个子类的共同特征，接口与接口之间可以多继承
-	2.接口天生抽象，接口中可以定义抽象方法，且抽象方法必须是public，此时抽象方法的public abstract可以省略
-	3.接口不能直接new对象，必须创建子类(或者叫做实现类)的对象
-	4.接口与抽象类的区别
-		1.接口没有单继承限制，抽象类有单继承限制
-		2.接口中成员有限制，抽象类中成员更丰富
-			接口中有5种成员
-				1.公共静态常量
-				2.公共抽象方法
-				3.公共静态方法
-				4.公共默认方法
-				5.私有方法
-	5.成员变量冲突问题
+7.接口
+	1. 接口像是一个父类，但没有单继承限制，用于表示多个子类的共同特征，接口与接口之间可以多继承
+	2. 接口天生抽象，接口中可以定义抽象方法，且抽象方法必须是public，此时抽象方法的public abstract可以省略
+	3. 接口不能直接new对象，必须创建子类(或者叫做实现类)的对象
+	4. 接口与抽象类的区别
+		1. 接口没有单继承限制，抽象类有单继承限制
+		2. 接口中成员有限制，抽象类中成员更丰富
+	5. 接口中有5种成员
+		1. 公共静态常量
+		2. 公共抽象方法
+		3. 公共静态方法
+		4. 公共默认方法
+		5. 私有方法
+	6. 成员变量冲突问题
 		当子类继承的父类与实现的父接口中有相同的成员变量时，子类中如果要使用这些成员变量，必须指明是哪一个
-	6.默认方法冲突问题
+	7. 默认方法冲突问题
 		当子类继承的父类中有一个非静态方法，与子类实现的父接口中的默认方法，方法签名相同(方法名与形参列表相同)，那么子类默认选择父类的方法体
 
-11.包装类
-	1.初始化
-		Integer num = 1;
-		Integer.valueOf(1);
-	2.将String类型的字符串转为基本数据类型
-		Integer.parseInt(String str);
-		str.charAt(0);
-	3.比较大小关系
-		Integer.compare(value1, value2);
-	4.单个字符转换大小写
-		Character.toUpperCase(char c);
-		Character.toLowerCase(char c);
-	5.缓存的常量对象
+8.包装类
+	为了让8种基本数据类型与一些API、新特性兼容，Java为这8种基本数据类型设计了包装类
+	- byte     #Byte
+	- short    #Short
+	- int      #Integer
+	- long     #Long
+	- float    #Float
+	- double   #Double
+	- char     #Character
+	- boolean  #Boolean
+	1.自动装箱与自动拆箱
+		自动装箱(Boxing): 基本数据类型的数据 -> 包装类的对象
+		自动拆箱(UnBoxing): 包装类的对象 -> 基本数据类的数据
+		==: 两个包装类对象之间不会拆箱，会按照地址值比较
+		只要是8种基本数据类型以外的，比较是否相等都用equals方法
+		当 == 左右两边有一边是基本数据类型，包装类就会拆箱
+		其他的加减乘除模、大小比较等运算: 会拆箱为基本数据类型
+	2.常用方法
+		1. 初始化
+			Integer num = 1;
+			Integer.valueOf(1);
+		2. 将String类型的字符串转为基本数据类型
+			Integer.parseInt(String str);
+			str.charAt(0);
+		3. 比较大小关系
+			Integer.compare(value1, value2);
+			比较相等使用 equals
+		4. 单个字符转换大小写
+			Character.toUpperCase(char c);
+			Character.toLowerCase(char c);
+		5. 包装类常量最大值
+			Integer.MAX_VALUE  #int的最大值
+	3.缓存的常量对象
 		部分包装类有缓存的常量对象，这些缓存的常量对象可以共享
-		Byte [-128,127]
-		Short [-128,127]
-		Integer [-128,127]
-		Long [-128,127]
-		Float 无
-		Double 无
-		Character [0,127]
-		Boolean [true,false]
-	6.包装类对象不可变
+		- Byte       # [-128, 127]
+		- Short      # [-128, 127]
+		- Integer    # [-128, 127]
+		- Long       # [-128, 127]
+		- Float      # 无
+		- Double     # 无
+		- Character  # [0, 127]
+		- Boolean    # true, false
+	4.包装类对象不可变
 		修改包装类的值，只是让其指向新的对象
-		不可变：基本数据类型、包装类、String
+		不可变:基本数据类型、包装类、String
 
 12.枚举类
-	1.enum声明的枚举类型，构造器默认、也只能是private
-	2.枚举类的常量对象在类加载时就创建好了，默认是public static final
-	3.枚举类没有子类，因为构造器私有化了，子类无法调用枚举父类的构造器
-	4.枚举类的父类无法随意指定，直接父类默认是java.lang.Enum，根父类是Object
-	5.枚举类的特殊方法
-		1.public String name()  返回常量对象名
-		2.public int ordinal()  返回常量对象的序号
-		3.public static 枚举类型[] values()  返回所有枚举对象构成的数组
-		4.public static 枚举类型 valueOf(String name)  根据常量对象名获取对应的枚举对象
+	1.什么是枚举类
+		枚举类的对象是固定的、有限的几个常量对象
+	2.定义枚举类
+		<修饰符> enum 枚举类名{
+			常量对象列表;  #必须在枚举类的首行，如果后面没有别的成员,可以省略。如果后面有别的成员,不能省略
+			属性列表;
+			构造器列表;
+			成员方法列表;
+		}
+		1. enum声明的枚举类型，构造器默认、也只能是private
+		2. 枚举类的常量对象在类加载时就创建好了，默认是public static final
+	3.枚举类特点
+		1. 枚举类没有子类，因为构造器私有化了，子类无法调用枚举父类的构造器
+		2. 枚举类的父类无法随意指定，直接父类默认是java.lang.Enum，根父类是Object
+		3. 枚举类的特殊方法
+			1. public String name()  返回常量对象名
+			2. public int ordinal()  返回常量对象的序号
+			3. public static 枚举类型[] values()  返回所有枚举对象构成的数组
+			4. public static 枚举类型 valueOf(String name)  根据常量对象名获取对应的枚举对象
 
 13.异常
 	1.异常也是对象，Throwable是所有错误或异常的超类
@@ -336,14 +377,14 @@
 	b1.remainder(b2)  余
 
 17.日期时间API
-	第一代：
+	第一代:
 	java.util.Date  日期时间
 	java.text.SimpleDateFormat  日期时间格式化工具类
-	第二代：
+	第二代:
 	java.util.Calender  日历类
 	java.util.TimeZone  时区类型
 	java.util.Locale  地区
-	第三代：
+	第三代:
 	LocalDate,LocalTime,LocalDateTime
 	instant类型  瞬时
 	ZoneId,ZonedDateTime
@@ -368,8 +409,8 @@
 20.Runtime类
 	Runtime jvm = Runtime.getRuntime()  获取Runtime类的唯一对象
 	long totalMemory = jvm.totalMemory()  总内存
-    long freeMemory = jvm.freeMemory()  空闲内存
-    long useMemory = totalMemory - freeMemory  已使用内存
+	long freeMemory = jvm.freeMemory()  空闲内存
+	long useMemory = totalMemory - freeMemory  已使用内存
 
 21.比较器
 	1.java.util.Comparator接口  定制比较器
@@ -439,11 +480,11 @@
 
 24.字符串拼接 StringJoiner(java.util)
 	String[] arr = {"hello","world","java"};
-    StringJoiner joiner = new StringJoiner("-", "[", "]");
-    for (int i = 0; i < arr.length; i++) {
-        joiner.add(arr[i]);
-    }
-    System.out.println(joiner);  //"[hello-world-java]"
+	StringJoiner joiner = new StringJoiner("-", "[", "]");
+	for (int i = 0; i < arr.length; i++) {
+		joiner.add(arr[i]);
+	}
+	System.out.println(joiner);  //"[hello-world-java]"
 
 25.Collection
 	1.Collection系列的集合以Collection为根接口，这个接口中定义了所有该系列的集合“共有”的方法
@@ -473,14 +514,14 @@
 					Object obj = iterator.next();
 					System.out.println(obj);
 				}
-    2.Collection的子接口：Set
-    	1.Set子接口的实现类有一个共同特征：元素不可重复
-		2.常用的实现类：HashSet、LinkedHashSet、TreeSet等
+	2.Collection的子接口:Set
+		1.Set子接口的实现类有一个共同特征:元素不可重复
+		2.常用的实现类:HashSet、LinkedHashSet、TreeSet等
 			1.HashSet(底层时哈希表)  元素不可重复，完全无序。（这里的无序，是指完全没有规律）
 			2.LinkedHashSet(底层是双向链表+哈希表)  元素不可重复，元素有顺序，按照添加顺序排列，因为底层有一个双向链表
 			3.TreeSet(底层是红黑树)  元素不可重复，元素有大小顺序,一边添加一边排序。依赖于Comparable接口 或 Comparator接口
-	3.Collection的子接口：List
-		1.List系列的集合有一个共同特征：元素可以重复，元素可以通过下标进行访问。无论底层是不是数组，都可以通过下标进行访问，我们称为有序的（有下标顺序）
+	3.Collection的子接口:List
+		1.List系列的集合有一个共同特征:元素可以重复，元素可以通过下标进行访问。无论底层是不是数组，都可以通过下标进行访问，我们称为有序的（有下标顺序）
 		2.List的常见实现类有
 			ArrayList(底层是动态数组)  线程不安全  效率高  默认扩容1.5倍  初始化长度0，添加元素时创建长度为10的数组
 			LinkedList(底层是双向链表)  不连续存储  不需要扩容
@@ -513,8 +554,8 @@
 			5.遍历
 				1.直接foreach（最简洁，最推荐的方法）
 				2.将元素放到Object[]数组中返回，然后遍历数组（不太推荐）
-				3.用Iterator迭代器遍历：Iterator迭代器只能从头开始遍历
-				4.用ListIterator迭代器遍历：
+				3.用Iterator迭代器遍历:Iterator迭代器只能从头开始遍历
+				4.用ListIterator迭代器遍历:
 					ListIterator迭代器可以从任意位置开始遍历
 					ListIterator迭代器可以从左往右，也可以从右往左
 					在遍历过程中支持对集合进行增、删、改、查
@@ -556,6 +597,8 @@
 			peekLast()
 
 28.泛型
+	类型指定外部类的类型，泛型指定内部类的类型
+	泛型与多态无关，泛型无法使用多态
 	1.代码中出现<字母>或<类型>都是泛型
 	2.对于设计这个泛型类或泛型方法的程序员来说，泛型将类型的确定从当前设计时，延迟到了使用时
 	3.对于使用包含泛型类或泛型方法的程序员来说，又把类型的确定从运行时提前到了编译时
@@ -630,7 +673,7 @@
 		TreeSet  底层是TreeMap
 	5.HashMap原理
 		1.(key,value)的存储位置
-			hashCode(key)：将key对象映射为int值
+			hashCode(key):将key对象映射为int值
 			index = hash(key) & (table.length-1)
 			key为null，hash值为0，存储在table[0]
 			key值不能修改，因为修改后hash(key)与原来不同。value值可以修改
@@ -649,15 +692,15 @@
 			threshold = table.length * loadFactor (loadFactor的默认值 DEFAULT_LOAD_FACTOR 是0.75)
 			数组扩容后所有键值对重新计算索引
 			扩容后已有键值对的位置要么不变，要么换到 index+2^(n-1)
-		5.树化：需同时满足两个条件
+		5.树化:需同时满足两个条件
 			1.table.length>=MIN_TREEIFY_CAPACITY(值为64)
 			2.该单链表长度>=TREEIFY_THRESHOLD(值为8)
-		6.反树化：当对HashMap做如下两个操作，且满足对应条件时，会反树化
-			1.remove操作：若红黑树的根结点，根的左结点，根的右结点，根的左结点的左结点之一为null时，会反树化
-			2.put操作：若触发了扩容，且红黑树结点数量<=UNTREEIFY_THRESHOLD(值为6)，会反树化
+		6.反树化:当对HashMap做如下两个操作，且满足对应条件时，会反树化
+			1.remove操作:若红黑树的根结点，根的左结点，根的右结点，根的左结点的左结点之一为null时，会反树化
+			2.put操作:若触发了扩容，且红黑树结点数量<=UNTREEIFY_THRESHOLD(值为6)，会反树化
 	6.HashMap按值排序
 		List<Map.Entry<T1, T2>> list = new ArrayList<>(HashMap.entrySet());
-        list.sort((o1, o2) -> o1.getValue() - o2.getValue());
+		list.sort((o1, o2) -> o1.getValue() - o2.getValue());
 
 30.多线程
 	1.实现多线程
@@ -689,7 +732,7 @@
 		void join()  执行这句代码的线程A要等待该线程（调用join方法的线程B）终止之后才能继续
 		void join(long millis)  等待该线程终止的时间最长为 millis 毫秒。如果millis时间到，将不再等待
 		void join(long millis, int nanos)  等待该线程终止的时间最长为 millis 毫秒 + nanos 纳秒
-		public void interrupt()  中断线程，要通过这个方法制造InterrupttedException异常的话，前提是这个线程正在执行可能发生该异常的方法，例如：sleep，wait等
+		public void interrupt()  中断线程，要通过这个方法制造InterrupttedException异常的话，前提是这个线程正在执行可能发生该异常的方法，例如:sleep，wait等
 
 		public void setDaemon(true)  将指定线程设置为守护线程，必须在线程启动之前设置，否则会报IllegalThreadStateException异常
 		public boolean isDaemon()  判断线程是否是守护线程
@@ -705,7 +748,7 @@
 			如果是非静态方法，它的同步锁对象，只能是this
 			如果是静态方法，它的同步锁对象，只能是当前类的Class对象
 	4.生产者消费者问题
-		当一个或一些线程，负责往数据的缓冲区(比喻：仓库，账户)填充/增加数据，这些线程被称为生产者线程
+		当一个或一些线程，负责往数据的缓冲区(比喻:仓库，账户)填充/增加数据，这些线程被称为生产者线程
 		而另一个或一些线程，负责从数据的缓冲区消费/减少数据，这些线程被称为消费者线程
 		当数据缓冲区“空”的时候，消费者线程应该“停”下来“等待”，等生产者线程生产了新的数据之后，才能继续消费
 		反过来，当数据缓冲区“满”的时候，生产者线程应该““停”下来“等待”，等消费者线程继续消费了数据之后，才能继续生产
@@ -715,8 +758,8 @@
 			有共享的数据缓冲区
 			对数据缓冲区有修改操作
 		2.线程的协作问题 => 线程通信机制来解决，即等待与唤醒机制
-			wait：让当前线程等待
-			notify/notifAll：唤醒正在等待的某个/所有线程
+			wait:让当前线程等待
+			notify/notifAll:唤醒正在等待的某个/所有线程
 			当wait或notify/notifyAll方法不是由监视器(同步锁对象)调用时，就会发生IllegalMonitorStateException
 	5.线程的生命周期
 		新建(New)
@@ -812,9 +855,9 @@
 			3.FileWriter
 				BufferedWriter-write(),newLine()
 	5.对象IO流
-		1.ObjectOutputStream：对象输出流。可以输出Java中各种基本数据类型的数据和Java的对象
+		1.ObjectOutputStream:对象输出流。可以输出Java中各种基本数据类型的数据和Java的对象
 			输出这些数据的过程，称为序列化
-		2.ObjectInputStream：对象输入流。可以读取Java中各种基本数据类型的数据和Java的对象
+		2.ObjectInputStream:对象输入流。可以读取Java中各种基本数据类型的数据和Java的对象
 			读取这些数据的过程，称为反序列化
 		3.要输出的对象，其类型必须实现java.io.Serializable接口，否则在输出对象时，会报java.io.NotSerializableException（不支持序列化异常）
 		4.读取对象流输出的内容时，读的顺序要与写的顺序、类型等一致
@@ -824,10 +867,10 @@
 			序列化版本ID属性名必须是serialVersionUID，类型是long类型，必须是static,final。private不是必须的，但是通常都是private
 		6.序列化规则
 			1.如果一个类的属性前面有如下修饰符修饰的，就不会参与序列化
-				static：它不是某个对象独有的，而是整个类共有的属性，不会让单个对象单独保存/序列化这种变量的值
-				transient：它是临时多变的，没有必要序列化的
+				static:它不是某个对象独有的，而是整个类共有的属性，不会让单个对象单独保存/序列化这种变量的值
+				transient:它是临时多变的，没有必要序列化的
 			2.自定义序列化规则
-				在序列化和反序列化过程中需要特殊处理的类必须实现具有下列准确签名的特殊方法：
+				在序列化和反序列化过程中需要特殊处理的类必须实现具有下列准确签名的特殊方法:
 				private void readObject(java.io.ObjectInputStream stream)throws IOException, ClassNotFoundException
 				private void writeObject(java.io.ObjectOutputStream stream)throws IOException
 				private void readObjectNoData() throws ObjectStreamException
@@ -847,46 +890,46 @@
 				//异常处理代码或异常打印代码
 			}
 			凡是在try()中声明和创建的IO流对象，都会自动关闭。
-			这种形式的try-catch有一个名称：try-catch-with-resource，这是从JDK7版本开始
+			这种形式的try-catch有一个名称:try-catch-with-resource，这是从JDK7版本开始
 			从JDK9开始，凡是在try()中罗列的IO流对象，都会自动关闭
 			要放到try()中的对象的类型必须实现Closable接口或AutoCloseable接口
 			放到try()中的资源类对象，默认会变成final声明
 	7.File类
 		1.构造器
-			public File(String pathname)  通过将给定的路径名字符串转换为抽象路径名来创建新的File实例
-			public File(String parent, String child)  从父路径名字符串和子路径名字符串创建新的File实例
-			public File(File parent, String child)  从父抽象路径名和子路径名字符串创建新的File实例
+			File(String pathname)  通过将给定的路径名字符串转换为抽象路径名来创建新的File实例
+			File(String parent, String child)  从父路径名字符串和子路径名字符串创建新的File实例
+			File(File parent, String child)  从父抽象路径名和子路径名字符串创建新的File实例
 		2.获取文件和目录基本信息的方法
-			public String getName()  返回由此File表示的文件或目录的名称
-			public long length()  返回由此File表示的文件的长度。 如果此路径名表示一个目录，则返回值是不确定的
-			public long lastModified()  返回File对象对应的文件或目录的最后修改时间（毫秒值）
-			public boolean exists()  此File表示的文件或目录是否实际存在
-			public boolean isDirectory()  此File表示的是否为目录
-			public boolean isFile()  此File表示的是否为文件
-			public boolean isHidden()  此File表示的是否为隐藏文件或目录
-			public boolean canExecute()  测试应用程序是否可以执行此抽象路径名表示的文件
-			public boolean canRead()  测试应用程序是否可以读取此抽象路径名表示的文件
-			public boolean canWrite()  测试应用程序是否可以修改此抽象路径名表示的文件
+			getName()  返回由此File表示的文件或目录的名称
+			length()  返回由此File表示的文件的长度。 如果此路径名表示一个目录，则返回值是不确定的
+			lastModified()  返回File对象对应的文件或目录的最后修改时间（毫秒值）
+			exists()  此File表示的文件或目录是否实际存在
+			isDirectory()  此File表示的是否为目录
+			isFile()  此File表示的是否为文件
+			isHidden()  此File表示的是否为隐藏文件或目录
+			canExecute()  测试应用程序是否可以执行此抽象路径名表示的文件
+			canRead()  测试应用程序是否可以读取此抽象路径名表示的文件
+			canWrite()  测试应用程序是否可以修改此抽象路径名表示的文件
 		3.创建删除文件和目录
-			public static File createTempFile(String prefix,String suffix) throws IOException  在默认临时文件目录中创建一个空文件，使用给定前缀和后缀生成其名称
-			public static File createTempFile(String prefix,String suffix,File directory) throws IOException  在指定目录中创建一个新的空文件，使用给定的前缀和后缀字符串生成其名称
-			public boolean createNewFile()  当且仅当具有该名称的文件尚不存在时，创建一个新的空文件
-			public boolean delete()  删除由此File表示的文件或空目录
-			public boolean mkdir()  创建由此File表示的目录
-			public boolean mkdirs()  创建由此File表示的目录，包括任何必需但不存在的父目录
-			public boolean renameTo(File dest)  重新命名此抽象路径名表示的文件或目录。但是此方法行为的许多方面都是与平台有关的：重命名操作无法将一个文件从一个文件系统移动到另一个文件系统
+			createTempFile(String prefix,String suffix) throws IOException  在默认临时文件目录中创建一个空文件，使用给定前缀和后缀生成其名称
+			createTempFile(String prefix,String suffix,File directory) throws IOException  在指定目录中创建一个新的空文件，使用给定的前缀和后缀字符串生成其名称
+			createNewFile()  当且仅当具有该名称的文件尚不存在时，创建一个新的空文件
+			delete()  删除由此File表示的文件或空目录
+			mkdir()  创建由此File表示的目录
+			mkdirs()  创建由此File表示的目录，包括任何必需但不存在的父目录
+			renameTo(File dest)  重新命名此抽象路径名表示的文件或目录。但是此方法行为的许多方面都是与平台有关的:重命名操作无法将一个文件从一个文件系统移动到另一个文件系统
 		4.文件或目录的上下级
-			public String getParent()  返回此抽象路径名父目录的路径名字符串
-			public File getParentFile()  返回此抽象路径名父目录的抽象路径名
-			public String[] list()  返回一个String数组，表示该File目录中的所有子文件或目录
-			public File[] listFiles()  返回一个File数组，表示该File目录中的所有的子文件或目录
-			public File[] listFiles(FileFilter filter)  返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FileFilter.accept(File pathname)方法返回 true 时，该路径名才满足过滤器
-			public String[] list(FilenameFilter filter)  返回返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FilenameFilter .accept(File dir, String name)方法返回 true 时，该路径名才满足过滤器
-			public File[] listFiles(FilenameFilter filter)  返回返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FilenameFilter .accept(File dir, String name)方法返回 true 时，该路径名才满足过滤器
+			getParent()  返回此抽象路径名父目录的路径名字符串
+			getParentFile()  返回此抽象路径名父目录的抽象路径名
+			list()  返回一个String数组，表示该File目录中的所有子文件或目录
+			listFiles()  返回一个File数组，表示该File目录中的所有的子文件或目录
+			listFiles(FileFilter filter)  返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FileFilter.accept(File pathname)方法返回 true 时，该路径名才满足过滤器
+			list(FilenameFilter filter)  返回返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FilenameFilter .accept(File dir, String name)方法返回 true 时，该路径名才满足过滤器
+			listFiles(FilenameFilter filter)  返回返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FilenameFilter .accept(File dir, String name)方法返回 true 时，该路径名才满足过滤器
 		5.各种路径问题
-			public String getPath()  将此File转换为路径名字符串。称为构造路径，就是调用构造器new File对象时，指定的路径
-			public String getAbsolutePath()  返回此File的绝对路径名字符串
-			String getCanonicalPath()  返回此File对象所对应的规范路径名
+			getPath()  将此File转换为路径名字符串。称为构造路径，就是调用构造器new File对象时，指定的路径
+			getAbsolutePath()  返回此File的绝对路径名字符串
+			getCanonicalPath()  返回此File对象所对应的规范路径名
 
 33.网络编程
 	1.UDP
@@ -970,7 +1013,7 @@
 		2.扩展类加载器，现在改为平台类加载器
 		3.应用程序类加载器
 		4.自定义类加载器
-		工作模式：双亲委托模式
+		工作模式:双亲委托模式
 	2.获取类的对象
 		1.类型名.class
 		2.对象.getClass()
