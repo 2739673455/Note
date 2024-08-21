@@ -16,24 +16,24 @@
 ## 3.Kafka基础架构
 | 参数 | 描述 |
 | --- | --- |
-| Producer | 消息生产者，就是向Kafka broker发消息的客户端 |
-| Consumer | 消息消费者，从Kafka broker取消息的客户端 |
-| Consumer Group(CG) | 消费者组，由多个consumer组成，消费者组内每个消费者负责消费不同分区的数据，一个分区只能由一个组内消费者消费，消费者组之间互不影响，所有的消费者都属于某个消费者组，即消费者组是逻辑上的一个订阅者 |
-| Broker | 一台Kafka服务器就是一个broker，一个集群由多个broker组成，一个broker可以容纳多个topic |
-| Topic | 可以理解为一个队列，生产者和消费者面向的都是一个topic |
-| Partition | 为了实现扩展性，一个非常大的topic可以分布到多个broker(即服务器)上，一个topic可以分为多个partition，每个partition是一个有序的队列 |
-| Replica | 副本，一个topic的每个分区都有若干个副本，一个Leader和若干个Follower |
-| Leader | 每个分区多个副本的“主”，生产者发送数据的对象，以及消费者消费数据的对象都是Leader |
-| Follower | 每个分区多个副本中的“从”，实时从Leader中同步数据，保持和Leader数据的同步，Leader发生故障时，某个Follower会成为新的Leader |
+| Producer | 			消息生产者，就是向Kafka broker发消息的客户端
+| Consumer | 			消息消费者，从Kafka broker取消息的客户端
+| Consumer Group(CG) | 			消费者组，由多个consumer组成，消费者组内每个消费者负责消费不同分区的数据，一个分区只能由一个组内消费者消费，消费者组之间互不影响，所有的消费者都属于某个消费者组，即消费者组是逻辑上的一个订阅者
+| Broker | 			一台Kafka服务器就是一个broker，一个集群由多个broker组成，一个broker可以容纳多个topic
+| Topic | 			可以理解为一个队列，生产者和消费者面向的都是一个topic
+| Partition | 			为了实现扩展性，一个非常大的topic可以分布到多个broker(即服务器)上，一个topic可以分为多个partition，每个partition是一个有序的队列
+| Replica | 			副本，一个topic的每个分区都有若干个副本，一个Leader和若干个Follower
+| Leader | 			每个分区多个副本的“主”，生产者发送数据的对象，以及消费者消费数据的对象都是Leader
+| Follower | 			每个分区多个副本中的“从”，实时从Leader中同步数据，保持和Leader数据的同步，Leader发生故障时，某个Follower会成为新的Leader
 # 2.Kafka入门
 ## 1.安装部署
 ### 1.修改配置文件
     /opt/module/kafka_2.12-3.6.1/config/server.properties
 | 参数 | 描述 |
 | --- | --- |
-| broker.id=0 | broker的全局唯一编号，不能重复，只能是数字 |
-| log.dirs=/opt/module/kafka/datas | Kafka运行日志(数据)存放的路径，路径不需要提前创建，Kafka自动帮你创建，可以配置多个磁盘路径，路径与路径之间可以用","分隔 |
-| zookeeper.connect=hadoop102:2181,hadoop103:2181,hadoop104:2181/kafka | 配置连接Zookeeper集群地址(在zk根目录下创建/Kafka，方便管理) |
+| broker.id=0 | 				broker的全局唯一编号，不能重复，只能是数字
+| log.dirs=/opt/module/kafka/datas | 				Kafka运行日志(数据)存放的路径，路径不需要提前创建，Kafka自动帮你创建，可以配置多个磁盘路径，路径与路径之间可以用","分隔
+| zookeeper.connect=hadoop102:2181,hadoop103:2181,hadoop104:2181/kafka | 				配置连接Zookeeper集群地址(在zk根目录下创建/Kafka，方便管理)
 ### 2.启动与关闭
     1. 启动
         kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties
@@ -45,31 +45,31 @@
 ### 1.主题命令行操作
 | 参数 | 描述 |
 | --- | --- |
-| kafka-topics.sh | 查看操作主题命令参数 |
-| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号 |
-| --topic 主题名 | 操作的topic名称 |
-| --create | 创建主题 |
-| --delete | 删除主题 |
-| --alter | 修改主题 |
-| --list | 查看所有主题 |
-| --describe | 查看主题详细描述 |
-| --partitions 分区数 | 设置分区数 |
-| --replication-factor 副本数 | 设置分区副本 |
-| --config <name=value> | 更新系统默认的配置 |
+| kafka-topics.sh                   | 查看操作主题命令参数
+| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号
+| --topic 主题名                     | 操作的topic名称
+| --create                          | 创建主题
+| --delete                          | 删除主题
+| --alter                           | 修改主题
+| --list                            | 查看所有主题
+| --describe                        | 查看主题详细描述
+| --partitions 分区数                | 设置分区数
+| --replication-factor 副本数        | 设置分区副本
+| --config <name=value>             | 更新系统默认的配置
 ### 2.生产者命令行操作
 | 参数 | 描述 |
 | --- | --- |
-| kafka-console-producer.sh | 查看操作生产者命令参数 |
-| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号 |
-| --topic 主题名 | 操作的topic名称 |
+| kafka-console-producer.sh         | 查看操作生产者命令参数
+| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号
+| --topic 主题名                     | 操作的topic名称
 ### 3.消费者命令行操作
 | 参数 | 描述 |
 | --- | --- |
-| kafka-console-consumer.sh | 查看操作消费者命令参数 |
-| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号 |
-| --topic 主题名 | 操作的topic名称 |
-| --from-beginning | 从头开始消费 |
-| --group 消费者组名称 | 指定消费者组名称 |
+| kafka-console-consumer.sh         | 查看操作消费者命令参数
+| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号
+| --topic 主题名                     | 操作的topic名称
+| --from-beginning                  | 从头开始消费
+| --group 消费者组名称                | 指定消费者组名称
 # 3.生产者
 ## 1.生产者消息发送流程
     在消息发送的过程中，涉及到了两个线程，main线程和Sender线程
@@ -89,17 +89,17 @@
 ## 2.生产者重要参数
 | 参数 | 描述 |
 | --- | --- |
-| bootstrap.servers | 生产者连接集群所需的broker地址清单，例如hadoop102:9092,hadoop103:9092,hadoop104:9092，可以设置1个或者多个，中间用逗号隔开，注意这里并非需要所有的broker地址，因为生产者从给定的broker里查找到其他broker信息 |
-| key.serializer和value.serializer | 指定发送消息的key和value的序列化类型，一定要写全类名 |
-| buffer.memory | RecordAccumulator缓冲区总大小，默认32m |
-| batch.size | 缓冲区一批数据最大值，默认16k，适当增加该值，可以提高吞吐量，但是如果该值设置太大，会导致数据传输延迟增加 |
-| linger.ms | 如果数据迟迟未达到batch.size，sender等待linger.time之后就会发送数据，单位ms，默认值是0ms，表示没有延迟，生产环境建议该值大小为50-100ms之间 |
-| acks | 0:生产者发送过来的数据，不需要等数据落盘应答， 1:生产者发送过来的数据，Leader收到数据后应答， -1(all):生产者发送过来的数据，Leader+和isr队列里面的所有节点收齐数据后应答，默认值是-1，-1和all是等价的 |
-| max.in.flight.requests.per.connection | 允许最多没有返回ack的次数，默认为5，开启幂等性要保证该值是 1-5的数字 |
-| retries | 当消息发送出现错误的时候，系统会重发消息，retries表示重试次数，默认是int最大值，2147483647，如果设置了重试，还想保证消息的有序性，需要设置max.in.flight.requests.per.connection=1否则在重试此失败消息的时候，其他的消息可能发送成功了 |
-| retry.backoff.ms | 两次重试之间的时间间隔，默认是100ms |
-| enable.idempotence | 是否开启幂等性，默认true，开启幂等性 |
-| compression.type | 生产者发送的所有数据的压缩方式，默认是none，也就是不压缩，支持压缩类型:none、gzip、snappy、lz4和zstd |
+| bootstrap.servers | 			生产者连接集群所需的broker地址清单，例如hadoop102:9092,hadoop103:9092,hadoop104:9092，可以设置1个或者多个，中间用逗号隔开，注意这里并非需要所有的broker地址，因为生产者从给定的broker里查找到其他broker信息
+| key.serializer和value.serializer | 			指定发送消息的key和value的序列化类型，一定要写全类名
+| buffer.memory | 			RecordAccumulator缓冲区总大小，默认32m
+| batch.size | 			缓冲区一批数据最大值，默认16k，适当增加该值，可以提高吞吐量，但是如果该值设置太大，会导致数据传输延迟增加
+| linger.ms | 			如果数据迟迟未达到batch.size，sender等待linger.time之后就会发送数据，单位ms，默认值是0ms，表示没有延迟，生产环境建议该值大小为50-100ms之间
+| acks | 			0:生产者发送过来的数据，不需要等数据落盘应答， 1:生产者发送过来的数据，Leader收到数据后应答， -1(all):生产者发送过来的数据，Leader+和isr队列里面的所有节点收齐数据后应答，默认值是-1，-1和all是等价的
+| max.in.flight.requests.per.connection | 			允许最多没有返回ack的次数，默认为5，开启幂等性要保证该值是 1-5的数字
+| retries | 			当消息发送出现错误的时候，系统会重发消息，retries表示重试次数，默认是int最大值，2147483647，如果设置了重试，还想保证消息的有序性，需要设置max.in.flight.requests.per.connection=1否则在重试此失败消息的时候，其他的消息可能发送成功了
+| retry.backoff.ms | 			两次重试之间的时间间隔，默认是100ms
+| enable.idempotence | 			是否开启幂等性，默认true，开启幂等性
+| compression.type | 			生产者发送的所有数据的压缩方式，默认是none，也就是不压缩，支持压缩类型:none、gzip、snappy、lz4和zstd
 ## 3.生产者分区
 ### 1.分区的好处
     1. 便于合理使用存储资源:将海量数据按分区切割存储在多台broker上，实现负载均衡
@@ -167,23 +167,23 @@
 ### 3.重要参数
 | 参数 | 描述 |
 | --- | --- |
-| replica.lag.time.max.ms | 默认30s，follower长时间未向leader发送通信请求或同步数据，则该follwer将被踢出isr |
-| auto.leader.rebalance.enable | 默认true，自动leader partition平衡 |
-| leader.imbalance.per.broker.percentage | 默认10%，每个broker允许的不平衡的leader比率，如果每个broker超过该值，控制器会触发leader的平衡 |
-| leader.imbalance.check.interval.seconds | 默认300s，检查leader负载是否平衡的间隔时间 |
-| log.segment.bytes | 默认1G，Kafka中log日志分块存储，指定log日志划分成块的大小 |
-| log.index.interval.bytes | 默认4kb，Kafka里面每当写入4kb大小的日志，就往index文件里记录一个索引 |
-| log.retention.hours | 默认7天，Kafka中数据保存的时间 |
-| log.retention.minutes | 默认关闭，Kafka中数据保存的时间，分钟级别 |
-| log.retention.ms | 默认关闭，Kafka中数据保存的时间，毫秒级别 |
-| log.retention.check.interval.ms | 默认5分钟，检查数据是否保存超时的间隔 |
-| log.retention.bytes | 默认-1，表示无穷大，若超过设置的所有日志总大小，删除最早的segment |
-| log.cleanup.policy | 默认delete，表示所有数据启用删除策略，如果设置值为compact，表示所有数据启用压缩策略 |
-| num.io.threads | 默认8，负责写磁盘的线程数，整个参数值要占总核数的50% |
-| num.replica.fetchers | 副本拉取线程数，这个参数占总核数的50%的1/3 |
-| num.network.threads | 默认3，数据传输线程数，这个参数占总核数的50%的2/3 |
-| log.flush.interval.messages | 默认long的最大值，9223372036854775807，强制页缓存刷写到磁盘的条数，一般不建议修改，交给系统自己管理 |
-| log.flush.interval.ms | 默认null，每隔多久，刷数据到磁盘，一般不建议修改，交给系统自己管理 |
+| replica.lag.time.max.ms | 				默认30s，follower长时间未向leader发送通信请求或同步数据，则该follwer将被踢出isr
+| auto.leader.rebalance.enable | 				默认true，自动leader partition平衡
+| leader.imbalance.per.broker.percentage | 				默认10%，每个broker允许的不平衡的leader比率，如果每个broker超过该值，控制器会触发leader的平衡
+| leader.imbalance.check.interval.seconds | 				默认300s，检查leader负载是否平衡的间隔时间
+| log.segment.bytes | 				默认1G，Kafka中log日志分块存储，指定log日志划分成块的大小
+| log.index.interval.bytes | 				默认4kb，Kafka里面每当写入4kb大小的日志，就往index文件里记录一个索引
+| log.retention.hours | 				默认7天，Kafka中数据保存的时间
+| log.retention.minutes | 				默认关闭，Kafka中数据保存的时间，分钟级别
+| log.retention.ms | 				默认关闭，Kafka中数据保存的时间，毫秒级别
+| log.retention.check.interval.ms | 				默认5分钟，检查数据是否保存超时的间隔
+| log.retention.bytes | 				默认-1，表示无穷大，若超过设置的所有日志总大小，删除最早的segment
+| log.cleanup.policy | 				默认delete，表示所有数据启用删除策略，如果设置值为compact，表示所有数据启用压缩策略
+| num.io.threads | 				默认8，负责写磁盘的线程数，整个参数值要占总核数的50%
+| num.replica.fetchers | 				副本拉取线程数，这个参数占总核数的50%的1/3
+| num.network.threads | 				默认3，数据传输线程数，这个参数占总核数的50%的2/3
+| log.flush.interval.messages | 				默认long的最大值，9223372036854775807，强制页缓存刷写到磁盘的条数，一般不建议修改，交给系统自己管理
+| log.flush.interval.ms | 				默认null，每隔多久，刷数据到磁盘，一般不建议修改，交给系统自己管理
 ## 2.副本
 ### 1.副本基本信息
     1. 副本作用:提高数据可靠性
@@ -273,20 +273,20 @@
 ## 3.重要参数
 | 参数 | 描述 |
 | --- | --- |
-| bootstrap.servers | 向Kafka集群建立初始链接用到的host/port列表 |
-| key.deserializer和value.deserializer | 指定接收消息的key和value的反序列化类型，一定要写全类名 |
-| group.id | 标记消费者所属的消费者组 |
-| enable.auto.commit | 默认true，消费者会自动周期性地向服务器提交偏移量 |
-| auto.commit.interval.ms | 默认5s，如果设置了enable.auto.commit的值为true， 则该值定义了消费者偏移量向Kafka提交的频率 |
-| auto.offset.reset | 当Kafka中没有初始偏移量或当前偏移量在服务器中不存在(如，数据被删除了)时如何处理，earliest:自动重置偏移量到最早的偏移量， latest:默认，自动重置偏移量为最新的偏移量， none:如果消费组原来的(previous)偏移量不存在，则向消费者抛异常， anything:向消费者抛异常 |
-| offsets.topic.num.partitions | 默认50，__consumer_offsets的分区数 |
-| heartbeat.interval.ms | 默认3s，Kafka消费者和coordinator之间的心跳时间，该条目的值必须小于session.timeout.ms，也不应该高于session.timeout.ms 的1/3 |
-| session.timeout.ms | 默认45s，Kafka消费者和coordinator之间连接超时时间，超过该值，该消费者被移除，消费者组执行再平衡 |
-| max.poll.interval.ms | 默认是5分钟，消费者处理消息的最大时长，超过该值，该消费者被移除，消费者组执行再平衡 |
-| fetch.min.bytes | 默认1个字节，消费者获取服务器端一批消息最小的字节数 |
-| fetch.max.wait.ms | 默认500ms，如果没有从服务器端获取到一批数据的最小字节数。该时间到，仍然会返回数据 |
-| fetch.max.bytes | 默认Default:52428800(50m)，消费者获取服务器端一批消息最大的字节数。如果服务器端一批次的数据大于该值(50m)仍然可以拉取回来这批数据，因此，这不是一个绝对最大值。一批次的大小受message.max.bytes(broker config)或max.message.bytes(topic config)影响 |
-| max.poll.records | 默认500条，一次poll拉取数据返回消息的最大条数 |
+| bootstrap.servers | 			向Kafka集群建立初始链接用到的host/port列表
+| key.deserializer和value.deserializer | 			指定接收消息的key和value的反序列化类型，一定要写全类名
+| group.id | 			标记消费者所属的消费者组
+| enable.auto.commit | 			默认true，消费者会自动周期性地向服务器提交偏移量
+| auto.commit.interval.ms | 			默认5s，如果设置了enable.auto.commit的值为true， 则该值定义了消费者偏移量向Kafka提交的频率
+| auto.offset.reset | 			当Kafka中没有初始偏移量或当前偏移量在服务器中不存在(如，数据被删除了)时如何处理，earliest:自动重置偏移量到最早的偏移量， latest:默认，自动重置偏移量为最新的偏移量， none:如果消费组原来的(previous)偏移量不存在，则向消费者抛异常， anything:向消费者抛异常
+| offsets.topic.num.partitions | 			默认50，__consumer_offsets的分区数
+| heartbeat.interval.ms | 			默认3s，Kafka消费者和coordinator之间的心跳时间，该条目的值必须小于session.timeout.ms，也不应该高于session.timeout.ms 的1/3
+| session.timeout.ms | 			默认45s，Kafka消费者和coordinator之间连接超时时间，超过该值，该消费者被移除，消费者组执行再平衡
+| max.poll.interval.ms | 			默认是5分钟，消费者处理消息的最大时长，超过该值，该消费者被移除，消费者组执行再平衡
+| fetch.min.bytes | 			默认1个字节，消费者获取服务器端一批消息最小的字节数
+| fetch.max.wait.ms | 			默认500ms，如果没有从服务器端获取到一批数据的最小字节数。该时间到，仍然会返回数据
+| fetch.max.bytes | 			默认Default:52428800(50m)，消费者获取服务器端一批消息最大的字节数。如果服务器端一批次的数据大于该值(50m)仍然可以拉取回来这批数据，因此，这不是一个绝对最大值。一批次的大小受message.max.bytes(broker config)或max.message.bytes(topic config)影响
+| max.poll.records | 			默认500条，一次poll拉取数据返回消息的最大条数
 ## 4.offset位移
 ### 1.offset的默认维护位置
     __consumer_offsets

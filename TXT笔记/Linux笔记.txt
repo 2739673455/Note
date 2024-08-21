@@ -163,9 +163,9 @@
 			-x  #解包.tar文件
 			-C  #指定解压路径
 		tar -zcvf 文件名.tar.gz 文件1 文件2  #压缩多个文件
-		tar -zcvf 文件名.tar.gz 目录名  #压缩目录
-		tar -zxvf 文件名.tar.gz  #解压到当前目录
-		tar -zxvf 文件名.tar.gz -C 目录名  #解压到指定目录
+		tar -zcvf 文件名.tar.gz 目录名       #压缩目录
+		tar -zxvf 文件名.tar.gz             #解压到当前目录
+		tar -zxvf 文件名.tar.gz -C 目录名    #解压到指定目录
 
 8.磁盘
 	1. 查看磁盘空间使用情况

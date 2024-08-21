@@ -11,7 +11,7 @@
 		- Spark Streaming
 			#是Spark提供的对实时数据进行流式计算的组件。提供了用来操作数据流的API，并且与Spark Core中的 RDD API高度对应
 		- Spark MLlib
-			#提供常见的机器学习功能的程序库。包括分类、回归、聚类、协同过滤等，还提供了模型评估、数据 导入等额外的支持功能
+			#提供常见的机器学习功能的程序库。包括分类、回归、聚类、协同过滤等，还提供了模型评估、数据导入等额外的支持功能
 		- Spark GraphX
 			#主要用于图形并行计算和图挖掘系统的组件
 		- 集群管理器
@@ -146,35 +146,147 @@
 			JavaRDD<String> rdd = jsc.textFile("input");
 	3.分区规则
 		1.从集合创建RDD
-			默认分区数为 核数
-			conf.set("spark.default.parallelism", "6");
-				#手动设置默认核数
-			JavaRDD<String> rdd = jsc.parallelize(names, 2);
-				#最小分区数设置为2
-			分区计算方法:
+			1. 默认分区数为核数
+				conf.set("spark.default.parallelism", "6");
+					#手动设置默认核数
+			2. 手动设置分区数
+				JavaRDD<String> rdd = jsc.parallelize(names, 2);
+					#分区数设置为2
+			3. 数据分配方法
 				利用整数除机制，左闭右开
 				0号分区: (0 * 总字节数 / 分区数) 到 (1 * 总字节数 / 分区数)
 				1号分区: (1 * 总字节数 / 分区数) 到 (2 * 总字节数 / 分区数)
 				例如:
-				0: start 0*5/2  end 1*5/2
-				1: start 1*5/2  end 2*5/2
+				0: start 0*5/2  end 1*5/2 => (0,2)
+				1: start 1*5/2  end 2*5/2 => (2,5)
 		2.从文件创建RDD
-			默认分区数为 核数和2的最小值
-			JavaRDD<String> rdd = jsc.textFile("data/word.txt", 3)
-				#最小分区数设置为3
-			Spark文件的读取和写入都是依托于MR(Hadoop)实现的，分区规则其实就是Hadoop切片规则
-			Spark读取文件，采用的是Hadoop的方式读取，所以一行一行读取，跟字节数没有关系
-			数据读取位置计算是以偏移量为单位来进行计算的
-			分区流程:
-				1. 首先获取文件的总长度 totalSize(回车，换行符也计算在内)
-				2. 计算平均长度 goalSize = totalSize / numSplits
-				3. 获取块大小 blockSize = 128M
-				4. 计算切分大小 splitSize = Math.max(minSize, Math.min(goalSize, blockSize));
-					文件总大小 / 填写的分区数，和块大小比较，谁小拿谁进行切分
-				5. 使用splitSize按照1.1倍原则切分整个文件，如果最后剩余数据大小大于 0.1*splitSize，再加一个分区
-				6. 如果切分的位置位于一行的中间，会在当前分区读完一整行数据
-			例如:
+			1. 默认分区数为 核数和2的最小值
+			2. 手动设置最小分区数
+				JavaRDD<String> rdd = jsc.textFile("data/word.txt", 3)
+					#最小分区数设置为3
+			3. 分区流程
+				1. 根据文件的总长度(回车，换行符也计算在内)totalSize 和 切片数numSplits 计算出 平均长度goalSize
+					goalSize = totalSize / numSplits
+				2. 获取块大小 blockSize = 128M
+				3. 计算切分大小 splitSize = Math.max(minSize, Math.min(goalSize, blockSize));
+					goalSize 和 blockSize 比较，谁小拿谁进行切分
+				4. 使用splitSize按照1.1倍原则切分整个文件，如果最后剩余数据大小大于 0.1*splitSize，再加一个分区
+				例如:
 				totalSize = 10，numSplits = 3
 				goalSize = 10 / 3 = 3(byte) 表示每个分区存储3字节的数据
 				分区数 = totalSize/ goalSize = 10 /3 => 3,3,4
-				4子节大于3子节的1.1倍,符合Hadoop切片1.1倍的策略,因此会多创建一个分区,即一共有4个分区 => 3,3,3,1
+				4byte大于3byte的1.1倍,符合Hadoop切片1.1倍的策略,因此会多创建一个分区,即一共有4个分区
+			4. 数据分配方法
+				Spark采用Hadoop的方式读取，所以按行读取
+				读取数据时会依靠换行符进行读取，读取到回车符会忽略
+				如果切分的位置位于一行的中间，会在当前分区读完一整行数据
+				数据读取位置计算是以偏移量为单位来进行计算的，从0开始
+				例如:
+				0: [0,3](如果没读满3个，最多会读到偏移量3的位置，若偏移量3不在行尾，读完此行)
+				1: [3,6]
+				2: [6,9]
+				3: [9,10]
+	4.Transformation 转换算子
+		算子:
+			问题: 初始状态 --operate-> 中间状态 --operate-> 完成状态
+			operate即为算子
+		转换:
+			transform，将A变成B
+			将一个RDD(旧)变成另外一个RDD(新)
+			转换的目的: 组合功能
+			装饰者设计模式
+		转换算子只是用于组合功能，不会马上执行
+		返回类型为RDD
+		1. RDD方法在调用时，默认分区数量和前面RDD的分区数量相同
+		2. RDD方法在调用时，默认情况下，数据处理完后，所在分区不变
+		3. RDD方法在调用时，分区内有序，分区间无序
+		4. 元组
+			Tuple2<> tuple = new Tuple2<>(,)
+			tuple._1
+			tuple._2
+		1.单值类型
+			- map() 映射
+				# rdd.map(num -> num + 1)#
+				# rdd.mapToPair(num -> new Tuple2(num, 1))
+			- flatMap() 扁平化
+				# rdd.flatMap(list -> list.iterator())#
+				# 将所有集合中元素取出放入一个大的集合中#
+				# 需返回可迭代对象
+			- filter() 过滤
+				# rdd.filter(num -> num > 0)
+			- groupBy() 分组
+				# rdd.groupBy(num -> num % 2)#
+				# 对数据添加分组标记，按标记分组，将同一组的数据放入一个迭代器#
+				# shuffle:#
+				# 	将不同的分区数据进行打乱重组的过程，称之为shuffle#
+				# 	分组落盘#
+				# 	同组数据放入同一分区#
+				# shuffle存在的问题:#
+				# 	分区数量可能不合理(分组数量与分区数量不匹配)#
+				# 	不允许出现环状功能调用#
+				# 	shuffle操作会影响Spark的计算性能#
+				# shuffle操作一般都会提供改变分区的功能#
+				# 底层调用groupByKey()
+			- distinct() 全局去重
+				# rdd.distinct()#
+				# 底层存在shuffle操作#
+				# 底层使用了reduceByKey()
+			- sortBy() 排序
+				# rdd.sortBy(num -> num, true, 2)#
+				# 参数1: 排序的规则#
+				# 	给每一个数据增加排序标记，根据标记大小对数据排序#
+				# 参数2: 升序或降序，true为升序#
+				# 参数3: 设定分区数量#
+				# 底层调用sortByKey()
+			- coalesce() 合并分区
+				# rdd.coalesce(2, false)#
+				# 默认没有shuffle操作，数据不会打乱重组#
+				# 可能存在数据倾斜，若倾斜可以使用shuffle操作
+			- repartition() 重新分区
+				# rdd.repartition(3)#
+				# 底层调用coalesce()
+		2.键值类型
+			- mapValues() 对value操作
+				# rdd.mapValues(val -> val * 2)
+			- groupByKey() 按key对value分组
+				# rdd.groupByKey()
+			- reduceByKey() 按key对value两两聚合
+				# rdd.reduceByKey((val1, val2) -> val1 + val2)#
+				# reduceByKey会进行两次计算:分区内计算+分区间计算#
+				# reduceByKey会在shuffle之前进行预聚合
+			- sortByKey() 按key排序
+				# rdd.sortByKey()
+	5.Action 行动算子
+		行动算子调用后就会执行功能
+		返回类型为集合
+		执行时就会产生一个Job
+		代码执行位置:
+			RDD的转换算子在调用时，逻辑并不会执行，会在逻辑发送到Executor端才执行
+				RDD算子的内部代码在Executor端执行
+				RDD算子的外部代码在Driver端执行
+				当算子的内部代码使用了外部代码的数据或对象，那么就需要从Driver端将对象或数据拉取到Executor端
+		- collect()
+			# rdd.collect()#
+			# 会将结果从EXecutor按照分区顺序依次拉取回Driver#
+			# 可能存在Driver中资源不够的问题，故生产环境中不推荐使用
+		- first() 首个
+			# rdd.first()
+		- take() 前几个
+			# rdd.take(3)
+		- takeOrdered()
+			# rdd.takeOrdered(3)#
+			# 先排序，再取前几个
+		- count() 计数
+			# rdd.count()
+		- countByKey() 对key计数
+			# rdd.countByKey()
+		- countByValue() 对单值计数
+			# rdd.countByValue()
+		- save()
+			# rdd.saveAsTextFile("output")#
+			# rdd.saveAsObjectFile("output")
+		- foreach() 遍历
+			# rdd.foreach()#
+			# 分布式循环遍历，以分区为单位循环，可能导致结果无序
+		- foreachPartition() 对每个分区内遍历
+			# rdd.foreachPartition()

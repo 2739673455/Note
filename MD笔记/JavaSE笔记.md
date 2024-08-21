@@ -2,20 +2,20 @@
 ## 1.数据类型的宽度
 | 参数 | 描述 |
 | --- | --- |
-| byte    | 1字节 |
-| short   | 2字节 |
-| int     | 4字节 |
-| long    | 8字节 |
-| float   | 4字节 1位符号位+8位指数位+23位尾数位 |
-| double  | 8字节 1位符号位+11位指数位+52位尾数位 |
-| char    | 2字节 |
-| boolean | 1bit |
+| byte    | 1字节
+| short   | 2字节
+| int     | 4字节
+| long    | 8字节
+| float   | 4字节 1位符号位+8位指数位+23位尾数位
+| double  | 8字节 1位符号位+11位指数位+52位尾数位
+| char    | 2字节
+| boolean | 1bit
 ## 2.运算符
 | 参数 | 描述 |
 | --- | --- |
-| <<  | 二进制左移，右边补0，符号位可能发生变化 |
-| >>  | 二进制右移，左边按符号位补1或补0，符号位不会变化 |
-| >>> | 二进制右移，左边补0，正数>>>等价>>，负数>>>会变为正数 |
+| <<  | 二进制左移，右边补0，符号位可能发生变化
+| >>  | 二进制右移，左边按符号位补1或补0，符号位不会变化
+| >>> | 二进制右移，左边补0，正数>>>等价>>，负数>>>会变为正数
 ## 3.数组
     int[] arr = new int[]{1,2,3};
     int[] arr = {1,2,3};
@@ -52,15 +52,15 @@
 ### 4.成员属性默认值
 | 参数 | 描述 |
 | --- | --- |
-| byte                    | 0 |
-| short                   | 0 |
-| int                     | 0 |
-| long                    | 0L |
-| float                   | 0.0F |
-| double                  | 0.0 |
-| char                    | '\u0000' |
-| boolean                 | false |
-| 引用数据类型(包括数组，类等) | null |
+| byte                    | 0
+| short                   | 0
+| int                     | 0
+| long                    | 0L
+| float                   | 0.0F
+| double                  | 0.0
+| char                    | '\u0000'
+| boolean                 | false
+| 引用数据类型(包括数组，类等) | null
 ## 2.方法
 ### 1.静态方法
     1. 有static修饰的方法，静态方法的调用与对象无关，本类中任意成员可调用
@@ -137,10 +137,10 @@
     2. 权限修饰符范围:
 | 参数 | 描述 |
 | --- | --- |
-| private   | 本类 |
-| 缺省       | 本类，本包 |
-| protected | 本类，本包，其他包子类 |
-| public    | 任意位置 |
+| private   | 本类
+| 缺省       | 本类，本包
+| protected | 本类，本包，其他包子类
+| public    | 任意位置
 # 4.继承
 ## 1.继承的作用
     1. 代码的复用: 子类可以复用父类的代码
@@ -261,14 +261,14 @@
     为了让8种基本数据类型与一些API、新特性兼容，Java为这8种基本数据类型设计了包装类
 | 参数 | 描述 |
 | --- | --- |
-| byte    | Byte |
-| short   | Short |
-| int     | Integer |
-| long    | Long |
-| float   | Float |
-| double  | Double |
-| char    | Character |
-| boolean | Boolean |
+| byte    | Byte
+| short   | Short
+| int     | Integer
+| long    | Long
+| float   | Float
+| double  | Double
+| char    | Character
+| boolean | Boolean
 ## 1.自动装箱与自动拆箱
     自动装箱(Boxing): 基本数据类型的数据 -> 包装类的对象
     自动拆箱(UnBoxing): 包装类的对象 -> 基本数据类的数据
@@ -295,22 +295,22 @@
     部分包装类有缓存的常量对象，这些缓存的常量对象可以共享
 | 参数 | 描述 |
 | --- | --- |
-| Byte      |  [-128, 127] |
-| Short     |  [-128, 127] |
-| Integer   |  [-128, 127] |
-| Long      |  [-128, 127] |
-| Float     |  无 |
-| Double    |  无 |
-| Character |  [0, 127] |
-| Boolean   |  true, false |
+| Byte      |  [-128, 127]
+| Short     |  [-128, 127]
+| Integer   |  [-128, 127]
+| Long      |  [-128, 127]
+| Float     |  无
+| Double    |  无
+| Character |  [0, 127]
+| Boolean   |  true, false
 ## 4.包装类对象不可变
     修改包装类的值，只是让其指向新的对象
     不可变:基本数据类型、包装类、String
-# 12.枚举类
+# 9.枚举类
 ## 1.什么是枚举类
     枚举类的对象是固定的、有限的几个常量对象
 ## 2.定义枚举类
-    <修饰符> enum 枚举类名{
+    修饰符 enum 枚举类名{
         常量对象列表;  #必须在枚举类的首行，如果后面没有别的成员,可以省略。如果后面有别的成员,不能省略
         属性列表;
         构造器列表;
@@ -322,11 +322,23 @@
     1. 枚举类没有子类，因为构造器私有化了，子类无法调用枚举父类的构造器
     2. 枚举类的父类无法随意指定，直接父类默认是java.lang.Enum，根父类是Object
     3. 枚举类的特殊方法
-        1. public String name()  返回常量对象名
-        2. public int ordinal()  返回常量对象的序号
-        3. public static 枚举类型[] values()  返回所有枚举对象构成的数组
-        4. public static 枚举类型 valueOf(String name)  根据常量对象名获取对应的枚举对象
-# 13.异常
+        1. public String name()                       #返回常量对象名
+        2. public int ordinal()                       #返回常量对象的序号
+        3. public static 枚举类型[] values()            #返回所有枚举对象构成的数组
+        4. public static 枚举类型 valueOf(String name)  #根据常量对象名获取对应的枚举对象
+# 10.异常
+## 1.异常的分类
+### 1.运行时异常 RuntimeException
+    编译器检测不出来的异常，就是运行时异常，例如:
+    ArrayIndexOutOfBoundsException  #数组下标越界异常
+    NullPointerException            #空指针异常
+    ClassCastExcption               #类型转换异常
+    ArithmeticException             #算术异常
+    NumberFormatException           #数字格式化异常
+### 2.编译时异常
+    IOException
+    FileNotFoundException
+    ClassNotFoundException
 ## 1.异常也是对象，Throwable是所有错误或异常的超类
     只有当对象是此类(或其子类之一)的实例时，才能通过JAVA虚拟机或JAVA throw抛出
     只有此类(或其子类之一)才可以是catch中的参数类型
@@ -340,12 +352,12 @@
         //打印异常
         //异常的处理代码（有的时候没有）
     }final{
-#### 1.无论try中是否有异常，finally都要执行
-#### 2.无论catch是否可以捕获异常，finally都要执行
-#### 3.就算try或catch中有return语句，finally也要执行
-    finally块通常是用来编写资源关闭的代码
-}
-如果有多个catch分支，小的异常类型在上面，大的异常类型在下面，如果多个catch分支的异常类型之间没有大小关系，是兄弟关系，那么顺序无所谓
+        1. 无论try中是否有异常，finally都要执行
+        2. 无论catch是否可以捕获异常，finally都要执行
+        3. 就算try或catch中有return语句，finally也要执行
+        finally块通常是用来编写资源关闭的代码
+    }
+    如果有多个catch分支，小的异常类型在上面，大的异常类型在下面，如果多个catch分支的异常类型之间没有大小关系，是兄弟关系，那么顺序无所谓
 ## 3.throw 用于主动抛出异常对象
 ## 4.throws 如果我们使用throw语句抛出的是编译时类型的异常，不是运行时类型的异常，那么编译器就会强制我们对throw语句进行处理，处理你抛出异常。如果当前方法不想要处理这个异常，想要让调用者在调用这个方法/构造器的位置进行异常处理，那么可以在方法/构造器的()后面加throws，声明该方法或构造器可能发生xx异常类型，需要调用者处理
 # 14.Math类(java.lang)
@@ -585,7 +597,7 @@
     peekFirst()
     peekLast()
 # 28.泛型
-    类型指定外部类的类型，泛型指定内部类的类型
+    类型指定外部的类型，泛型指定内部的类型
     泛型与多态无关，泛型无法使用多态
 ## 1.代码中出现<字母>或<类型>都是泛型
 ## 2.对于设计这个泛型类或泛型方法的程序员来说，泛型将类型的确定从当前设计时，延迟到了使用时
@@ -753,50 +765,50 @@
     死亡(Terminated)
 # 31.单例设计模式
 ## 1.饿汉式
-### 1.public enum SingleOne {
-    INSTANCE
-}
-### 2.public class SingleTwo {
-    public static final SingleTwo INSTANCE = new SingleTwo();
-    private SingleTwo(){
+    1. public enum SingleOne {
+        INSTANCE
     }
-}
-### 3.public class SingleThree {
-    private static final SingleThree instance = new SingleThree();
-    private SingleThree(){
-    }
-    public static SingleThree getInstance(){
-        return instance;
-    }
-}
-## 2.懒汉式
-### 1.public class SingleFour {
-    private static SingleFour instance;//这里不new
-    private SingleFour(){
-    }
-    //当外面调用getInstance()时，说明确实需要这个类的对象，此时再new
-    public static synchronized SingleFour getInstance(){
-        if(instance == null) {
-            instance = new SingleFour();
+    2. public class SingleTwo {
+        public static final SingleTwo INSTANCE = new SingleTwo();
+        private SingleTwo(){
         }
-        return instance;
     }
-}
-### 2.public class SingleFive {
-    private SingleFive(){
+    3. public class SingleThree {
+        private static final SingleThree instance = new SingleThree();
+        private SingleThree(){
+        }
+        public static SingleThree getInstance(){
+            return instance;
+        }
     }
-    /*
-    虽然Inner是SingleFive的静态内部类，但是它也是一个类，它有自己的独立的字节码文件
-    它的加载，需要用到这个类才加载。
-    */
-    private static class Inner{
-        static SingleFive instance = new SingleFive();
+## 2.懒汉式
+    1. public class SingleFour {
+        private static SingleFour instance;//这里不new
+        private SingleFour(){
+        }
+        //当外面调用getInstance()时，说明确实需要这个类的对象，此时再new
+        public static synchronized SingleFour getInstance(){
+            if(instance == null) {
+                instance = new SingleFour();
+            }
+            return instance;
+        }
     }
-    //Inner类的加载和初始化，是在调用getInstance方法时，用到Inner类，才初始化，才new了SingleFive的对象
-    public static SingleFive getInstance(){
-        return Inner.instance;
+    2. public class SingleFive {
+        private SingleFive(){
+        }
+        /*
+        虽然Inner是SingleFive的静态内部类，但是它也是一个类，它有自己的独立的字节码文件
+        需要用到这个类才加载
+        */
+        private static class Inner{
+            static SingleFive instance = new SingleFive();
+        }
+        //Inner类的加载和初始化，是在调用getInstance方法时，用到Inner类，才初始化，才new了SingleFive的对象
+        public static SingleFive getInstance(){
+            return Inner.instance;
+        }
     }
-}
 # 32.IO流
 ## 1.四大抽象基类
 ### 1.InputStream  字节输入流

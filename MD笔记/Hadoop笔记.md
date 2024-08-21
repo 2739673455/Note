@@ -1040,11 +1040,11 @@
 ### 4.在Hadoop中启用压缩的配置参数
 | 参数 | 描述 |
 | --- | --- |
-| DEFLATE | org.apache.hadoop.io.compress.DefaultCodec |
-| gzip | org.apache.hadoop.io.compress.GzipCodec |
-| bzip2 | org.apache.hadoop.io.compress.BZip2Codec |
-| LZO | com.hadoop.compression.lzo.LzopCodec |
-| Snappy | org.apache.hadoop.io.compress.SnappyCodec |
+| DEFLATE | org.apache.hadoop.io.compress.DefaultCodec
+| gzip | org.apache.hadoop.io.compress.GzipCodec
+| bzip2 | org.apache.hadoop.io.compress.BZip2Codec
+| LZO | com.hadoop.compression.lzo.LzopCodec
+| Snappy | org.apache.hadoop.io.compress.SnappyCodec
     1. io.compression.codecs(在core-site.xml中配置)  #输入压缩
         默认值无，这个需要在命令行输入hadoop checknative查看
         Hadoop使用文件扩展名判断是否支持某种编解码器
@@ -1192,28 +1192,28 @@
 ### 2.命令行语法
 | 参数 | 描述 |
 | --- | --- |
-| help | 显示所有操作命令 |
-| ls path | 使用 ls 命令来查看当前znode的子节点， -w 监听子节点变化， -s 附加次级信息 |
-| create | 普通创建， -s 含有序列， -e 临时(重启或者超时消失) |
-| get 节点 | 获得节点的值， -w 监听节点内容变化， -s 附加次级信息 |
-| set | 设置节点的具体值 |
-| stat | 查看节点状态 |
-| delete | 删除节点 |
-| deleteall | 递归删除节点 |
+| help      | 显示所有操作命令
+| ls path   | 使用 ls 命令来查看当前znode的子节点， -w 监听子节点变化， -s 附加次级信息
+| create    | 普通创建， -s 含有序列， -e 临时(重启或者超时消失)
+| get 节点   | 获得节点的值， -w 监听节点内容变化， -s 附加次级信息
+| set       | 设置节点的具体值
+| stat      | 查看节点状态
+| delete    | 删除节点
+| deleteall | 递归删除节点
 ### 3.节点数据信息
 | 参数 | 描述 |
 | --- | --- |
-| czxid | 创建节点的事务zxid，每次修改ZooKeeper状态都会产生一个ZooKeeper事务ID。事务ID是ZooKeeper中所有修改总的次序。每次修改都有唯一的zxid，如果zxid1小于zxid2，那么zxid1在zxid2之前发生 |
-| ctime | znode被创建的毫秒数(从1970年开始) |
-| mzxid | znode最后更新的事务zxid |
-| mtime | znode最后修改的毫秒数(从1970年开始) |
-| pZxid | znode最后更新的子节点zxid |
-| cversion | znode子节点变化号，znode子节点修改次数 |
-| dataversion | znode数据变化号 |
-| aclVersion | znode访问控制列表的变化号 |
-| ephemeralOwner | 如果是临时节点，这个是znode拥有者的session id。如果不是临时节点则是0 |
-| dataLength | znode的数据长度 |
-| numChildren | znode子节点数量 |
+| czxid          | 创建节点的事务zxid，每次修改ZooKeeper状态都会产生一个ZooKeeper事务ID。事务ID是ZooKeeper中所有修改总的次序。每次修改都有唯一的zxid，如果zxid1小于zxid2，那么zxid1在zxid2之前发生
+| ctime          | znode被创建的毫秒数(从1970年开始)
+| mzxid          | znode最后更新的事务zxid
+| mtime          | znode最后修改的毫秒数(从1970年开始)
+| pZxid          | znode最后更新的子节点zxid
+| cversion       | znode子节点变化号，znode子节点修改次数
+| dataversion    | znode数据变化号
+| aclVersion     | znode访问控制列表的变化号
+| ephemeralOwner | 如果是临时节点，这个是znode拥有者的session id。如果不是临时节点则是0
+| dataLength     | znode的数据长度
+| numChildren    | znode子节点数量
 ### 4.监听器原理
     客户端注册监听它关心的目录节点，当目录节点发生变化(数据改变、节点删除、子目录节点增加删除)时，ZooKeeper会通知客户端。监听机制保证ZooKeeper保存的任何的数据的任何改变都能快速的响应到监听了该节点的应用程序
 ## 5.写数据流程

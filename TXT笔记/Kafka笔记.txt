@@ -52,27 +52,27 @@
 				停止Kafka集群时，一定要等Kafka所有节点进程全部停止后再停止Zookeeper集群，因为Zookeeper集群当中记录着Kafka集群相关信息，Zookeeper集群一旦先停止，Kafka集群就没有办法再获取停止进程的信息，只能手动杀死Kafka进程了
 	2.命令行操作
 		1.主题命令行操作
-			- kafka-topics.sh  #查看操作主题命令参数
+			- kafka-topics.sh                    #查看操作主题命令参数
 			- --bootstrap-server hadoop102:9092  #连接的Kafka Broker主机名称和端口号
-			- --topic 主题名  #操作的topic名称
-			- --create  #创建主题
-			- --delete  #删除主题
-			- --alter  #修改主题
-			- --list  #查看所有主题
-			- --describe  #查看主题详细描述
-			- --partitions 分区数  #设置分区数
-			- --replication-factor 副本数  #设置分区副本
-			- --config <name=value>  #更新系统默认的配置
+			- --topic 主题名                      #操作的topic名称
+			- --create                           #创建主题
+			- --delete                           #删除主题
+			- --alter                            #修改主题
+			- --list                             #查看所有主题
+			- --describe                         #查看主题详细描述
+			- --partitions 分区数                 #设置分区数
+			- --replication-factor 副本数         #设置分区副本
+			- --config <name=value>              #更新系统默认的配置
 		2.生产者命令行操作
-			- kafka-console-producer.sh  #查看操作生产者命令参数
+			- kafka-console-producer.sh          #查看操作生产者命令参数
 			- --bootstrap-server hadoop102:9092  #连接的Kafka Broker主机名称和端口号
-			- --topic 主题名  #操作的topic名称
+			- --topic 主题名                      #操作的topic名称
 		3.消费者命令行操作
-			- kafka-console-consumer.sh  #查看操作消费者命令参数
+			- kafka-console-consumer.sh          #查看操作消费者命令参数
 			- --bootstrap-server hadoop102:9092  #连接的Kafka Broker主机名称和端口号
-			- --topic 主题名  #操作的topic名称
-			- --from-beginning  #从头开始消费
-			- --group 消费者组名称  #指定消费者组名称
+			- --topic 主题名                      #操作的topic名称
+			- --from-beginning                   #从头开始消费
+			- --group 消费者组名称                 #指定消费者组名称
 
 3.生产者
 	1.生产者消息发送流程

@@ -3,13 +3,13 @@
 		Maxwell会实时监控MySQL数据库的数据变更区别(包括insert,update,delete)，并将变更数据以JSON格式发送给Kafka等流数据处理平台
 	2.Maxwell输出数据格式
 		- database  #变更数据所属的数据库
-		- table  #表更数据所属的表
-		- type  #数据变更类型
-		- ts  #数据变更发生的时间
-		- xid  #事务id
-		- commit  #事务提交标志，可用于重新组装事务
-		- data  #对于insert类型，表示插入的数据；对于update类型，标识修改之后的数据；对于delete类型，表示删除的数据
-		- old  #对于update类型，表示修改之前的数据，只包含变更字段
+		- table     #表更数据所属的表
+		- type      #数据变更类型
+		- ts        #数据变更发生的时间
+		- xid       #事务id
+		- commit    #事务提交标志，可用于重新组装事务
+		- data      #对于insert类型，表示插入的数据；对于update类型，标识修改之后的数据；对于delete类型，表示删除的数据
+		- old       #对于update类型，表示修改之前的数据，只包含变更字段
 		1. 插入
 			maxwell输出:
 			{

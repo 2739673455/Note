@@ -4,14 +4,14 @@
 ## 2.Maxwell输出数据格式
 | 参数 | 描述 |
 | --- | --- |
-| database | 变更数据所属的数据库 |
-| table | 表更数据所属的表 |
-| type | 数据变更类型 |
-| ts | 数据变更发生的时间 |
-| xid | 事务id |
-| commit | 事务提交标志，可用于重新组装事务 |
-| data | 对于insert类型，表示插入的数据；对于update类型，标识修改之后的数据；对于delete类型，表示删除的数据 |
-| old | 对于update类型，表示修改之前的数据，只包含变更字段 |
+| database | 变更数据所属的数据库
+| table    | 表更数据所属的表
+| type     | 数据变更类型
+| ts       | 数据变更发生的时间
+| xid      | 事务id
+| commit   | 事务提交标志，可用于重新组装事务
+| data     | 对于insert类型，表示插入的数据；对于update类型，标识修改之后的数据；对于delete类型，表示删除的数据
+| old      | 对于update类型，表示修改之前的数据，只包含变更字段
     1. 插入
         maxwell输出:
         {
@@ -564,11 +564,11 @@
     关键优化参数如下:
 | 参数 | 描述 |
 | --- | --- |
-| job.setting.speed.channel | 并发数 |
-| job.setting.speed.record | 总record限速 |
-| job.setting.speed.byte | 总byte限速 |
-| core.transport.channel.speed.record | 单个channel的record限速，默认值为10000(10000条/s) |
-| core.transport.channel.speed.byte | 单个channel的byte限速，默认值1024*1024(1M/s) |
+| job.setting.speed.channel | 并发数
+| job.setting.speed.record | 总record限速
+| job.setting.speed.byte | 总byte限速
+| core.transport.channel.speed.record | 单个channel的record限速，默认值为10000(10000条/s)
+| core.transport.channel.speed.byte | 单个channel的byte限速，默认值1024*1024(1M/s)
     注意事项:
     1. 若配置了总record限速，则必须配置单个channel的record限速
     2. 若配置了总byte限速，则必须配置单个channel的byte限速
@@ -592,9 +592,9 @@
                             "byte" : 5242880 //总byte限速5M/s
                         }
                     },
-####### ...
-    }
-}
+                    ...
+                }
+            }
 ## 2.内存调整
     当提升DataX Job内Channel并发数时，内存的占用会显著增加，因为DataX作为数据交换通道，在内存中会缓存较多的数据
     例如Channel中会有一个Buffer，作为临时的数据交换的缓冲区，而在部分Reader和Writer的中，也会存在一些Buffer，为了防止OOM等错误，需调大JVM的堆内存

@@ -396,21 +396,21 @@
 ### 3.数据类型
 | 参数 | 描述 |
 | --- | --- |
-| tinyint | 1byte，有符号整数 |
-| smallint | 2byte，有符号整数 |
-| int | 4byte，有符号整数 |
-| bigint | 8byte，有符号整数 |
-| boolean | 布尔类型，true或者false |
-| float | 单精度浮点数 |
-| double | 双精度浮点数 |
-| decimal | 十进制精准数字类型，decimal(16,2) |
-| varchar | 字符序列，需指定最大长度，最大长度的范围是[1,65535]，varchar(32) |
-| string | 字符串，无需指定最大长度 |
-| timestamp | 时间类型 |
-| binary | 二进制数据 |
-| array | 数组是一组相同类型的值的集合，array<string>，arr[0] |
-| map | map是一组相同类型的键-值对集合，map<string,int>，map['key'] |
-| struct | 结构体由多个属性组成，每个属性都有自己的属性名和数据类型，struct\<id:int,name:string>，struct.id |
+| tinyint   | 1byte，有符号整数
+| smallint  | 2byte，有符号整数
+| int       | 4byte，有符号整数
+| bigint    | 8byte，有符号整数
+| boolean   | 布尔类型，true或者false
+| float     | 单精度浮点数
+| double    | 双精度浮点数
+| decimal   | 十进制精准数字类型，decimal(16,2)
+| varchar   | 字符序列，需指定最大长度，最大长度的范围是[1,65535]，varchar(32)
+| string    | 字符串，无需指定最大长度
+| timestamp | 时间类型
+| binary    | 二进制数据
+| array     | 数组是一组相同类型的值的集合，array<string>，arr[0]
+| map       | map是一组相同类型的键-值对集合，map<string,int>，map['key']
+| struct    | 结构体由多个属性组成，每个属性都有自己的属性名和数据类型，struct\<id:int,name:string>，struct.id
     数据类型转换:
     1. 隐式类型转换
         任何整数类型都可以隐式地转换为一个范围更广的类型，如tinyint可以转换成int，int可以转换成bigint
@@ -805,13 +805,13 @@
 ### 2.窗口函数
     1. over窗口
         over(分区(分组)  排序  范围)
-        # rows between () and ()  #按行确定范围
+        # rows between () and ()   #按行确定范围
         # range between () and ()  #按值确定范围 按order后的值取
-        # unbounded preceding  #上无边界
-        # unbounded following  #下无边界
-        # n preceding  #上n行
-        # n following  #下n行
-        # current row  #当前行
+        # unbounded preceding      #上无边界
+        # unbounded following      #下无边界
+        # n preceding              #上n行
+        # n following              #下n行
+        # current row              #当前行
         1. select user_name,count(*) over()  #对窗口中的数据进行count
             from order_info；
         2. select *,
@@ -853,14 +853,14 @@
         常见的Operator及其作用如下:
 | 参数 | 描述 |
 | --- | --- |
-| TableScan | 表扫描操作，通常map端第一个操作肯定是表扫描操作 |
-| Select Operator | 选取操作 |
-| Group By Operator | 分组聚合操作 |
-| Reduce Output Operator | 输出到 reduce 操作 |
-| Filter Operator | 过滤操作 |
-| Join Operator | join 操作 |
-| File Output Operator | 文件输出操作 |
-| Fetch Operator | 客户端获取数据操作 |
+| TableScan              | 表扫描操作，通常map端第一个操作肯定是表扫描操作
+| Select Operator        | 选取操作
+| Group By Operator      | 分组聚合操作
+| Reduce Output Operator | 输出到 reduce 操作
+| Filter Operator        | 过滤操作
+| Join Operator          | join 操作
+| File Output Operator   | 文件输出操作
+| Fetch Operator         | 客户端获取数据操作
     2. Explain基本语法
         explain [ formatted | extended | dependency ]
         sql语句;

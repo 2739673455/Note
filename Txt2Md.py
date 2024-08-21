@@ -1,4 +1,5 @@
 import re
+import sys
 
 
 class Converter:
@@ -9,7 +10,7 @@ class Converter:
         self.table_right_row = 0
 
     def convertTitle(self, content):
-        prefix = re.findall(r"(.*?)\d*\.", content)[0]
+        prefix = re.findall(r"(.*?)\d+\.", content)[0]
         tab_num = prefix.count("\t") + 1
         content = content.replace(prefix, "")
         content = "#" * tab_num + " " + content
@@ -22,9 +23,9 @@ class Converter:
             tab_num = re.findall(r"\t*\t", content)[0].count("\t")
         except:
             print(content)
+            sys.pause()
         self.paragraph_tab_num = tab_num if self.paragraph_tab_num == 0 else self.paragraph_tab_num
         space_num = (tab_num - self.paragraph_tab_num + 1) * 4
-        # content = content.replace(prefix, " " * space_num)
         content = re.sub(r"\t*\t", " " * space_num, content, count=1, flags=0)
         self.table_head_flag = 1
         return content
@@ -44,35 +45,24 @@ class Converter:
             md_file.write("| 参数 | 描述 |\n")
             md_file.write("| --- | --- |\n")
             self.table_head_flag = 0
-        if self.table_column == 0 and "#" in content:
-            # 表格样式1
+        if self.table_column == 0:
             content = re.sub(r"\t*- ", "| ", content)
-            content = content.replace("  #", " | ")
-            content = content[:-1]
-            content = content + " |\n"
-            self.table_column = 0
-            return content
-        elif self.table_column == 0:
-            # 表格样式2,3的左列
-            content = re.sub(r"\t*- ", "| ", content)
-            content = content[:-1]
-            content = content + " | "
-            self.table_column = 1
-        else:
             if "#" in content:
-                # 表格样式3的右列
-                if content[-2] == "#":
-                    content = re.sub(r"\t+#", "", content)
-                    content = content[:-2] + "<br>"
-                    self.table_column = 1
-                else:
-                    content = re.sub(r"\t+#", "", content)
-                    self.table_column = 0
+                # 表格样式1左右列
+                content = content.replace("  #", " | ")
+                self.table_column = 0
+                return content
             else:
-                # 表格样式2的右列
-                content = re.sub(r"\t*", "", content)
-                content = content[:-1]
-                content = content + " |\n"
+                # 表格样式2,3的左列
+                content = content[:-1] + " | "
+                self.table_column = 1
+        else:
+            # 表格样式2,3的右列
+            content = re.sub(r"\t+#+ *", "", content)
+            if content[-2] == "#":
+                content = content[:-2] + "<br>"
+                self.table_column = 1
+            else:
                 self.table_column = 0
         return content
 
@@ -85,7 +75,7 @@ def txtToMd(txt_file_path):
     for content in txt_file.readlines():
         if content == "\n":
             continue
-        elif re.match(r"\t*\d*\.\S", content):
+        elif re.match(r"\t*\d+\.\S", content):
             content = converter1.convertTitle(content)
         elif re.match(r"\t*- ", content) or converter1.table_column == 1:
             content = converter1.convertTable(content, md_file)
