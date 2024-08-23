@@ -285,7 +285,7 @@
         str.charAt(0);
     3. 比较大小关系
         Integer.compare(value1, value2);
-        比较相等使用 equals
+        比较是否相等使用 equals
     4. 单个字符转换大小写
         Character.toUpperCase(char c);
         Character.toLowerCase(char c);
@@ -336,200 +336,77 @@
     ArithmeticException             #算术异常
     NumberFormatException           #数字格式化异常
 ### 2.编译时异常
+    编译器可以预警，提醒可能发生异常
     IOException
     FileNotFoundException
     ClassNotFoundException
-## 1.异常也是对象，Throwable是所有错误或异常的超类
+## 2.异常的体系结构
+    异常也是对象，Throwable是所有错误或异常的超类
     只有当对象是此类(或其子类之一)的实例时，才能通过JAVA虚拟机或JAVA throw抛出
     只有此类(或其子类之一)才可以是catch中的参数类型
-## 2.try-catch-final语法格式
+## 3.try-catch-finally
     try{
         可能发生异常的语句;
     }catch(异常的类型1 参数名){
         //打印异常
-        //异常的处理代码（有的时候没有）
+        //异常的处理代码(有的时候没有)
     }catch(异常的类型2 参数名){
         //打印异常
-        //异常的处理代码（有的时候没有）
-    }final{
+        //异常的处理代码(有的时候没有)
+    }finally{
         1. 无论try中是否有异常，finally都要执行
         2. 无论catch是否可以捕获异常，finally都要执行
         3. 就算try或catch中有return语句，finally也要执行
         finally块通常是用来编写资源关闭的代码
     }
     如果有多个catch分支，小的异常类型在上面，大的异常类型在下面，如果多个catch分支的异常类型之间没有大小关系，是兄弟关系，那么顺序无所谓
-## 3.throw 用于主动抛出异常对象
-## 4.throws 如果我们使用throw语句抛出的是编译时类型的异常，不是运行时类型的异常，那么编译器就会强制我们对throw语句进行处理，处理你抛出异常。如果当前方法不想要处理这个异常，想要让调用者在调用这个方法/构造器的位置进行异常处理，那么可以在方法/构造器的()后面加throws，声明该方法或构造器可能发生xx异常类型，需要调用者处理
-# 14.Math类(java.lang)
-    Math.random()
-    Math.sqrt(value)
-    Math.abs(value)
-    Math.max(value1, value2)
-    Math.min(value1, value2)
-    Math.floor(value)
-    Math.ceil(value)
-    Math.round(value)  等价于(int)(a+0.5)
-    Math.pow(value1, value2)
-# 15.Random类(java.util)
-    Random random = new Random()  以当前系统时间为种子生成随机数
-    random = new Random(100)  给定种子生成随机数
-    random.nextInt()  int范围内任意值
-    random.nextInt(10)  [0,10)任意值
-    random.nextInt(10,100)  [10,100)任意值
-    random.nextDouble()  [0,1)任意小数
-    random.nextBoolean()
-# 16.BigInteger与BigDecimal(java.math)
-    BigDecimal b1 = new BigDecimal(String str)
-    BigDecimal b2 = new BigDecimal(String str)
-    b1.add(b2)  加
-    b1.subtract(b2)  减
-    b1.multiply(b2)  乘
-    b1.divide(b2)  若除不尽会报异常
-    b1.divide(b2, int i, RoundingMode.CEILING)  第i位无论是什么，都进位
-    b1.remainder(b2)  余
-# 17.日期时间API
-    第一代:
-    java.util.Date  日期时间
-    java.text.SimpleDateFormat  日期时间格式化工具类
-    第二代:
-    java.util.Calender  日历类
-    java.util.TimeZone  时区类型
-    java.util.Locale  地区
-    第三代:
-    LocalDate,LocalTime,LocalDateTime
-    instant类型  瞬时
-    ZoneId,ZonedDateTime
-    Period,Duration
-    DatetimeFormatter
-# 18.Arrays(java.util)
-    Arrays.toString(arr)
-    Arrays.sort(arr)
-    Arrays.copyOf(arr, int length)  将数组复制到指定长度的新数组
-    Arrays.copyOfRange(arr, begin, end)  复制arr[begin:end)
-    Arrays.fill(arr, int i)  数组元素全部初始化为i
-    Arrays.equals(arr1, arr2)  两个数组的元素顺序、个数、类型完全一致，才为true
-    Arrays.binarySearch(arr, target)  使用二分查找需确保数组有序，若元素不存在，返回 -插入点-1
-    Arrays.asList()  转为List类型
-# 19.System类
-    System.arraycopy(Object src, int srcPos, Object dest, int destPos, int length)  将src中从srcPos开始length长度的元素复制到dest的destPos
-    System.getProperty("os.name")  获取操作系统信息
-    System.currentTimeMillis()  获取当前时间
-# 20.Runtime类
-    Runtime jvm = Runtime.getRuntime()  获取Runtime类的唯一对象
-    long totalMemory = jvm.totalMemory()  总内存
-    long freeMemory = jvm.freeMemory()  空闲内存
-    long useMemory = totalMemory - freeMemory  已使用内存
-# 21.比较器
-## 1.java.util.Comparator接口  定制比较器
-    int compare(Object o1,Object o2)
-## 2.java.lang.Comparable接口  自然比较器
-    这个接口是由要比较大小的类本身来实现的，不需要额外在创建新的类或额外用匿名内部类来实现它
-    int compareTo(Object o1)
-# 22.String类
-    String本身是final修饰，不能有子类
-    String对象不可变，凡是修改字符串对象的内容，都会产生新的对象
-    str.length()
-    str.toUpperCase()  全部大写
-    str.toLowerCase()  全部小写
-    char[] c = str.toCharArray()  转换为char数组
-    str.charAt(index)
-    String sub = str.subString(i)  截取[i,)
-    String sub = str.subString(begin, end)  截取[begin,end)
-    str.startsWith(value)  是否以value开头
-    str.endsWith(value)  是否以value结尾
-    str.contains(value)  是否包含value
-    str.indexOf(value)  value首次出现的下标
-    str.lastIndexOf(value)  value末次出现的下标
-    str1.equals(str2)  比较内容
-    str1.equalsIgnoreCase(str2)  不区分大小写比较内容
-    str1.compareTo(str2)  按编码值比较大小
-    str1.compareToIgnoreCase(str2)  不区分大小按编码值比较大小
-    str.isEmpty()  是否不包含任何字符，包括空格、\t、\n等
-    str.isBlank()  是否不包含除了空白字符(空格、\t、\n等)以外的字符
-    "".equals(str)
-    Objects.equals("", str)
-    str1.concat(str2)  拼接字符串
-        (+: 结果会在常量池被共享
-        concat: 结果一定是new的，这个新new不会被共享
-        凡是“”，在常量池中都是共享的字符串对象
-        就算新new的字符串对象不能共享，但也会想尽办法与之前的字符串对象共享byte[]数组)
-    str.matches(正则表达式)  是否满足正则表达式
-    str = str.replaceAll(正则表达式, value)  将所有满足正则的所有字符替换为value
-    str = str.replaceFirst(正则表达式, value)  将首个满足正则的字符替换为value
-    str = str.replace(value1, value2)  将所有value1替换为value2
-    String[] strings = str.split(value)  将str按value为分隔拆分为字符串数组
-    str = str.trim()  去掉前后空白字符（包括空格\t\n等）
-    str2 = str1.intern()  如果常量池中存在当前字符串, 就会直接返回当前字符串. 如果常量池中没有此字符串, 会将此字符串放入常量池中后, 再返回
-    byte[] bytes = str.getBytes("UTF-8")  字符串按UTF-8编码后的byte数组
-# 23.可变字符串类型 StringBuffer与StringBuilder(java.lang)
-    String的字符串常量可以共享，但每次修改都会产生新的对象，当程序中涉及大量字符串修改，尽量使用可变字符串类型
-    StringBuffer  线程安全  效率相对较低
-    StringBuilder  线程不安全  效率高
-## 1.增
-    append(value)
-    insert(index, value)
-## 2.删
-    delete(begin, end)
-    deleteCharAt(index)
-## 3.改
-    setCharAt(index, value)
-    setLength(value)
-    replace(begin, end, value)
-    reverse()
-## 4.查
-    indexOf(value)
-    lastIndexOf(value)
-    charAt(index)
-## 5.比较
-    str1.toString().equals(str2.toString());
-# 24.字符串拼接 StringJoiner(java.util)
-    String[] arr = {"hello","world","java"};
-    StringJoiner joiner = new StringJoiner("-", "[", "]");
-    for (int i = 0; i < arr.length; i++) {
-        joiner.add(arr[i]);
-    }
-    System.out.println(joiner);  //"[hello-world-java]"
-# 25.Collection
-## 1.Collection系列的集合以Collection为根接口，这个接口中定义了所有该系列的集合“共有”的方法
+## 3.throw
+    用于主动抛出异常对象
+    throw语句如果执行了，如果没有在当前方法中加try-catch处理的话，也会结束当前方法的执行。并且会带回一个异常对象给调用者
+## 4.throws
+    告知调用者可能发生异常，这个异常不一定发生
+    如果我们使用throw语句抛出的是编译时类型的异常，不是运行时类型的异常，那么编译器就会强制我们对throw语句进行处理，处理你抛出异常
+    如果当前方法不想要处理这个异常，想要让调用者在调用这个方法/构造器的位置进行异常处理，那么可以在方法/构造器的()后面加throws，声明该方法或构造器可能发生xx异常类型，需要调用者处理
+# 11.Collection集合
+## 1.Collection接口的方法
 ### 1.增
-    add(value)
-    addAll(collection)
+    add(value)          #增加值
+    addAll(collection)  #增加集合
 ### 2.删
-    remove(value)
-    removeIf(p)
-    clear()
-    collection1.removeAll(collection2)  减去交集
-    collection1.retainAll(collection2)  取交集
-### 3.改（无）
+    remove(value)                       #移除值
+    removeIf(p)                         #条件移除
+    clear()                             #清空
+    collection1.removeAll(collection2)  #减去交集
+    collection1.retainAll(collection2)  #取交集
+### 3.改(无)
 ### 4.查
-    contains(value)
-    containsAll(collection)
-    size()
-    isEmpty()
+    contains(value)          #含有值
+    containsAll(collection)  #含有集合
+    size()                   #元素个数
+    isEmpty()                #是否为空
 ### 5.遍历
-#### 1.直接foreach（最简洁，最推荐的方法）
-#### 2.将元素放到Object[]数组中返回，然后遍历数组（不太推荐）
-#### 3.用迭代器遍历
-##### 1.先用集合对象.iterator()得到迭代器对象
-##### 2.用循环 + 迭代器的hasNext()和next()实现集合的遍历
-    Iterator iterator = collection.iterator();//这个方法可以拿到一个Iterator接口的实现类对象
-    while(iterator.hasNext()){
-        Object obj = iterator.next();
-        System.out.println(obj);
-    }
-## 2.Collection的子接口:Set
-### 1.Set子接口的实现类有一个共同特征:元素不可重复
-### 2.常用的实现类:HashSet、LinkedHashSet、TreeSet等
-#### 1.HashSet(底层时哈希表)  元素不可重复，完全无序。（这里的无序，是指完全没有规律）
-#### 2.LinkedHashSet(底层是双向链表+哈希表)  元素不可重复，元素有顺序，按照添加顺序排列，因为底层有一个双向链表
-#### 3.TreeSet(底层是红黑树)  元素不可重复，元素有大小顺序,一边添加一边排序。依赖于Comparable接口 或 Comparator接口
-## 3.Collection的子接口:List
-### 1.List系列的集合有一个共同特征:元素可以重复，元素可以通过下标进行访问。无论底层是不是数组，都可以通过下标进行访问，我们称为有序的（有下标顺序）
-### 2.List的常见实现类有
-    ArrayList(底层是动态数组)  线程不安全  效率高  默认扩容1.5倍  初始化长度0，添加元素时创建长度为10的数组
-    LinkedList(底层是双向链表)  不连续存储  不需要扩容
-    Vector(底层是动态数组)  线程安全  效率低  默认扩容2倍  初始化长度10
-    Stack(Vector的子类)
+    1. 直接foreach(最简洁，最推荐的方法)
+    2. 将元素放到Object[]数组中返回，然后遍历数组(不太推荐)
+    3. 用迭代器遍历
+        1. 先用集合对象.iterator()得到迭代器对象
+        2. 用循环+迭代器的hasNext()和next()实现集合的遍历
+        Iterator iterator = collection.iterator();//这个方法可以拿到一个Iterator接口的实现类对象
+        while(iterator.hasNext()){
+            Object obj = iterator.next();
+            System.out.println(obj);
+        }
+## 2.子接口:List
+### 1.共同特征
+    元素可以重复
+    元素可以通过下标进行访问
+    无论底层是不是数组，都可以通过下标进行访问，我们称为有序的(有下标顺序)
+### 2.常见实现类
+| 参数 | 描述 |
+| --- | --- |
+| ArrayList(底层是动态数组) | 线程不安全<br>效率高<br>默认扩容1.5倍<br>初始化长度0，添加元素时创建长度为10的数组
+| LinkedList(底层是双向链表) | 不连续存储<br>不需要扩容
+| Vector(底层是动态数组) | 线程安全<br>效率低<br>默认扩容2倍<br>初始化长度10
+| Stack | Vector的子类
 ### 3.List接口的方法
 #### 1.增
     add(value)
@@ -555,206 +432,237 @@
     indexOf(value)
     lastIndexOf(value)
 #### 5.遍历
-##### 1.直接foreach（最简洁，最推荐的方法）
-##### 2.将元素放到Object[]数组中返回，然后遍历数组（不太推荐）
-##### 3.用Iterator迭代器遍历:Iterator迭代器只能从头开始遍历
-##### 4.用ListIterator迭代器遍历:
-    ListIterator迭代器可以从任意位置开始遍历
-    ListIterator迭代器可以从左往右，也可以从右往左
-    在遍历过程中支持对集合进行增、删、改、查
+    1. 直接foreach(最简洁，最推荐的方法)
+    2. 将元素放到Object[]数组中返回，然后遍历数组(不太推荐)
+    3. 用Iterator迭代器遍历:Iterator迭代器只能从头开始遍历
+    4. 用ListIterator迭代器遍历:
+        ListIterator迭代器可以从任意位置开始遍历
+        ListIterator迭代器可以从左往右.next()，也可以从右往左.previous()
+        在遍历过程中支持对集合进行增、删、改、查
 #### 6.转换为数组
     Object[] array = list.toArray()
 #### 7.转换为List
     ArrayList<T> list = new ArrayList<>(Arrays.asList(array))
-# 26.栈 Stack LinkedList
-    push(value)  添加元素到栈顶
-    pop()  取出栈顶元素
-    peek()  查看栈顶元素
-    search(target)  查看目标从栈顶开始是第几个，若不存在返回-1
-# 27.队列 Queue Deque LinkedList
-## 1.单向队列
-### 1.抛出异常的方法
-    add(value)
-    remove()
-    element()
-### 2.返回特殊值的方法
-    offer(value)
-    poll()
-    peek()
-## 2.双向队列
-### 1.抛出异常的方法
-    addFirst(value)
-    addLast(value)
-    removeFirst()
-    removeLast()
-    getFirst()
-    getLast()
-### 2.返回特殊值的方法
-    offerFirst(value)
-    offerLast(value)
-    pollFirst()
-    pollLast()
-    peekFirst()
-    peekLast()
-# 28.泛型
+### 4.栈 Stack
+    使用LinkedList实现
+    push(value)     #添加元素到栈顶
+    pop()           #取出栈顶元素
+    peek()          #查看栈顶元素
+    search(target)  #查看目标从栈顶开始是第几个，若不存在返回-1
+### 5.队列 Queue Deque
+    使用LinkedList实现
+    1. 单向队列
+        1. 抛出异常的方法
+            add(value)  #插入
+            remove()    #移除
+            element()   #查看
+        2. 返回特殊值的方法
+            offer(value)  #插入
+            poll()        #移除
+            peek()        #查看
+    2. 双向队列
+        1. 抛出异常的方法
+            addFirst(value)
+            addLast(value)
+            removeFirst()
+            removeLast()
+            getFirst()
+            getLast()
+        2. 返回特殊值的方法
+            offerFirst(value)
+            offerLast(value)
+            pollFirst()
+            pollLast()
+            peekFirst()
+            peekLast()
+## 3.子接口:Set
+### 1.共同特征
+    元素不可重复，不可以修改
+### 2.常用的实现类
+| 参数 | 描述 |
+| --- | --- |
+| HashSet(底层是HashMap) | 				元素不可重复，完全无序(这里的无序，是指完全没有规律)
+| LinkedHashSet(底层是LinkedHashMap) | 				元素不可重复，元素有顺序，按照添加顺序排列，因为底层有一个双向链表
+| TreeSet(底层是TreeMap) | 				元素不可重复，元素有大小顺序,一边添加一边排序。依赖于Comparable接口或Comparator接口
+# 12.Map集合
+## 1.List,Set,Map区别
+| 参数 | 描述 |
+| --- | --- |
+| List | 元素可重复，可修改
+| Set | 元素不可重复，不可修改
+| Map | key不允许重复，value允许重复<br>key不允许修改，value允许修改
+## 2.Map接口的方法
+### 1.增
+    put(key, value)  #添加键值对
+    putAll(map)      #添加Map
+### 2.删
+    remove(key)        #删除相应key的键值对
+    remove(key,value)  #必须key和value都匹配才删除
+### 3.改
+    replace(key,新Value)          #根据key覆盖value
+    replace(key,旧value,新Value)  #必须key和旧value都匹配，才会用新Value覆盖旧value
+    replaceAll(BiFunction<? super K, ? super V, ? extends V> function)
+        #需要重写一个apply抽象方法，抽象方法的形参分别是key和旧value，抽象方法的返回值是新value
+        BiFunction<Integer,String,String> bi =new BiFunction<Integer, String, String>() {
+            @Override
+            public String apply(Integer key, String oldValue) {//方法的返回值是新value
+                if(key % 2 == 0){
+                    return oldValue.substring(0,1).toUpperCase().concat(oldValue.substring(1))
+                }
+                return oldValue
+            }
+        }
+        map.replaceAll(bi)
+### 4.查
+    containsKey(key)
+    containsValue(value)
+    size()
+### 5.遍历
+    Map接口的所有实现类都没有实现Iterable接口，即不支持直接使用foreach或Iterator迭代器遍历
+    必须将Map集合结构转换为Collection集合才可以使用foreach或Iterator迭代器遍历
+    1. 遍历key
+        Set<K> keys = map.keySet()
+    2. 遍历value
+        Collection<V> values = map.values()
+    3. 遍历键值对
+        Set<Map.Entry<K,V>> entries = map.entrySet()
+        例:
+        Set<Map.Entry<Integer, String>> entries = map.entrySet();
+        for (Map.Entry<Integer, String> entry : entries) {
+            System.out.println("key:" + entry.getKey());
+            System.out.println("value:" + entry.getValue());
+        }
+## 3.常用实现类
+| 参数 | 描述 |
+| --- | --- |
+| HashMap(数组+单链表+红黑树) | 完全无序<br>允许key或value为null<br>线程不安全，效率高
+| LinkedHashMap(双向链表+哈希表，称为链式哈希表) | 会保留键值对顺序
+| TreeMap(红黑树) | 按照key的大小顺序排序<br>依赖于Comparable或Comparator接口
+| Hashtable(古老的哈希表) | 完全无序<br>不允许key或value为null<br>线程安全，效率低
+| Properties(属性表，是Hashtable的子类) | key,value都是固定String类型，通常用于存储系统属性的键值对
+## 4.HashMap原理
+    1. (key,value)的存储位置
+        1. 将key对象映射为int值
+            hashCode(key)
+        2. 计算出索引位置
+            index = hash(key) & (table.length-1)
+        若key为null，hash值为0，存储在table[0]
+        key值不能修改，因为修改后hash(key)与原来不同。value值可以修改
+        hashMap的Node类型存储key的hash值，并加final修饰，用于记录hash值，避免之后重复计算
+    2. 底层数组的长度为2^n
+        HashMap的默认长度为16
+        如果使用HashMap有参构造手动指定长度不是2^n，table.length会变为大于指定值的最小2^n值
+        数组扩容的机制为2倍扩容
+    3. 哈希冲突
+        两种情况:
+        1. key值不同，但hashCode相同
+        2. key值不同，hashCode也不同，但 hashCode & (table.length-1) 相同
+        存在哈希冲突时一个索引下存在多个键值对，此时索引位置称为桶(bucket)，同一索引下多个键值对用单链表或红黑树连接
+        可通过再哈希(使hashCode值的二进制高位也参与到索引位置的计算中)降低哈希冲突概率
+    4. 数组扩容
+        两种情况:
+        1. 当size>=threshold时，数组就扩容
+        2. 若单链表长度达到8，但是数组长度未达到64，数组会扩容
+        threshold = table.length * loadFactor (loadFactor的默认值 DEFAULT_LOAD_FACTOR 是0.75)
+        数组扩容后所有键值对重新计算索引
+        扩容后已有键值对的位置要么不变，要么换到 index+2^(n-1)
+    5. 树化
+        需同时满足两个条件:
+        1. table.length>=MIN_TREEIFY_CAPACITY(值为64)
+        2. 该单链表长度>=TREEIFY_THRESHOLD(值为8)
+    6. 反树化
+        当对HashMap做如下两个操作，且满足对应条件时，会反树化:
+        1. remove操作:若红黑树的根结点，根的左结点，根的右结点，根的左结点的左结点之一为null时，会反树化
+        2. put操作:若触发了扩容，且红黑树结点数量<=UNTREEIFY_THRESHOLD(值为6)，会反树化
+## 6.HashMap如何按值排序
+    List<Map.Entry<T1, T2>> list = new ArrayList<>(HashMap.entrySet());
+    list.sort((o1, o2) -> o1.getValue() - o2.getValue());
+# 13.泛型
+## 1.什么是泛型
+    代码中出现 <字母> 或 <类型> 都是泛型
+    泛型的概念是指泛指某种类型
     类型指定外部的类型，泛型指定内部的类型
     泛型与多态无关，泛型无法使用多态
-## 1.代码中出现<字母>或<类型>都是泛型
-## 2.对于设计这个泛型类或泛型方法的程序员来说，泛型将类型的确定从当前设计时，延迟到了使用时
-## 3.对于使用包含泛型类或泛型方法的程序员来说，又把类型的确定从运行时提前到了编译时
+## 2.泛型的作用
+    1. 对于设计这个泛型类或泛型方法的程序员来说，泛型将类型的确定从当前设计时，延迟到了使用时
+        设计ArrayList这个集合的程序员，不需要确定元素的具体类型，用<E>代替
+        使用呢ArrayList集合的程序员，再来确定元素的类型
+    2. 对于使用包含泛型类或泛型方法的程序员来说，又把类型的确定从运行时提前到了编译时
+        方便: 不需要强制类型转换
+        安全: 避免了ClassCastException异常
+## 3.泛型的使用形式
+    1. 当一个方法的形参类型不确定时，有时候会需要给方法定义泛型
+    2. 泛型类或泛型接口
 ## 4.泛型的上限
     <泛型字母 extends 上限类型>
     <泛型字母 extends 类名 & 接口名1 & 接口名2>
     表示<泛型字母>代表的具体类型必须<=上限类型
     上限类型可以是一个类，也可以是一个接口，甚至可以是一个类加一些接口。上限中类名只能出现1个
 ## 5.泛型的通配符
-    泛型的通配符的形式有3种
-### 1.<?>  ?是任意类型
-### 2.<? extends 上限>  ?代表 <= 上限的类型
-### 3.<? super 下限>  ?代表 >= 下限的类型
     凡是在<>里面出现?都是泛型通配符
-# 29.Map
-    Map<K,V>
-## 1.List,Set,Map区别
-    List:元素可重复，可修改
-    Set:元素不可重复，不可修改
-    Map:key不允许重复，value允许重复；key不允许修改，value允许修改
-## 2.方法
-### 1.增
-    put(key.value)
-    putAll(map)
-### 2.删
-    remove(key)
-    remove(key,value)  必须key和value都匹配才删除
-### 3.改
-    replace(key,新Value)
-    replace(key,旧value,新Value)  必须key和旧value都匹配，才会用新Value覆盖旧value
-    replaceAll(BiFunction<? super K, ? super V, ? extends V> function)  需要重写一个apply抽象方法，抽象方法的形参分别是key和旧value，抽象方法的返回值是新value。
-    BiFunction<Integer,String,String> bi =new BiFunction<Integer, String, String>() {
-        @Override
-        public String apply(Integer key, String oldValue) {//方法的返回值是新value
-            if(key % 2 == 0){
-                return oldValue.substring(0,1).toUpperCase().concat(oldValue.substring(1))
-            }
-            return oldValue
-        }
-    }
-    map.replaceAll(bi)
-### 4.查
-    containsKey(key)
-    containsValue(value)
-    size()
-### 5.遍历
-    遍历所有key: Set<K> keys = map.keySet()
-    遍历所有value: Collection<V> values = map.values()
-    遍历所有键值对: Set<Map.Entry<K,V>> entries = map.entrySet()
-## 3.Map的常用实现类
-### 1.HashMap:数组+单链表+红黑树
-    完全无序
-    允许key或value为null
-    线程不安全，效率高
-### 2.LinkedHashMap:双向链表+哈希表，称为链式哈希表
-    会保留键值对顺序
-### 3.TreeMap:红黑树
-    按照key的大小顺序排序
-    依赖于Comparable或Comparator接口
-### 4.Hashtable:古老的哈希表
-    完全无序
-    不允许key或value为null
-    线程安全，效率低
-### 5.Properties:属性表，是Hashtable的子类
-    key,value都是固定String类型，通常用于存储系统属性的键值对
-## 4.Set与Map的关系
-    HashSet  底层是HashMap
-    LinkedHashSet  底层是LinkedHashMap
-    TreeSet  底层是TreeMap
-## 5.HashMap原理
-### 1.(key,value)的存储位置
-    hashCode(key):将key对象映射为int值
-    index = hash(key) & (table.length-1)
-    key为null，hash值为0，存储在table[0]
-    key值不能修改，因为修改后hash(key)与原来不同。value值可以修改
-    hashMap的Node类型存储key的hash值，并加final修饰，用于记录hash值避免之后重复计算
-### 2.底层数组的长度为2^n
-    如果使用HashMap有参构造手动指定长度不是2^n，table.length会变为大于指定值的最小2^n值
-    数组扩容的机制为2倍扩容
-### 3.哈希冲突
-#### 1.key值不同，但hashCode相同
-#### 2.key值不同，hashCode也不同，但 hashCode & (table.length-1) 相同
-    存在哈希冲突时一个索引下存在多个键值对，此时索引位置称为桶(bucket)，同一索引下多个键值对用单链表或红黑树连接
-    可通过再哈希(使hashCode值的二进制高位也参与到索引位置的计算中)降低哈希冲突概率
-### 4.数组扩容
-#### 1.当size>=threshold时，数组就扩容
-#### 2.若单链表长度达到8，但是数组长度未达到64，数组会扩容
-    threshold = table.length * loadFactor (loadFactor的默认值 DEFAULT_LOAD_FACTOR 是0.75)
-    数组扩容后所有键值对重新计算索引
-    扩容后已有键值对的位置要么不变，要么换到 index+2^(n-1)
-### 5.树化:需同时满足两个条件
-#### 1.table.length>=MIN_TREEIFY_CAPACITY(值为64)
-#### 2.该单链表长度>=TREEIFY_THRESHOLD(值为8)
-### 6.反树化:当对HashMap做如下两个操作，且满足对应条件时，会反树化
-#### 1.remove操作:若红黑树的根结点，根的左结点，根的右结点，根的左结点的左结点之一为null时，会反树化
-#### 2.put操作:若触发了扩容，且红黑树结点数量<=UNTREEIFY_THRESHOLD(值为6)，会反树化
-## 6.HashMap按值排序
-    List<Map.Entry<T1, T2>> list = new ArrayList<>(HashMap.entrySet());
-    list.sort((o1, o2) -> o1.getValue() - o2.getValue());
-# 30.多线程
+    泛型的通配符的形式有3种
+    1. <?>              # ?是任意类型
+    2. <? extends 上限>  # ?代表 <= 上限的类型
+    3. <? super 下限>    # ?代表 >= 下限的类型
+# 14.多线程
 ## 1.实现多线程
-### 1.继承Thread类
-#### 1.定义一个类继承Thread类
-#### 2.必须重写 public void run() 方法
-#### 3.在 run() 中编写线程要执行的任务
-#### 4.在 main() 中创建这个类的对象
-#### 5.调用 start() 启动线程
-### 2.实现Runnable接口
-#### 1.定义一个类实现Runnable接口
-#### 2.必须重写父接口 public void run() 方法
-#### 3.在 run() 中编写线程要执行的任务
-#### 4.在 main() 中创建这个类的对象
-#### 5.创建一个Thread类的对象
-#### 6.调用Thread类的对象的start()方法
+    1. 继承Thread类
+        1. 定义一个类继承Thread类
+        2. 必须重写 public void run() 方法
+        3. 在 run() 中编写线程要执行的任务
+        4. 在 main() 中创建这个类的对象
+        5. 调用 start() 启动线程
+    2. 实现Runnable接口
+        1. 定义一个类实现Runnable接口
+        2. 必须重写父接口 public void run() 方法
+        3. 在 run() 中编写线程要执行的任务
+        4. 在 main() 中创建这个类的对象
+        5. 创建一个Thread类的对象
+        6. 调用Thread类的对象的start()方法
 ## 2.Thread类的一些方法
-    public void run()  此线程要执行的任务在此处定义代码
-    public void start()  导致此线程开始执行  Java虚拟机调用此线程的run方法
-    public static Thread currentThread()  返回当前正在执行这句语句的线程对象的引用
-    public String getName()  获取当前线程名称，默认是Thread-0,Thread-1,...
-    public void setName(String name)  设置线程名称
-    public final boolean isAlive()  测试线程是否处于活动状态，如果线程已经启动且尚未终止，则为活动状态
-    public final int getPriority()  返回线程优先级
-    public final void setPriority(int newPriority)  改变线程的优先级
-    public static void sleep(long millis)  使当前正在执行的线程以指定的毫秒数暂停（暂时停止执行）
-    public static void yield()  yield只是让当前线程暂停一下，让系统的线程调度器重新调度一次，希望优先级与当前线程相同或更高的其他线程能够获得执行机会，但是这个不能保证，完全有可能的情况是，当某个线程调用了yield方法暂停之后，线程调度器又将其调度出来重新执行
-    void join()  执行这句代码的线程A要等待该线程（调用join方法的线程B）终止之后才能继续
-    void join(long millis)  等待该线程终止的时间最长为 millis 毫秒。如果millis时间到，将不再等待
-    void join(long millis, int nanos)  等待该线程终止的时间最长为 millis 毫秒 + nanos 纳秒
-    public void interrupt()  中断线程，要通过这个方法制造InterrupttedException异常的话，前提是这个线程正在执行可能发生该异常的方法，例如:sleep，wait等
-    public void setDaemon(true)  将指定线程设置为守护线程，必须在线程启动之前设置，否则会报IllegalThreadStateException异常
-    public boolean isDaemon()  判断线程是否是守护线程
+| 参数 | 描述 |
+| --- | --- |
+| run()                          |  此线程要执行的任务在此处定义代码
+| start()                        |  导致此线程开始执行  Java虚拟机调用此线程的run方法
+| static Thread currentThread()  |  返回当前正在执行这句语句的线程对象的引用
+| getName()                      |  获取当前线程名称，默认是Thread-0,Thread-1,...
+| setName(String name)           |  设置线程名称
+| isAlive()                      |  测试线程是否处于活动状态，如果线程已经启动且尚未终止，则为活动状态
+| getPriority()                  |  返回线程优先级
+| setPriority(int newPriority)   |  改变线程的优先级
+| static void sleep(long millis) |  使当前正在执行的线程以指定的毫秒数暂停(暂时停止执行)
+| static void yield() | yield只是让当前线程暂停一下，让系统的线程调度器重新调度一次，希望优先级与当前线程相同或更高的其他线程能够获得执行机会，但是这个不能保证<br>完全有可能的情况是，当某个线程调用了yield方法暂停之后，线程调度器又将其调度出来重新执行
+| join()                         |  执行这句代码的线程A要等待该线程(调用join方法的线程B)终止之后才能继续
+| join(long millis)              |  等待该线程终止的时间最长为 millis 毫秒。如果millis时间到，将不再等待
+| join(long millis, int nanos)   |  等待该线程终止的时间最长为 millis 毫秒 + nanos 纳秒
+| interrupt()                    |  中断线程，若要通过该方法制造InterrupttedException，需要这个线程正在执行可能发生该异常的方法，例如:sleep，wait等
+| setDaemon(true)                |  将指定线程设置为守护线程，必须在线程启动之前设置，否则会报IllegalThreadStateException异常
+| isDaemon()                     |  判断线程是否是守护线程
 ## 3.同步锁(synchronized)
-### 1.同步方法
-    [其他修饰符] synchronized 返回值类型 方法名([形参列表]){
-        //需要加锁的代码
-    }
-### 2.同步代码块
-    synchronized(同步锁对象名){
-        //需要加锁的代码
-    }
-    如果是非静态方法，它的同步锁对象，只能是this
-    如果是静态方法，它的同步锁对象，只能是当前类的Class对象
+    1. 同步方法
+        [其他修饰符] synchronized 返回值类型 方法名([形参列表]){
+            //需要加锁的代码
+        }
+    2. 同步代码块
+        synchronized(同步锁对象名){
+            //需要加锁的代码
+        }
+        如果是非静态方法，它的同步锁对象，只能是this
+        如果是静态方法，它的同步锁对象，只能是当前类的Class对象
 ## 4.生产者消费者问题
-    当一个或一些线程，负责往数据的缓冲区(比喻:仓库，账户)填充/增加数据，这些线程被称为生产者线程
-    而另一个或一些线程，负责从数据的缓冲区消费/减少数据，这些线程被称为消费者线程
-    当数据缓冲区“空”的时候，消费者线程应该“停”下来“等待”，等生产者线程生产了新的数据之后，才能继续消费
-    反过来，当数据缓冲区“满”的时候，生产者线程应该““停”下来“等待”，等消费者线程继续消费了数据之后，才能继续生产
-    这样的场景中涉及到两个问题
-### 1.线程的安全问题 => 加锁
-    多个线程
-    有共享的数据缓冲区
-    对数据缓冲区有修改操作
-### 2.线程的协作问题 => 线程通信机制来解决，即等待与唤醒机制
-    wait:让当前线程等待
-    notify/notifAll:唤醒正在等待的某个/所有线程
-    当wait或notify/notifyAll方法不是由监视器(同步锁对象)调用时，就会发生IllegalMonitorStateException
+    线程负责向数据的缓冲区增加数据，被称为生产者线程
+    线程负责从数据的缓冲区消费数据，被称为消费者线程
+    当数据缓冲区“空”的时候，消费者线程应该“停”下，等生产者线程生产了新的数据之后，才能继续消费
+    当数据缓冲区“满”的时候，生产者线程应该“停”下，等消费者线程继续消费了数据之后，才能继续生产
+    这样的场景中涉及到两个问题:
+    1. 线程的安全问题 => 加锁
+        多个线程
+        有共享的数据缓冲区
+        对数据缓冲区有修改操作
+    2. 线程的协作问题 => 线程通信机制来解决，即等待与唤醒机制
+        wait()                # 让当前线程等待
+        notify()/notifyAll()  # 唤醒正在等待的某个/所有线程
+        当wait或notify/notifyAll方法不是由监视器(同步锁对象)调用时，就会发生IllegalMonitorStateException
 ## 5.线程的生命周期
     新建(New)
     得到CPU调度(Runnable)
@@ -763,8 +671,8 @@
         定时等待状态(Timed_Waiting)
         无限等待直到...(Waiting)
     死亡(Terminated)
-# 31.单例设计模式
-## 1.饿汉式
+## 6.单例设计模式
+### 1.饿汉式
     1. public enum SingleOne {
         INSTANCE
     }
@@ -781,12 +689,12 @@
             return instance;
         }
     }
-## 2.懒汉式
+### 2.懒汉式
     1. public class SingleFour {
         private static SingleFour instance;//这里不new
         private SingleFour(){
         }
-        //当外面调用getInstance()时，说明确实需要这个类的对象，此时再new
+        // 当外面调用getInstance()时，说明确实需要这个类的对象，此时再new
         public static synchronized SingleFour getInstance(){
             if(instance == null) {
                 instance = new SingleFour();
@@ -804,68 +712,89 @@
         private static class Inner{
             static SingleFive instance = new SingleFive();
         }
-        //Inner类的加载和初始化，是在调用getInstance方法时，用到Inner类，才初始化，才new了SingleFive的对象
+        // Inner类的加载和初始化，是在调用getInstance方法时，用到Inner类，才初始化，才new了SingleFive的对象
         public static SingleFive getInstance(){
             return Inner.instance;
         }
     }
-# 32.IO流
+# 15.IO流
 ## 1.四大抽象基类
-### 1.InputStream  字节输入流
-### 2.OutputStream  字节输出流
-### 3.Reader  字符输入流
-### 4.Writer  字符输出流
+    InputStream   # 字节输入流
+    OutputStream  # 字节输出流
+    Reader        # 字符输入流
+    Writer        # 字符输出流
 ## 2.文件IO流
-### 1.FileInputStream
-    ->InputStreamReader
-#### 1.int read()  一次读取1个字节。如果到达流末尾了，没数据可读了，返回-1
-#### 2.int read(byte[] 数组名)  一次读取多个字节。如果到达流末尾了，没数据可读了，返回-1
-### 2.FileOutputStream
-    ->OutputStreamWriter
-#### 1.void write(byte[] 数组名)  直接输出byte[]数组中的字节内容到文件中
-#### 2.void write(arr, 0, len)  输出数组中从0开始指定长度的内容到文件中
-### 3.FileReader
-#### 1.int read()  一次读取1个字符。如果本次读不到内容了，即已经到达流末尾，返回-1
-#### 2.int read(char[] 数组名)  一次读取多个字符。返回本次读取的字符的个数，读取的字符内容被放到char[]数组中。如果本次读不到内容了，即已经到达流末尾，返回-1
-### 4.FileWriter
-#### 1.void write(字符串)  直接输出字符串到文件中
-#### 2.void write(char[] 数组名)  直接输出char[]数组中的字符内容到文件中
+    1. FileInputStream [+ InputStreamReader]
+        1. int read()                # 一次读取1个字节。如果到达流末尾了，没数据可读了，返回-1
+        2. int read(byte[] 数组名)    # 一次读取多个字节。如果到达流末尾了，没数据可读了，返回-1
+    2. FileOutputStream [+ OutputStreamWriter]
+        1. void write(byte[] 数组名)  # 输出byte[]数组中的字节内容到文件中
+        2. void write(arr, 0, len)   # 输出数组中从0开始指定长度的内容到文件中
+    3. FileReader
+        1. int read()                # 一次读取1个字符。如果本次读不到内容了，即已经到达流末尾，返回-1
+        2. int read(char[] 数组名)    # 一次读取多个字符。返回本次读取的字符的个数，读取的字符内容被放到char[]数组中。如果本次读不到内容了，即已经到达流末尾，返回-1
+    4. FileWriter
+        1. void write(字符串)         # 输出字符串到文件中
+        2. void write(char[] 数组名)  # 输出char[]数组中的字符内容到文件中
 ## 3.缓冲流
     Buffered开头的IO流，称为缓冲流，它可以在其他IO流的基础上，增加缓冲功能，以提高读写的效率
-    BufferedInputStream  只能给InputStream系列增加缓冲功能
-    BufferedOutputStream  只能给OutputStream系列增加缓冲功能
-    BufferedReader  只能给Reader系列增加缓冲功能
-    BufferedWriter  只能给Writer系列增加缓冲功能
+    BufferedInputStream   # 只能给InputStream系列增加缓冲功能
+    BufferedOutputStream  # 只能给OutputStream系列增加缓冲功能
+    BufferedReader        # 只能给Reader系列增加缓冲功能
+    BufferedWriter        # 只能给Writer系列增加缓冲功能
 ## 4.按行读写文件
-### 1.按行读取
-#### 1.FileReader
-    BufferedReader-readLine()
-#### 2.Scanner-hasNextLine(),nextLine()
-### 2.按行写入
-#### 1."\n"
-#### 2.PrintStream-println()
-#### 3.FileWriter
-    BufferedWriter-write(),newLine()
+    1. 按行读取
+        1. FileReader + BufferedReader的readLine()
+        2. Scanner的hasNextLine()，nextLine()
+    2. 按行写入
+        1. "\n"
+        2. PrintStream的println()
+        3. FileWriter + BufferedWriter的write()，newLine()(换行)
 ## 5.对象IO流
-### 1.ObjectOutputStream:对象输出流。可以输出Java中各种基本数据类型的数据和Java的对象
-    输出这些数据的过程，称为序列化
-### 2.ObjectInputStream:对象输入流。可以读取Java中各种基本数据类型的数据和Java的对象
-    读取这些数据的过程，称为反序列化
-### 3.要输出的对象，其类型必须实现java.io.Serializable接口，否则在输出对象时，会报java.io.NotSerializableException（不支持序列化异常）
-### 4.读取对象流输出的内容时，读的顺序要与写的顺序、类型等一致
-### 5.如果没有给类固定一个序列化版本ID，每次修改类，编译器都会给类自动生成一个新序列化版本ID
-    给Student类加一个属性，序列化版本ID
-    private static final long serialVersionUID = 1L
-    序列化版本ID属性名必须是serialVersionUID，类型是long类型，必须是static,final。private不是必须的，但是通常都是private
-### 6.序列化规则
-#### 1.如果一个类的属性前面有如下修饰符修饰的，就不会参与序列化
-    static:它不是某个对象独有的，而是整个类共有的属性，不会让单个对象单独保存/序列化这种变量的值
-    transient:它是临时多变的，没有必要序列化的
-#### 2.自定义序列化规则
-    在序列化和反序列化过程中需要特殊处理的类必须实现具有下列准确签名的特殊方法:
-    private void readObject(java.io.ObjectInputStream stream)throws IOException, ClassNotFoundException
-    private void writeObject(java.io.ObjectOutputStream stream)throws IOException
-    private void readObjectNoData() throws ObjectStreamException
+    ObjectOutputStream  # 对象输出流，可以输出Java中各种基本数据类型的数据和Java的对象(序列化)
+    ObjectInputStream   # 对象输入流，可以读取Java中各种基本数据类型的数据和Java的对象(反序列化)
+### 1.实现序列化
+    对象必须实现Serializable接口，否则在输出对象时，会报java.io.NotSerializableException(不支持序列化异常)
+    读取对象流输出的内容时，读的顺序要与写的顺序一致、类型要一致
+    1 .序列化
+        FileOutputStream fos = new FileOutputStream("d:\\data");
+        ObjectOutputStream oos = new ObjectOutputStream(fos);
+        oos.writeInt(num);
+        oos.writeDouble(pi);
+        oos.writeChar(letter);
+        oos.writeBoolean(flag);
+        oos.writeUTF(info);        //这是特殊处理字符串的方法
+        oos.writeObject(student);  //这句代码可能报错，取决于Student类是否实现Serializable
+        oos.close();
+        fos.close();
+    2. 反序列化
+        FileInputStream fis = new FileInputStream("d:\\data");
+        ObjectInputStream ois = new ObjectInputStream(fis);
+        int i = ois.readInt();
+        double d = ois.readDouble();
+        char c = ois.readChar();
+        boolean b = ois.readBoolean();
+        String s = ois.readUTF();
+        Object obj = ois.readObject();  //这句代码可能发生异常，如果没有该对象对应的类，就无法正确读取对象
+        ois.close();
+        fis.close();
+### 2.对象的序列化版本ID
+    如果没有给类固定一个序列化版本ID，每次修改类，编译器都会给类自动生成一个新序列化版本ID
+    解决方案:
+        private static final long serialVersionUID = 1L
+        //给类加一个属性，序列化版本ID
+    序列化版本ID属性名必须是serialVersionUID，类型是long类型，必须是static,final的。且通常都是private
+### 3.序列化规则
+    1. 默认序列化规则
+        如果一个类的属性前面有如下修饰符修饰的，就不会参与序列化:
+        static:    它不是某个对象独有的，而是整个类共有的属性，不会让单个对象单独保存/序列化这种变量的值
+        transient: 它是临时多变的，没有必要序列化的
+    2. 自定义序列化规则
+        在序列化和反序列化过程中需要特殊处理的类必须实现具有下列准确签名的特殊方法:
+        private void readObject(java.io.ObjectInputStream stream)throws IOException, ClassNotFoundException
+        private void writeObject(java.io.ObjectOutputStream stream)throws IOException
+        private void readObjectNoData() throws ObjectStreamException
+        在方法中实现序列化与反序列化过程
 ## 6.IO流的异常处理
 ### 1.传统的try-catch
     try{
@@ -881,119 +810,128 @@
     }catch(异常类型 参数名){
         //异常处理代码或异常打印代码
     }
-    凡是在try()中声明和创建的IO流对象，都会自动关闭。
-    这种形式的try-catch有一个名称:try-catch-with-resource，这是从JDK7版本开始
+    凡是在try()中声明和创建的IO流对象，都会自动关闭
     从JDK9开始，凡是在try()中罗列的IO流对象，都会自动关闭
     要放到try()中的对象的类型必须实现Closable接口或AutoCloseable接口
     放到try()中的资源类对象，默认会变成final声明
 ## 7.File类
 ### 1.构造器
-    File(String pathname)  通过将给定的路径名字符串转换为抽象路径名来创建新的File实例
-    File(String parent, String child)  从父路径名字符串和子路径名字符串创建新的File实例
-    File(File parent, String child)  从父抽象路径名和子路径名字符串创建新的File实例
+| 参数 | 描述 |
+| --- | --- |
+| File(String pathname)             |  通过将给定的路径名字符串转换为抽象路径名来创建新的File实例
+| File(String parent, String child) |  从父路径名字符串和子路径名字符串创建新的File实例
+| File(File parent, String child)   |  从父抽象路径名和子路径名字符串创建新的File实例
 ### 2.获取文件和目录基本信息的方法
-    getName()  返回由此File表示的文件或目录的名称
-    length()  返回由此File表示的文件的长度。 如果此路径名表示一个目录，则返回值是不确定的
-    lastModified()  返回File对象对应的文件或目录的最后修改时间（毫秒值）
-    exists()  此File表示的文件或目录是否实际存在
-    isDirectory()  此File表示的是否为目录
-    isFile()  此File表示的是否为文件
-    isHidden()  此File表示的是否为隐藏文件或目录
-    canExecute()  测试应用程序是否可以执行此抽象路径名表示的文件
-    canRead()  测试应用程序是否可以读取此抽象路径名表示的文件
-    canWrite()  测试应用程序是否可以修改此抽象路径名表示的文件
+| 参数 | 描述 |
+| --- | --- |
+| getName()      |  返回由此File表示的文件或目录的名称
+| length()       |  返回由此File表示的文件的长度。 如果此路径名表示一个目录，则返回值是不确定的
+| lastModified() |  返回File对象对应的文件或目录的最后修改时间(毫秒值)
+| exists()       |  此File表示的文件或目录是否实际存在
+| isDirectory()  |  此File表示的是否为目录
+| isFile()       |  此File表示的是否为文件
+| isHidden()     |  此File表示的是否为隐藏文件或目录
+| canExecute()   |  测试应用程序是否可以执行此抽象路径名表示的文件
+| canRead()      |  测试应用程序是否可以读取此抽象路径名表示的文件
+| canWrite()     |  测试应用程序是否可以修改此抽象路径名表示的文件
 ### 3.创建删除文件和目录
-    createTempFile(String prefix,String suffix) throws IOException  在默认临时文件目录中创建一个空文件，使用给定前缀和后缀生成其名称
-    createTempFile(String prefix,String suffix,File directory) throws IOException  在指定目录中创建一个新的空文件，使用给定的前缀和后缀字符串生成其名称
-    createNewFile()  当且仅当具有该名称的文件尚不存在时，创建一个新的空文件
-    delete()  删除由此File表示的文件或空目录
-    mkdir()  创建由此File表示的目录
-    mkdirs()  创建由此File表示的目录，包括任何必需但不存在的父目录
-    renameTo(File dest)  重新命名此抽象路径名表示的文件或目录。但是此方法行为的许多方面都是与平台有关的:重命名操作无法将一个文件从一个文件系统移动到另一个文件系统
+| 参数 | 描述 |
+| --- | --- |
+| createTempFile(String prefix,String suffix) throws IOException | 				在默认临时文件目录中创建一个空文件，使用给定前缀和后缀生成其名称
+| createTempFile(String prefix,String suffix,File directory) throws IOException | 				在指定目录中创建一个新的空文件，使用给定的前缀和后缀字符串生成其名称
+| createNewFile()     |  当且仅当具有该名称的文件尚不存在时，创建一个新的空文件
+| delete()            |  删除由此File表示的文件或空目录
+| mkdir()             |  创建由此File表示的目录
+| mkdirs()            |  创建由此File表示的目录，包括任何必需但不存在的父目录
+| renameTo(File dest) |  重新命名此抽象路径名表示的文件或目录
 ### 4.文件或目录的上下级
-    getParent()  返回此抽象路径名父目录的路径名字符串
-    getParentFile()  返回此抽象路径名父目录的抽象路径名
-    list()  返回一个String数组，表示该File目录中的所有子文件或目录
-    listFiles()  返回一个File数组，表示该File目录中的所有的子文件或目录
-    listFiles(FileFilter filter)  返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FileFilter.accept(File pathname)方法返回 true 时，该路径名才满足过滤器
-    list(FilenameFilter filter)  返回返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FilenameFilter .accept(File dir, String name)方法返回 true 时，该路径名才满足过滤器
-    listFiles(FilenameFilter filter)  返回返回所有满足指定过滤器的文件和目录。如果给定 filter 为 null，则接受所有路径名。否则，当且仅当在路径名上调用过滤器的 FilenameFilter .accept(File dir, String name)方法返回 true 时，该路径名才满足过滤器
+| 参数 | 描述 |
+| --- | --- |
+| getParent()     |  返回此抽象路径名父目录的路径名字符串
+| getParentFile() |  返回此抽象路径名父目录的抽象路径名
+| list()          |  返回一个String数组，表示该File目录中的所有子文件或目录
+| listFiles()     |  返回一个File数组，表示该File目录中的所有的子文件或目录
+| listFiles(FileFilter filter) | 返回所有满足指定过滤器的文件和目录，若不为null，则需FileFilter.accept(File pathname)返回true
+| list(FilenameFilter filter) | 返回所有满足指定过滤器的文件和目录，若不为null，则需FilenameFilter .accept(File dir, String name)返回true
+| listFiles(FilenameFilter filter) | 返回所有满足指定过滤器的文件和目录，若不为null，则需FilenameFilter .accept(File dir, String name)返回true
 ### 5.各种路径问题
-    getPath()  将此File转换为路径名字符串。称为构造路径，就是调用构造器new File对象时，指定的路径
-    getAbsolutePath()  返回此File的绝对路径名字符串
-    getCanonicalPath()  返回此File对象所对应的规范路径名
-# 33.网络编程
+| 参数 | 描述 |
+| --- | --- |
+| getPath()          |  将此File转换为路径名字符串，称为构造路径，就是调用构造器new File对象时，指定的路径
+| getAbsolutePath()  |  返回此File的绝对路径名字符串
+| getCanonicalPath() |  返回此File对象所对应的规范路径名
+# 16.网络编程
 ## 1.UDP
-### 1.发送端
-    import java.net.DatagramPacket;
-    import java.net.DatagramSocket;
-    import java.net.InetAddress;
-    public class Send {
-        public static void main(String[] args) throws Exception {
-            DatagramSocket ds = new DatagramSocket();
-            String str = "message";
-            byte[] bytes = str.getBytes();
-            byte[] ipAddress = {(byte)192,(byte)168,33,64};
-            InetAddress ip = InetAddress.getByAddress(ipAddress);
-            int port = 8888;
-            DatagramPacket dp = new DatagramPacket(bytes, bytes.length, ip,port);
-            ds.send(dp);
-            System.out.println("发送完毕！");
-            ds.close();
-        }
-    }
-### 2.接收端
-    import java.net.DatagramPacket;
-    import java.net.DatagramSocket;
-    public class Receiver {
-        public static void main(String[] args) throws Exception{
-            DatagramSocket ds = new DatagramSocket(8888);//双方端口号必须对应上
-            byte[] bytes = new byte[1024];
-            DatagramPacket dp = new DatagramPacket(bytes, bytes.length);
-            ds.receive(dp);
-            int len = dp.getLength();//实际接收多少个字节
-            System.out.println(new String(bytes,0,len));
-            ds.close();
-        }
-    }
-## 2.TCP
-### 1.客户端
-    import java.io.OutputStream;
-    import java.net.Socket;
-    public class Client1 {
-        public static void main(String[] args) throws Exception{
-            Socket socket = new Socket("192.168.33.64", 8888);
-            String str = "message";
-            OutputStream os = socket.getOutputStream();
-            os.write(str.getBytes());
-            os.close();
-            socket.close();
-        }
-    }
-### 2.服务端
-    import java.io.InputStream;
-    import java.net.ServerSocket;
-    import java.net.Socket;
-    public class Server1 {
-        public static void main(String[] args) throws Exception{
-            ServerSocket server = new ServerSocket(8888);
-            Socket socket = server.accept();//accept接收
-            System.out.println(socket.getInetAddress());//查看客户端的IP地址
-            InputStream is = socket.getInputStream();
-            byte[] data = new byte[1024];
-            while(true){
-                int len = is.read(data);
-                if(len == -1){
-                    break;
-                }
-                System.out.println(new String(data,0,len));
+    1. 发送端
+        import java.net.DatagramPacket;
+        import java.net.DatagramSocket;
+        import java.net.InetAddress;
+        public class Send {
+            public static void main(String[] args) throws Exception {
+                DatagramSocket ds = new DatagramSocket();
+                String str = "message";
+                byte[] bytes = str.getBytes();
+                byte[] ipAddress = {(byte)192,(byte)168,33,64};
+                InetAddress ip = InetAddress.getByAddress(ipAddress);
+                int port = 8888;
+                DatagramPacket dp = new DatagramPacket(bytes, bytes.length, ip,port);
+                ds.send(dp);
+                System.out.println("发送完毕！");
+                ds.close();
             }
-            is.close();
-            socket.close();
-            server.close();
         }
-    }
-# 34.反射
+    2. 接收端
+        import java.net.DatagramPacket;
+        import java.net.DatagramSocket;
+        public class Receiver {
+            public static void main(String[] args) throws Exception{
+                DatagramSocket ds = new DatagramSocket(8888);  //双方端口号必须对应上
+                byte[] bytes = new byte[1024];
+                DatagramPacket dp = new DatagramPacket(bytes, bytes.length);
+                ds.receive(dp);
+                int len = dp.getLength();                      //实际接收多少个字节
+                System.out.println(new String(bytes,0,len));
+                ds.close();
+            }
+        }
+## 2.TCP
+    1. 客户端
+        import java.io.OutputStream;
+        import java.net.Socket;
+        public class Client1 {
+            public static void main(String[] args) throws Exception{
+                Socket socket = new Socket("192.168.33.64", 8888);
+                String str = "message";
+                OutputStream os = socket.getOutputStream();
+                os.write(str.getBytes());
+                os.close();
+                socket.close();
+            }
+        }
+    2. 服务端
+        import java.io.InputStream;
+        import java.net.ServerSocket;
+        import java.net.Socket;
+        public class Server1 {
+            public static void main(String[] args) throws Exception{
+                ServerSocket server = new ServerSocket(8888);
+                Socket socket = server.accept();//accept接收
+                System.out.println(socket.getInetAddress());  //查看客户端的IP地址
+                InputStream is = socket.getInputStream();
+                byte[] data = new byte[1024];
+                while(true){
+                    int len = is.read(data);
+                    if(len == -1){
+                        break;
+                    }
+                    System.out.println(new String(data,0,len));
+                }
+                is.close();
+                socket.close();
+                server.close();
+            }
+        }
+# 17.反射
 ## 1.类加载器
 ### 1.根加载器
 ### 2.扩展类加载器，现在改为平台类加载器
@@ -1047,3 +985,139 @@
     5.
         Method对象.invoke(对象,给方法的实参列表)
         如果方法是静态方法，这里的对象可以换成null
+# 18.常用类
+## 1.比较器
+    1. 定制比较器: Comparator接口(java.util)
+        int compare(Object o1,Object o2)
+    2. 自然比较器: Comparable接口(java.lang)
+        int compareTo(Object o1)
+        该接口由要比较大小的类本身实现
+## 2.String类
+    String本身是final修饰，不能有子类
+    String对象不可变，凡是修改字符串对象的内容，都会产生新的对象
+| 参数 | 描述 |
+| --- | --- |
+| str.length()                 |  字符串长度
+| str.toUpperCase()            |  全部变为大写
+| str.toLowerCase()            |  全部变为小写
+| char[] c = str.toCharArray() |  转换为char数组
+| str.charAt(index)            |  返回索引位置的char
+| str.subString(i)             |  字符串截取从i到末尾
+| str.subString(begin, end)    |  字符串截取从begin到end
+| str.startsWith(value)        |  是否以value开头
+| str.endsWith(value)          |  是否以value结尾
+| str.contains(value)          |  是否包含value
+| str.indexOf(value)           |  value首次出现的下标
+| str.lastIndexOf(value)       |  value末次出现的下标
+| str1.equals(str2) | 比较内容是否相等<br>"".equals(str)<br>Objects.equals("", str)
+| str1.equalsIgnoreCase(str2)    |  不区分大小写比较内容
+| str1.compareTo(str2)           |  按编码值比较大小
+| str1.compareToIgnoreCase(str2) |  不区分大小按编码值比较大小
+| str.isEmpty()                  |  是否不包含任何字符(包括空格、\t、\n等)
+| str.isBlank()                  |  是否不包含除了空白字符(空格、\t、\n等)以外的字符
+| str1.concat(str2) | 拼接字符串<br>+: 结果会在常量池被共享<br>concat: 结果一定是new的，这个新new不会被共享<br>凡是""，在常量池中都是共享的字符串对象<br>就算新new的字符串对象不能共享，但也会想尽办法与之前的字符串对象共享byte[]数组
+| str.matches(正则表达式)             |  是否满足正则表达式
+| str.replaceAll(正则表达式, value)   |  将所有满足正则的所有字符替换为value
+| str.replaceFirst(正则表达式, value) |  将首个满足正则的字符替换为value
+| str.replace(value1, value2)       |  将所有value1替换为value2
+| str.split(value)                  |  将str按value为分隔拆分为字符串数组
+| str.trim()                        |  去掉前后空白字符(包括空格\t\n等)
+| str1.intern() | 如果常量池中存在当前字符串, 就会直接返回当前字符串. 如果常量池中没有此字符串, 会将此字符串放入常量池中后, 再返回
+| byte[] bytes = str.getBytes("UTF-8") |  字符串按UTF-8编码后的byte数组
+## 3.可变字符串类型
+    String的字符串常量可以共享，但每次修改都会产生新的对象，当程序中涉及大量字符串修改，尽量使用可变字符串类型
+    StringBuffer(java.lang)   # 线程安全，效率相对较低
+    StringBuilder(java.lang)  # 线程不安全，效率高
+| 参数 | 描述 |
+| --- | --- |
+| append(value)                           |  追加
+| insert(index, value)                    |  在指定位置插入
+| delete(begin, end)                      |  范围删除
+| deleteCharAt(index)                     |  删除指定位置的字符
+| setCharAt(index, value)                 |  修改指定位置的字符
+| setLength(value)                        |  修改字符串长度
+| replace(begin, end, value)              |  范围替换
+| reverse()                               |  反转
+| indexOf(value)                          |  查找指定字符首次出现的位置
+| lastIndexOf(value)                      |  查找指定字符末次出现的位置
+| charAt(index)                           |  返回指定位置的字符
+| str1.toString().equals(str2.toString()) |  比较是否相等
+## 4.Arrays(java.util)
+| 参数 | 描述 |
+| --- | --- |
+| Arrays.toString(arr)                           |  将数组转换为字符串，方便打印
+| Arrays.sort(arr, [Collections.reverseOrder()]) |  排序
+| Arrays.copyOf(arr, int length)                 |  将数组复制到指定长度的新数组
+| Arrays.copyOfRange(arr, begin, end)            |  复制arr中从begin到end的元素
+| Arrays.fill(arr, value)                        |  数组元素全部初始化为value
+| Arrays.equals(arr1, arr2)                      |  比较，两个数组的元素顺序、个数、类型完全一致，才为true
+| Arrays.binarySearch(arr, target)               |  使用二分查找需确保数组有序，若元素不存在，返回 -插入点-1
+| Arrays.asList()                                |  转为List类型
+| System.arraycopy(Object src, int srcPos, Object dest, int destPos, int length) | 			将src中从srcPos开始length长度的元素复制到dest的destPos
+## 5.Math类(java.lang)
+| 参数 | 描述 |
+| --- | --- |
+| Math.random()            |  生成大于等于0.0且小于1.0的随机double值
+| Math.sqrt(value)         |  开方
+| Math.abs(value)          |  绝对值
+| Math.max(value1, value2) |  最大值
+| Math.min(value1, value2) |  最小值
+| Math.floor(value)        |  向下取整
+| Math.ceil(value)         |  向上取整
+| Math.round(value)        |  四舍五入，等价于(int)(a+0.5)
+| Math.pow(a, b)           |  a的b次方
+## 6.Random类(java.util)
+| 参数 | 描述 |
+| --- | --- |
+| Random random = new Random() |  以当前系统时间为种子生成随机数
+| random = new Random(100)     |  给定种子生成随机数
+| random.nextInt()             |  int范围内任意值
+| random.nextInt(10)           |  0到10任意值
+| random.nextInt(10,100)       |  10到100任意值
+| random.nextDouble()          |  0到1任意小数
+| random.nextBoolean()         |  任意boolean值
+## 7.BigInteger与BigDecimal(java.math)
+| 参数 | 描述 |
+| --- | --- |
+| new BigDecimal(String str)                 |  创建BigDecimal对象
+| b1.add(b2)                                 |  加
+| b1.subtract(b2)                            |  减
+| b1.multiply(b2)                            |  乘
+| b1.divide(b2)                              |  除以，若除不尽会报异常
+| b1.divide(b2, int i, RoundingMode.CEILING) |  除以，第i位无论是什么，都进位
+| b1.remainder(b2)                           |  取余
+## 8.日期时间
+    第一代:
+    java.util.Date              日期时间
+    java.text.SimpleDateFormat  日期时间格式化工具类
+    第二代:
+    java.util.Calender  日历类
+    java.util.TimeZone  时区类型
+    java.util.Locale    地区
+    第三代:
+    LocalDate,LocalTime,LocalDateTime  本地日期时间类型
+    instant类型                         瞬时
+    ZoneId,ZonedDateTime               其他时区的日期时间
+    Period,Duration                    日期或时间间隔
+    DatetimeFormatter                  格式化
+## 9.System类
+| 参数 | 描述 |
+| --- | --- |
+| System.getProperty("os.name") |  获取操作系统信息
+| System.currentTimeMillis()    |  获取当前时间
+## 10.Runtime类
+| 参数 | 描述 |
+| --- | --- |
+| Runtime jvm = Runtime.getRuntime()        |  获取Runtime类的唯一对象
+| long totalMemory = jvm.totalMemory()      |  总内存
+| long freeMemory = jvm.freeMemory()        |  空闲内存
+| long useMemory = totalMemory | freeMemory |  已使用内存
+## 11.字符串拼接
+    StringJoiner(java.util)
+    String[] arr = {"hello","world","java"};
+    StringJoiner joiner = new StringJoiner("-", "[", "]");
+    for (int i = 0; i < arr.length; i++) {
+        joiner.add(arr[i]);
+    }
+    System.out.println(joiner);
+    输出结果: "[hello-world-java]"

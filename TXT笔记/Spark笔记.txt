@@ -187,16 +187,9 @@
 				2: [6,9]
 				3: [9,10]
 	4.Transformation 转换算子
-		算子:
-			问题: 初始状态 --operate-> 中间状态 --operate-> 完成状态
-			operate即为算子
-		转换:
-			transform，将A变成B
-			将一个RDD(旧)变成另外一个RDD(新)
-			转换的目的: 组合功能
-			装饰者设计模式
+		装饰者设计模式
 		转换算子只是用于组合功能，不会马上执行
-		返回类型为RDD
+		转换算子返回类型为RDD
 		1. RDD方法在调用时，默认分区数量和前面RDD的分区数量相同
 		2. RDD方法在调用时，默认情况下，数据处理完后，所在分区不变
 		3. RDD方法在调用时，分区内有序，分区间无序
@@ -240,11 +233,11 @@
 				# 底层调用sortByKey()
 			- coalesce() 合并分区
 				# rdd.coalesce(2, false)#
-				# 默认没有shuffle操作，数据不会打乱重组#
+				# 默认false，没有shuffle操作，数据不会打乱重组#
 				# 可能存在数据倾斜，若倾斜可以使用shuffle操作
 			- repartition() 重新分区
 				# rdd.repartition(3)#
-				# 底层调用coalesce()
+				# 底层调用coalesce()，存在shuffle操作
 		2.键值类型
 			- mapValues() 对value操作
 				# rdd.mapValues(val -> val * 2)
@@ -258,8 +251,8 @@
 				# rdd.sortByKey()
 	5.Action 行动算子
 		行动算子调用后就会执行功能
-		返回类型为集合
-		执行时就会产生一个Job
+		行动算子返回类型为集合
+		行动算子执行时就会产生一个Job
 		代码执行位置:
 			RDD的转换算子在调用时，逻辑并不会执行，会在逻辑发送到Executor端才执行
 				RDD算子的内部代码在Executor端执行
@@ -285,8 +278,127 @@
 		- save()
 			# rdd.saveAsTextFile("output")#
 			# rdd.saveAsObjectFile("output")
-		- foreach() 遍历
+		- foreach() 遍历所有元素
 			# rdd.foreach()#
 			# 分布式循环遍历，以分区为单位循环，可能导致结果无序
-		- foreachPartition() 对每个分区内遍历
+		- foreachPartition() 遍历所有分区
 			# rdd.foreachPartition()
+	6.Kryo序列化框架
+		当RDD在Shuffle数据的时候，简单数据类型、数组和字符串类型已经在Spark内部使用Kryo来序列化
+		使用Kryo序列化:
+			// 创建配置对象
+			SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("sparkCore")
+			// 替换默认的序列化机制
+			.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+			// 注册需要使用kryo序列化的自定义类
+			.registerKryoClasses(new Class[]{Class.forName("com.atguigu.bean.User")});
+	7.RDD依赖关系
+		1.什么是依赖
+			2个相邻RDD之间存在依赖关系，新的(下游)RDD依赖于旧的(上游)RDD
+			连续的依赖关系称之为血缘关系
+			rdd.toDebugString()  #查看依赖关系
+		2.依赖的2个分类
+			1. 窄依赖: OneToOneDependency(继承NarrowDependency)
+				上游RDD的一个分区的数据被下游RDD的一个分区所独享(一对一，多对一)
+			2. 宽依赖: ShuffleDependency(继承Dependency)
+				上游RDD的一个分区的数据被下游RDD的多个分区所共享(一对多)
+				底层存在shuffle操作
+				具有宽依赖的transformations包括:sort、reduceByKey、groupByKey、join和调用rePartition函数的任何操作
+		3.Spark中的数量
+			1. Application
+				代码中Spark环境对象的数量，其实就是应用程序的数量
+				一般情况下，一个Java程序就是一个Application
+			2. Job
+				代码中，执行行动算子的时候，调用一次就会产生一个Job(new Action)
+			3. Stage
+				Spark中，shuffle操作会将完整的计算流程分成两个阶段，前一个阶段不执行完，后一个阶段不允许执行
+				阶段的数量 = shuffle依赖的数量 + 1
+			4. Task
+				一个阶段中任务的数量 = 阶段中最后一个RDD的分区数量
+				总任务的数量 = 总分区的数量，一般推荐设定为CPU核数的2~3倍
+	8.持久化
+		1.Cache 缓存
+			1. 使用方法
+				rdd.cache()                          #将RDD中数据放入内存
+				rdd.persist(StorageLevel.DISK_ONLY)  #将RDD中数据放入磁盘
+			2. 存储位置
+				Cache缓存的数据通常存储在磁盘、内存等地方，可靠性低
+			3. 执行时机
+				并不是这两个方法被调用时立即缓存，而是触发后面的Action算子时，该RDD将会被缓存在计算节点的内存中，供后面重用
+			4. 血缘关系
+				缓存操作会在RDD的血缘关系中增加依赖
+			5. 自动缓存
+				shuffle算子不需要手动cache，会自动缓存
+			6. 释放缓存
+				如果使用完了缓存，可以通过unpersist()方法释放缓存
+		2.CheckPoint 检查点
+			cache和persist方法只对当前应用有效，一旦应用程序执行完毕，缓存和持久化的数据全部删除
+			如果要跨应用使用计算的中间数据，可以采用检查点的操作
+			1. 使用方法
+				jsc.setCheckPointDir("path")  #设置检查点存储路径
+				rdd.checkpoint()              #检查点操作
+			2. 存储位置
+				检查点的数据通常是存储在HDFS等容错、高可用的文件系统
+				如果检查点数据存储到HDFS集群，要注意配置访问集群的用户名。否则会报访问权限异常:
+					// 修改用户名称
+					System.setProperty("HADOOP_USER_NAME","atguigu");
+					// 需要设置路径.需要提前在HDFS集群上创建/checkpoint路径
+					jsc.setCheckpointDir("hdfs://hadoop102:8020/checkpoint");
+			3. 执行时机
+				检查点操作并不会马上被执行，必须执行Action操作才能触发。但是检查点为了数据安全，会从血缘关系的最开始执行一遍
+			4. 血缘关系
+				检查点操作会切断RDD的血缘关系，重新创建新的血缘
+			5. 加快读取
+				检查点操作一般为了提高效率，会和Cache操作联合使用
+	9.分区器
+		Spark目前支持Hash分区(默认)、Range分区和用户自定义分区
+		单值类型数据没有分区器
+		键值类型数据才有分区器，数据的key决定数据所在分区
+		1.HashPartitioner
+			key.hashCode() % numPartitions
+			可能出现数据倾斜
+		2.RangePartitioner
+			将一定范围内的数映射到某一个分区内，尽量保证每个分区中数据量均匀，而且分区与分区之间是有序的，一个分区中的元素肯定都是比另一个分区内的元素小或者大，但是分区内的元素是不能保证顺序的。简单的说就是将一定范围内的数映射到某一个分区内
+			1. 从整个RDD中抽取样本数据并排序，根据分区数将数据划分出相应段数，计算出每个分区的最大key值，形成一个Array[key]类型的数组变量rangeBounds
+			2. 根据每个key在rangeBounds中所处的范围，给出该key的分区号
+			3. 该分区器要求RDD中的key类型必须是可以排序的
+		3.自定义分区器
+			class MyPartitioner extends Partitioner {
+				@Override
+				public int numPartitions() {
+					return 2;
+				}
+
+				@Override
+				public int getPartition(Object key) {
+					if ((Integer) key % 2 == 0) return 0;
+					else return 1;
+				}
+			}
+	10.广播变量
+		1. 定义
+			广播变量: 分布式共享只读变量
+		2. 为什么使用广播变量
+			多个Task无法共享对象
+			多个Task并行操作中使用同一个变量，但是Spark会为每个Task任务分别发送，可能出现同一数据传输多次，出现冗余
+		3. 广播变量的优点
+			广播变量用来高效分发较大的对象
+			广播变量向所有工作节点(Executor)发送一个较大的只读值，以供一个或多个Task操作使用
+		4. 使用方法
+			// 创建广播变量
+			Broadcast<> broadcast = jsc.broadcast(var);
+			// 使用广播变量
+			broadcast.value()
+			例:
+				JavaRDD<Integer> rdd = jsc.parallelize(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 0), 10);
+				List<Integer> okIds = new ArrayList<>();
+				okIds.add(4);
+				okIds.add(6);
+				okIds.add(8);
+				okIds.add(12);
+				okIds.add(25);
+				Broadcast<List<Integer>> broadcast = jsc.broadcast(okIds);
+				JavaRDD<Integer> filterRDD = rdd.filter(
+						num -> broadcast.value().contains(num)
+				);
+				filterRDD.collect().forEach(System.out::println);
