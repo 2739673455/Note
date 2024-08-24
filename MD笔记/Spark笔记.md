@@ -9,7 +9,7 @@
 | Spark Streaming | 是Spark提供的对实时数据进行流式计算的组件。提供了用来操作数据流的API，并且与Spark Core中的 RDD API高度对应
 | Spark MLlib | 提供常见的机器学习功能的程序库。包括分类、回归、聚类、协同过滤等，还提供了模型评估、数据导入等额外的支持功能
 | Spark GraphX | 主要用于图形并行计算和图挖掘系统的组件
-| 集群管理器 | Spark设计为可以高效地在一个计算节点到数千个计算节点之间伸缩计算。为了实现这样的要求，同时获得最大灵活性，Spark支持在各种集群管理器(Cluster Manager)上运行，包括Hadoop YARN、Apache Mesos，以及Spark自带的一个简易调度器，叫作独立调度器
+| 集群管理器 | Spark设计为可以高效地在一个计算节点到数千个计算节点之间伸缩计算<br>为了实现这样的要求，同时获得最大灵活性，Spark支持在各种集群管理器(Cluster Manager)上运行<br>包括Hadoop YARN、Apache Mesos，以及Spark自带的一个简易调度器，叫作独立调度器
 ## 3.Spark特点
     1. 快:
         与Hadoop的MapReduce相比，Spark基于内存的运算要快100倍以上，基于硬盘的运算也要快10倍以上
@@ -65,9 +65,9 @@
             -Dspark.history.ui.port=18080
             -Dspark.history.fs.logDirectory=hdfs://hadoop102:8020/directory
             -Dspark.history.retainedApplications=30"
-            #参数1:WEBUI访问的端口号为18080
-            #参数2:指定历史服务器日志存储路径(读)
-            #参数3:指定保存Application历史记录的个数，如果超过这个值，旧的应用程序信息将被删除，这个是内存中的应用数，而不是页面上显示的应用数
+            # 参数1:WEBUI访问的端口号为18080
+            # 参数2:指定历史服务器日志存储路径(读)
+            # 参数3:指定保存Application历史记录的个数，如果超过这个值，旧的应用程序信息将被删除，这个是内存中的应用数，而不是页面上显示的应用数
     4. 配置查看历史日志
         为了能从Yarn上关联到Spark历史服务器，需要配置spark历史服务器关联路径
         目的是点击yarn(8088)上spark任务的history按钮，进入的是spark历史服务器(18080)，而不再是yarn历史服务器(19888)
@@ -140,10 +140,10 @@
 ### 1.从集合创建RDD
     1. 默认分区数为核数
         conf.set("spark.default.parallelism", "6");
-            #手动设置默认核数
+            # 手动设置默认核数
     2. 手动设置分区数
         JavaRDD<String> rdd = jsc.parallelize(names, 2);
-            #分区数设置为2
+            # 分区数设置为2
     3. 数据分配方法
         利用整数除机制，左闭右开
         0号分区: (0 * 总字节数 / 分区数) 到 (1 * 总字节数 / 分区数)
@@ -155,7 +155,7 @@
     1. 默认分区数为 核数和2的最小值
     2. 手动设置最小分区数
         JavaRDD<String> rdd = jsc.textFile("data/word.txt", 3)
-            #最小分区数设置为3
+            # 最小分区数设置为3
     3. 分区流程
         1. 根据文件的总长度(回车，换行符也计算在内)totalSize 和 切片数numSplits 计算出 平均长度goalSize
             goalSize = totalSize / numSplits
@@ -248,7 +248,7 @@
     2. 宽依赖: ShuffleDependency(继承Dependency)
         上游RDD的一个分区的数据被下游RDD的多个分区所共享(一对多)
         底层存在shuffle操作
-        具有宽依赖的transformations包括:sort、reduceByKey、groupByKey、join和调用rePartition函数的任何操作
+        具有宽依赖的transformations包括:sort、reduceByKey、groupByKey、join和调用repartition函数的任何操作
 ### 3.Spark中的数量
     1. Application
         代码中Spark环境对象的数量，其实就是应用程序的数量
@@ -303,7 +303,9 @@
     key.hashCode() % numPartitions
     可能出现数据倾斜
 ### 2.RangePartitioner
-    将一定范围内的数映射到某一个分区内，尽量保证每个分区中数据量均匀，而且分区与分区之间是有序的，一个分区中的元素肯定都是比另一个分区内的元素小或者大，但是分区内的元素是不能保证顺序的。简单的说就是将一定范围内的数映射到某一个分区内
+    将一定范围内的数映射到某一个分区内，尽量保证每个分区中数据量均匀，而且分区与分区之间是有序的
+    一个分区中的元素肯定都是比另一个分区内的元素小或者大，但是分区内的元素是不能保证顺序的
+    简单的说就是将一定范围内的数映射到某一个分区内
     1. 从整个RDD中抽取样本数据并排序，根据分区数将数据划分出相应段数，计算出每个分区的最大key值，形成一个Array[key]类型的数组变量rangeBounds
     2. 根据每个key在rangeBounds中所处的范围，给出该key的分区号
     3. 该分区器要求RDD中的key类型必须是可以排序的
@@ -346,3 +348,197 @@
                     num -> broadcast.value().contains(num)
             );
             filterRDD.collect().forEach(System.out::println);
+# 4.SparkSQL
+## 1.常用方式
+### 1.方法调用
+    1. 导入依赖
+        <dependencies>
+            <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.12</artifactId>
+            <version>3.3.1</version>
+            </dependency>
+        </dependencies>
+    2. 代码实现
+        SparkConf conf = new SparkConf().setAppName("sparksql").setMaster("local[*]");
+        SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
+        // 按行读取
+        Dataset<Row> lineDS = spark.read().json("input/user.json");
+        // 转换
+        1. 转换为类和对象
+            Dataset<User> userDS = lineDS.as(Encoders.bean(User.class));
+            userDS.show();
+        2. 使用函数式的方法转换为类和对象
+            Dataset<User> userDataset = json.map(
+                (MapFunction<Row, User>) value -> new User(value.getAs("name"), value.getAs("age")),
+                Encoders.bean(User.class)
+            );
+            userDataset.show();
+        3. 转换为RDD
+            JavaRDD<User> userJavaRDD = lineDS.javaRDD();
+        // 常规方法
+        1. 排序
+            Dataset<User> sortDS = userDataset.sort(new Column("age"));
+            sortDS.show();
+        2. 分组计数
+            RelationalGroupedDataset groupByDS = userDataset.groupBy("name");
+            Dataset<Row> count = groupByDS.count();
+            count.show();
+        // 函数式方法
+            KeyValueGroupedDataset<String, User> groupedDataset = userDataset.groupByKey(
+                (MapFunction<User, String>) value -> value.getName(),
+                Encoders.STRING()
+            );
+            Dataset<Tuple2<String, User>> result = groupedDataset.reduceGroups(
+                (ReduceFunction<User>) (v1, v2) -> new User(v1.getName(), Math.max(v1.getAge(), v2.getAge()))
+            );
+            result.show();
+        spark.close();
+### 2.SQL使用方式
+    SparkConf conf = new SparkConf().setAppName("sparksql").setMaster("local[*]");
+    SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
+    Dataset<Row> lineDS = spark.read().json("input/user.json");
+    // 创建视图 => 转换为表格，填写表名
+    // 临时视图的生命周期和当前的sparkSession绑定
+    // createOrReplaceTempView表示覆盖之前相同名称的视图
+    lineDS.createOrReplaceTempView("t1");
+    Dataset<Row> result = spark.sql("select * from t1 where age > 18");
+    result.show();
+    spark.stop();
+### 3.DSL特殊语法
+    SparkConf conf = new SparkConf().setAppName("sparksql").setMaster("local[*]");
+    SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
+    Dataset<Row> lineRDD = spark.read().json("input/user.json");
+    Dataset<Row> result = lineRDD.select(col("name").as("newName"),col("age").plus(1).as("newAge"))
+            .filter(col("age").gt(18));
+    result.show();
+    spark.close();
+## 2.SQL语法的用户自定义函数
+### 1.UDF 一行进，一行出
+    1. 注册自定义函数
+        sparkSession.udf().register("prefix", name -> "name: " + name, DataTypes.StringType);
+        # 参数依次为函数名，函数逻辑，返回值类型
+    2. 使用自定义函数
+        sparkSession.sql("select prefix(age) from user").show();
+### 2.UDAF 多行进，一行出
+    1. 自定义聚合对象，创建公共类
+        # 继承org.apache.spark.sql.expressions.Aggregator
+        # 定义泛型
+        #  IN:   函数的输入数据的类型
+        #  BUFF: 函数的缓冲区数据的类型
+        #        KV键值对只能访问不能修改
+        #  OUT:  函数的输出数据的类型
+        public class AUDAF extends Aggregator<Long, Tuple2<Long, Long>, Long> {
+            // 初始化
+            @Override
+            public Tuple2<Long, Long> zero() {
+                return new Tuple2<>(0L, 0L);
+            }
+            // 聚合
+            @Override
+            public Tuple2<Long, Long> reduce(Tuple2<Long, Long> b, Long a) {
+                return new Tuple2<>(b._1 + a, b._2 + 1);
+            }
+            // 合并
+            @Override
+            public Tuple2<Long, Long> merge(Tuple2<Long, Long> b1, Tuple2<Long, Long> b2) {
+                return new Tuple2<>(b1._1 + b2._1, b1._2 + b2._2);
+            }
+            // 结果
+            @Override
+            public Long finish(Tuple2<Long, Long> reduction) {
+                return reduction._1 / reduction._2;
+            }
+            // 缓冲区数据类型
+            @Override
+            public Encoder<Tuple2<Long, Long>> bufferEncoder() {
+                return Encoders.tuple(Encoders.LONG(), Encoders.LONG());
+            }
+            // 输出数据类型
+            @Override
+            public Encoder<Long> outputEncoder() {
+                return Encoders.LONG();
+            }
+        }
+    2. 使用自定义函数
+        sparkSession.udf().register("func", functions.udaf(new AUDAF(), Encoders.LONG()));
+        sparkSession.sql("select func(age) from text").show();
+        # 使用LONG而非INT
+## 3.SparkSQL数据的加载与保存
+### 1.读取和保存文件
+#### 1.CSV文件
+    # CSV文件以逗号分隔
+    # SparkSQL中csv方法解析的文件数据格式不仅仅支持逗号分隔，亦支持其他分隔方式
+    Dataset<Row> csvDS = sparkSession.read()
+        .option("header", "true")  # 以首行为表头
+        .option("sep", ",")        # 以","为分隔符
+        .csv("input/user.csv");
+    csvDS.show();
+    csvDS.write()
+        .mode("append")  # append 追加
+                         # Overwrite 覆盖
+                         # Ignore 如果目标路径已经存在数据，则跳过此次写操作，不会报错也不会覆盖已有数据
+                         # ErrorIfExists 如果目标路径已经存在数据，则报错
+        .option("header","true")
+        .option("compression","gzip")  #压缩格式
+        .option("sep", ",")
+        .csv("output");
+#### 2.JSON文件
+    # SparkSQL读取JSON文件的要求: 每一行符合JSON格式，而不是整个文件符合JSON格式
+    Dataset<User> userDS = json.as(Encoders.bean(User.class));
+    # json数据可以读取数据的数据类型
+    userDS.show();
+    # 读取其他类型的数据也能写出为json
+    DataFrameWriter<User> writer = userDS.write();
+    writer.json("output1");
+#### 3.Parquet文件
+    Dataset<Row> json = spark.read().json("input/user.json");
+    # 写出默认使用snappy压缩
+    json.write().parquet("output");
+    # 读取parquet自带解析，能够识别列名
+    Dataset<Row> parquet = spark.read().parquet("output");
+    parquet.printSchema();
+    parquet.show();
+### 2.与MySQL交互
+    1. 导入依赖
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.18</version>
+        </dependency>
+    2. 代码实现
+        SparkConf conf = new SparkConf().setAppName("sparksql").setMaster("local[*]");
+        SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
+        Dataset<Row> json = spark.read().json("input/user.json");
+        // 添加参数
+        Properties properties = new Properties();
+        properties.setProperty("user","root");
+        properties.setProperty("password","000000");
+        // 写模式，对表格追加
+        json.write()
+            .mode(SaveMode.Append)
+            .jdbc("jdbc:mysql://hadoop102:3306","gmall.testInfo",properties);
+        // 指定从gmall库中的test_info表中读取数据并显示
+        Dataset<Row> jdbc = spark.read().jdbc("jdbc:mysql://hadoop102:3306/gmall?useSSL=false&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true", "test_info", properties);
+        jdbc.show();
+        spark.close();
+### 3.与Hive交互
+    1. 添加依赖
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-hive_2.12</artifactId>
+            <version>3.3.1</version>
+        </dependency>
+    2. 拷贝hive-site.xml到resources目录
+        如果需要操作Hadoop，也需要拷贝hdfs-site.xml、core-site.xml、yarn-site.xml
+    3. 代码实现
+        System.setProperty("HADOOP_USER_NAME","atguigu");
+        SparkConf conf = new SparkConf().setAppName("sparksql").setMaster("local[*]");
+        SparkSession spark = SparkSession.builder()
+            .enableHiveSupport() // 添加hive支持
+            .config(conf).getOrCreate();
+        spark.sql("show tables").show();
+        spark.sql("create table user_info(name String,age bigint)");
+        spark.sql("insert into table user_info values('zhangsan',10)");
+        spark.sql("select * from user_info").show();
+        spark.close();

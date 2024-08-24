@@ -664,12 +664,12 @@
         4. like 字符串 escape 字符  #使用指定字符代替转义字符
     9. A rlike B, A regexp B  #B是基于java的正则表达式，如果A与其匹配，则返回true；反之返回false
 ## 3.分组聚合函数
-    count(*)  #表示统计所有行数，包含null值
-    count(某列)  #表示该列一共有多少行，不包含null值
-    max()  #求最大值，不包含null，除非所有值都是null
-    min()  #求最小值，不包含null，除非所有值都是null
-    sum()  #求和，不包含null
-    avg()  #求平均值，不包含null
+    count(*)       # 表示统计所有行数，包含null值
+    count(column)  # 表示该列一共有多少行，不包含null值
+    max()          # 求最大值，不包含null，除非所有值都是null
+    min()          # 求最小值，不包含null，除非所有值都是null
+    sum()          # 求和，不包含null
+    avg()          # 求平均值，不包含null
 ## 4.join,union拼接
     Hive支持通常的sql join语句，但是只支持等值连接，不支持非等值连接
     1. join 内连接
@@ -681,7 +681,7 @@
     4. full join 满外连接
         将会返回所有表中符合where语句条件的所有记录。如果任一表的指定字段没有符合条件的值的话，那么就使用null值替代
     5. 笛卡尔积
-        笛卡尔积会在下面条件下产生：
+        笛卡尔积会在下面条件下产生:
         1. 省略连接条件
         2. 连接条件无效
         3. 所有表中的所有行互相连接
@@ -691,13 +691,13 @@
         两个sql的结果，列的个数必须相同
         两个sql的结果，上下所对应列的类型必须一致
 ## 5.单行函数
-    show functions  #查看系统内置函数
-    desc function 函数名  #查看内置函数用法
-    desc function extended 函数名  #查看内置函数详细信息
+    show functions                # 查看系统内置函数
+    desc function 函数名           # 查看内置函数用法
+    desc function extended 函数名  # 查看内置函数详细信息
 ### 1.数值函数
-    round  #四舍五入
-    ceil  #向上取整
-    floor  #向下取整
+    round  # 四舍五入
+    ceil   # 向上取整
+    floor  # 向下取整
 ### 2.字符串函数
     1. substring 截取字符串
         substring(string A, int start, [int len])
@@ -805,31 +805,29 @@
 ### 2.窗口函数
     1. over窗口
         over(分区(分组)  排序  范围)
-        # rows between () and ()   #按行确定范围
-        # range between () and ()  #按值确定范围 按order后的值取
-        # unbounded preceding      #上无边界
-        # unbounded following      #下无边界
-        # n preceding              #上n行
-        # n following              #下n行
-        # current row              #当前行
+        # rows between () and ()   # 按行确定范围
+        # range between () and ()  # 按值确定范围 按order后的值取
+        # unbounded preceding      # 上无边界
+        # unbounded following      # 下无边界
+        # n preceding              # 上n行
+        # n following              # 下n行
+        # current row              # 当前行
         1. select user_name,count(*) over()  #对窗口中的数据进行count
             from order_info；
         2. select *,
                 sum(order_amount) over(partition by user_name order by order_date rows between unbounded preceding and current row )
             from order_info;
     2. 取上1行与下1行
-        lag(字段名,n,默认值)  #当前行的前n行的字段值 如果没有用默认值
-        lead(字段名,n,默认值)  #当前行的后n行的字段值 如果没有用默认值
+        lag(字段名,n,默认值)   # 当前行的前n行的字段值 如果没有用默认值
+        lead(字段名,n,默认值)  # 当前行的后n行的字段值 如果没有用默认值
         注意:不支持自定义窗口范围，只可以写上无边界到下无边界
         1. select *,
                 lag(order_amount, 1, 0) over (partition by user_name order by order_date),
                 lead(order_amount, 1, 0) over (partition by user_name order by order_date)
             from order_info
     3. 取第1个与最后1个
-        first_value(字段名,true/false)  #获取窗口中的第一条数据
-            #true/false  #如果第一条数据为null是否获取null值
-        last_value(字段名,true/false)  #获取窗口中的最后一条数据
-            #true/false  #如果最后一条数据为null是否获取null值
+        first_value(字段名,true/false)  # 获取窗口中的第一条数据，true/false是否获取null值
+        last_value(字段名,true/false)   # 获取窗口中的最后一条数据，true/false是否获取null值
         1. select *,
                 first_value(order_date,false) over(partition by user_name order by order_date
                     rows between unbounded preceding and unbounded following),
@@ -837,9 +835,9 @@
                     rows between unbounded preceding and unbounded following)
             from order_info;
     4. 排名
-        rank()  #排名不一定连续
-        dense_rank()  #排名连续
-        row_number()  #行号
+        rank()        # 排名不一定连续
+        dense_rank()  # 排名连续
+        row_number()  # 行号
         注意:不支持自定义窗口
         1. select *,
                 rank() over (order by order_amount desc),
@@ -853,14 +851,14 @@
         常见的Operator及其作用如下:
 | 参数 | 描述 |
 | --- | --- |
-| TableScan              | 表扫描操作，通常map端第一个操作肯定是表扫描操作
-| Select Operator        | 选取操作
-| Group By Operator      | 分组聚合操作
-| Reduce Output Operator | 输出到 reduce 操作
-| Filter Operator        | 过滤操作
-| Join Operator          | join 操作
-| File Output Operator   | 文件输出操作
-| Fetch Operator         | 客户端获取数据操作
+| TableScan              |  表扫描操作，通常map端第一个操作肯定是表扫描操作
+| Select Operator        |  选取操作
+| Group By Operator      |  分组聚合操作
+| Reduce Output Operator |  输出到 reduce 操作
+| Filter Operator        |  过滤操作
+| Join Operator          |  join 操作
+| File Output Operator   |  文件输出操作
+| Fetch Operator         |  客户端获取数据操作
     2. Explain基本语法
         explain [ formatted | extended | dependency ]
         sql语句;

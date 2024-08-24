@@ -933,58 +933,58 @@
         }
 # 17.反射
 ## 1.类加载器
-### 1.根加载器
-### 2.扩展类加载器，现在改为平台类加载器
-### 3.应用程序类加载器
-### 4.自定义类加载器
-    工作模式:双亲委托模式
+    1. 根加载器
+    2. 扩展类加载器，现在改为平台类加载器
+    3. 应用程序类加载器
+    4. 自定义类加载器
+    各司其职: 一种类加载器负责一组类的加载
+    工作模式: 双亲委托模式
 ## 2.获取类的对象
-### 1.类型名.class
-### 2.对象.getClass()
-### 3.Class.forName("类的全名称")
-### 4.类加载器对象.loadClass("类的全名称")
-## 3.获取类的信息
-    getName()
-    getPackage()
-    getModifier()
-    getSuperclass()
-    getInterfaces()
-    getField(属性名), getDeclaredField(属性名), getFields(), getDeclaredFields()
-    getConstructor(形参类型列表), getDeclaredConstructor(形参类型列表), getConstructors(), getDeclaredConstructors()
-    getMethod(方法名,形参类型列表), getDeclaredMethod(方法名,形参类型列表), getMethods(), getDeclaredMethods()
-    getDeclaredClasses()
-## 4.创建对象
-### 1.获取某个类的Class对象
-    2.
-        getDeclaredConstructor() - 获取无参构造
-        getDeclaredConstructor(形参类型列表) - 获取有参构造
-    3.
-        构造器对象.setAccessible(true)  如果构造器是公共的，就不需要这一步
-    4.
-        构造器对象.newInstance() - 无参构造
-        构造器对象.newInstance(实参列表) - 有参构造
-## 5.操作属性
-### 1.获取某个类的Class对象
-    2.
-        getDeclaredField(属性名)
-### 3.一般都要做，因为属性一般都不是public
-    Field对象.setAccessible(true)
-### 4.创建该类的实例对象
-    5.
-        Field对象.set(对象,属性的值)
-        Field对象.get(对象) - 返回属性值
-        如果是静态变量，这里的对象可以换成null
-## 6.调用方法
-### 1.获取某个类的Class对象
-    2.
-        getDeclaredMethod(方法名,形参类型列表)
-        getMethod(方法名,形参类型列表)
-### 3.通常方法都是public，这一步都不需要
-    Method对象.setAccessible(true)
-### 4.创建该类的实例对象
-    5.
-        Method对象.invoke(对象,给方法的实参列表)
-        如果方法是静态方法，这里的对象可以换成null
+    1. 类型名.class
+    2. 对象.getClass()
+    3. Class.forName("类的全名称")
+    4. 类加载器对象.loadClass("类的全名称")
+## 3.在运行时动态获取类的信息
+| 参数 | 描述 |
+| --- | --- |
+| getName()                           |  获取类型的全名称
+| getPackage()                        |  获取类型的包名
+| getModifiers()                      |  获取修饰符的值
+| Modifier.toString(c.getModifiers()) |  获取修饰符的名称
+| getSuperclass()                     |  获取父类
+| getInterfaces()                     |  获取父接口列表
+| getField(属性名)                     |  获取公共属性
+| getDeclaredField(属性名)             |  获取声明的属性，包括私有属性
+| getFields()                         |  获取所有公共属性
+| getDeclaredFields()                 |  获取所有声明的属性，包括私有属性
+| getConstructor(形参类型列表)          |  获取公共构造函数
+| getDeclaredConstructor(形参类型列表)  |  获取声明的构造函数，包括私有构造函数
+| getConstructors()                   |  获取所有公共构造函数
+| getDeclaredConstructors()           |  获取所有声明的构造函数，包括私有构造函数
+| getMethod(方法名,形参类型列表)         |  获取公共方法
+| getDeclaredMethod(方法名,形参类型列表) |  获取声明的方法，包括私有方法
+| getMethods()                        |  获取所有公共方法
+| getDeclaredMethods()                |  获取所有声明的方法，包括私有方法
+| getDeclaredClasses()                |  获取所有声明的内部类
+| setAccessible(true)                 |  设置可以访问private
+## 4.通过反射创建对象
+    Class<?> clazz = Person.class;                                               # 获取Class对象
+    Constructor<?> constructor = clazz.getDeclaredConstructor();                 # 获取无参构造器
+    Constructor<?> constructor = clazz.getConstructor(String.class, int.class);  # 获取有参构造器
+    Object obj = constructor.newInstance();                                      # 无参构造创建实例
+    Object obj = constructor.newInstance("John", 30);                            # 有参构造创建实例
+## 5.通过反射操作属性
+    Class<?> clazz = Person.class;                 # 获取Class对象
+    Field field = clazz.getDeclaredField("name");  # 获取属性
+    field.setAccessible(true);                     # 如果属性是私有的，需要设置为可访问
+    Object value = field.get(Person实例);           # 获取实例属性的值，静态属性使用 get(null)
+    field.set(Person实例, "New Name");              # 设置实例属性的值，静态属性使用 set(null, value)
+## 6.通过反射调用方法
+    Class<?> clazz = Person.class;                                   # 获取Class对象
+    Method method = clazz.getMethod("sayHello");                     # 获取方法
+    method.invoke(Person实例);                                        # 调用方法,静态方法使用invoke(null)
+    Method methodWithArgs = clazz.getMethod("greet", String.class);  # 获取方法
+    methodWithArgs.invoke(Person实例, "World");                       # 调用方法
 # 18.常用类
 ## 1.比较器
     1. 定制比较器: Comparator接口(java.util)
