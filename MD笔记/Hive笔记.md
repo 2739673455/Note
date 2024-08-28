@@ -9,16 +9,16 @@
     1. 用户接口 Client
         CLI（command-line interface）、JDBC/ODBC
     2. 元数据 Metastore
-        元数据包括:数据库(默认是default)、表名、表的拥有者、列/分区字段、表的类型(是否是外部表)、表的数据所在目录等
+        元数据包括: 数据库(默认是default)、表名、表的拥有者、列/分区字段、表的类型(是否是外部表)、表的数据所在目录等
         默认存储在自带的derby数据库中，由于derby数据库只支持单客户端访问，生产环境中为了多人开发，推荐使用MySQL存储Metastore
     3. 驱动器 Driver
-        1. 解析器(SQLParser):将SQL字符串转换成抽象语法树(AST)
-        2. 语义分析(Semantic Analyzer):将AST进一步划分为QeuryBlock
-        3. 逻辑计划生成器(Logical Plan Gen):将语法树生成逻辑计划
-        4. 逻辑优化器(Logical Optimizer):对逻辑计划进行优化
-        5. 物理计划生成器(Physical Plan Gen):根据优化后的逻辑计划生成物理计划
-        6. 物理优化器(Physical Optimizer):对物理计划进行优化
-        7. 执行器(Execution):执行该计划，得到查询结果并返回给客户端
+        1. 解析器(SQLParser): 将SQL字符串转换成抽象语法树(AST)
+        2. 语义分析(Semantic Analyzer): 将AST进一步划分为QeuryBlock
+        3. 逻辑计划生成器(Logical Plan Gen): 将语法树生成逻辑计划
+        4. 逻辑优化器(Logical Optimizer): 对逻辑计划进行优化
+        5. 物理计划生成器(Physical Plan Gen): 根据优化后的逻辑计划生成物理计划
+        6. 物理优化器(Physical Optimizer): 对物理计划进行优化
+        7. 执行器(Execution): 执行该计划，得到查询结果并返回给客户端
     4. Hadoop
         使用HDFS进行存储，可以选择MapReduce/Tez/Spark进行计算
     5. 架构原理
@@ -128,18 +128,18 @@
         schematool -dbType mysql -initSchema -verbose
     5. 查看mysql中的元数据信息
         use metastore;
-        select * from DBS;  #查看元数据库中存储的库信息
-        select * from TBLS;  #查看元数据库中存储的表信息
-        select * from COLUMNS_V2;  #查看元数据库中存储的表中列相关信息
+        select * from DBS;         # 查看元数据库中存储的库信息
+        select * from TBLS;        # 查看元数据库中存储的表信息
+        select * from COLUMNS_V2;  # 查看元数据库中存储的表中列相关信息
 ## 7.hive服务部署
 ### 1.hiveserver2服务
     hive的hiveserver2服务的作用是提供jdbc/odbc接口，为用户提供远程访问hive数据的功能
     1. 用户说明
         在远程访问Hive数据时，客户端并未直接访问Hadoop集群，而是由Hivesever2代理访问
         具体使用什么身份访问，由Hiveserver2的hive.server2.enable.doAs参数决定，该参数的含义是是否启用Hiveserver2用户模拟的功能
-        若启用，则Hiveserver2会模拟成客户端的登录用户去访问Hadoop集群的数据，不启用，则Hivesever2会直接使用启动用户访问Hadoop集群数据。默认是开启的
+        默认启用，Hiveserver2会模拟成客户端的登录用户去访问Hadoop集群的数据，不启用，则Hivesever2会直接使用启动用户访问Hadoop集群数据
         生产环境，推荐开启用户模拟功能，因为开启后才能保证各用户之间的权限隔离
-        hivesever2的模拟用户功能，依赖于Hadoop提供的proxy user（代理用户功能），只有Hadoop中的代理用户才能模拟其他用户的身份访问Hadoop集群。因此，需要将hiveserver2的启动用户设置为Hadoop的代理用户
+        hivesever2的模拟用户功能，依赖于Hadoop提供的proxy user(代理用户功能)，只有Hadoop中的代理用户才能模拟其他用户的身份访问Hadoop集群。因此，需要将hiveserver2的启动用户设置为Hadoop的代理用户
     2. hadoop端配置  #修改core-site.xml，分发
         <!--配置所有节点的atguigu用户都可作为代理用户-->
         <property>
@@ -233,10 +233,10 @@
             </property>
             注意:主机名需要改为metastore服务所在节点，端口号无需修改，metastore服务的默认端口就是9083
         3. 测试
-            hive --service metastore  #启动metastore
+            hive --service metastore  # 启动metastore
 ## 8.hive常用交互命令
-    hive -e 'sql语句'  #不进入hive的交互窗口执行hql语句
-    hive -f sql文件  #执行脚本中的hql语句
+    hive -e 'sql语句'  # 不进入hive的交互窗口执行hql语句
+    hive -f sql文件    # 执行脚本中的hql语句
 ## 9.hive参数配置方式
     1. 在客户端中设置(当前窗口中当次有效)
         hive > set 参数名=参数值
@@ -339,26 +339,26 @@
 ## 1.建库语句格式
     create database [if not exists] 库名
     [comment 注释]
-    [location hdfs对应路径]  #默认路径为/user/hive/warehouse
-    [with dbproperties('属性名'='属性值',...)]  #给库设置属性
+    [location hdfs对应路径]  # 默认路径为/user/hive/warehouse
+    [with dbproperties('属性名'='属性值',...)]  # 给库设置属性
 ## 2.案例
     create database d1
     comment 'this is d1'
     location '/demo/d1'
     with dbproperties('ver'='1.0');
-    #注意:库名和HDFS上对应的目录名可以不一致(对应关系元数据记录了)
+    # 注意:库名和HDFS上对应的目录名可以不一致(对应关系元数据记录了)
     create database d2
     comment 'this is d1'
     location '/demo/d2222'
     with dbproperties('ver'='1.0');
 ## 3.库操作
     1. 查看库的信息
-        desc database [extended] 库名  #[extended]加上后可以查看库的属性
+        desc database [extended] 库名  # [extended]加上后可以查看库的属性
     2. 查询数据库
-        show databases [like '匹配规则']  #like 模糊查询 只能用 *、| 匹配
+        show databases [like '匹配规则']  # like 模糊查询 只能用 *、| 匹配
     3. 删除数据库
         drop database [if exists] 库名 [restrict|cascade]
-        #默认为restrict只能删除空库，cascade用来删除非空的库
+        # 默认为restrict只能删除空库，cascade用来删除非空的库
     4. 切换库
         use 库名
     5. 修改库
@@ -375,20 +375,19 @@
         字段名 字段类型 [comment 字段描述信息，注释],...
     )]
     [comment 表的描述信息，注释]
-    [partitioned by (字段名 字段类型 [comment 字段描述信息，注释],...)]  #创建分区表
-    [clustered by (分桶字段名1,分桶字段名2,...)]  #创建分桶表
-    [row format row_format]  #用来对数据和元数据的匹配进行说明
-    [stored as file_format]  #数据的存储格式，默认是textfile
-    [location 路径]  #创建库和表在hdfs上对应的路径
+    [partitioned by (字段名 字段类型 [comment 字段描述信息，注释],...)]  # 创建分区表
+    [clustered by (分桶字段名1,分桶字段名2,...)]  # 创建分桶表
+    [row format row_format]  # 用来对数据和元数据的匹配进行说明
+    [stored as file_format]  # 数据的存储格式，默认是textfile
+    [location 路径]  # 创建库和表在hdfs上对应的路径
     [tblproperties ('属性名'='属性值',...)]
 ## 2.关键字说明
 ### 1.temporary 临时表
     该表只在当前会话可见，会话结束，表会被删除
 ### 2.external 外部表
     外部表，与之相对应的是内部表(管理表)
-    管理表意味着Hive会完全接管该表，包括元数据和HDFS中的数据。而外部表则意味着Hive只接管元数据，而不完全接管HDFS中的数据
-    删除管理表时会将元数据和HDFS上的数据全部删除掉
-    删除外部表时只会删除元数据
+    管理表意味着Hive会完全接管该表，包括元数据和HDFS中的数据，删除管理表时会将元数据和HDFS上的数据全部删除掉
+    外部表则意味着Hive只接管元数据，而不完全接管HDFS中的数据，删除外部表时只会删除元数据
     truncate table时只能清空管理表，清空外部表时会报错
     外部表和管理表的转换:
         desc formatted 表名  #查看表信息
@@ -396,21 +395,21 @@
 ### 3.数据类型
 | 参数 | 描述 |
 | --- | --- |
-| tinyint   | 1byte，有符号整数
-| smallint  | 2byte，有符号整数
-| int       | 4byte，有符号整数
-| bigint    | 8byte，有符号整数
-| boolean   | 布尔类型，true或者false
-| float     | 单精度浮点数
-| double    | 双精度浮点数
-| decimal   | 十进制精准数字类型，decimal(16,2)
-| varchar   | 字符序列，需指定最大长度，最大长度的范围是[1,65535]，varchar(32)
-| string    | 字符串，无需指定最大长度
-| timestamp | 时间类型
-| binary    | 二进制数据
-| array     | 数组是一组相同类型的值的集合，array<string>，arr[0]
-| map       | map是一组相同类型的键-值对集合，map<string,int>，map['key']
-| struct    | 结构体由多个属性组成，每个属性都有自己的属性名和数据类型，struct\<id:int,name:string>，struct.id
+| tinyint   |  1byte，有符号整数
+| smallint  |  2byte，有符号整数
+| int       |  4byte，有符号整数
+| bigint    |  8byte，有符号整数
+| boolean   |  布尔类型，true或者false
+| float     |  单精度浮点数
+| double    |  双精度浮点数
+| decimal   |  十进制精准数字类型，decimal(16,2)
+| varchar   |  字符序列，需指定最大长度，最大长度的范围是[1,65535]，varchar(32)
+| string    |  字符串，无需指定最大长度
+| timestamp |  时间类型
+| binary    |  二进制数据
+| array     |  数组是一组相同类型的值的集合，array<string>，arr[0]
+| map       |  map是一组相同类型的键-值对集合，map<string,int>，map['key']
+| struct    |  结构体由多个属性组成，每个属性都有自己的属性名和数据类型，struct\<id:int,name:string>，struct.id
     数据类型转换:
     1. 隐式类型转换
         任何整数类型都可以隐式地转换为一个范围更广的类型，如tinyint可以转换成int，int可以转换成bigint
@@ -432,7 +431,7 @@
     4. 导数据
         load data [local] inpath '数据的地址' [overwrite] into table 表名 partition(分区字段名='分区值')
         load data local inpath '/opt/module/hive/datas/20221010.txt' into table dept_partition partition(day='20221010')
-        #如果导数据时没有对应的分区那么会自动创建
+        # 如果导数据时没有对应的分区那么会自动创建
     5. 同步hdfs与元数据分区信息
         1. 增加hdfs路径存在但元数据缺失的分区信息(有目录但是没有对应的元数据)
             msck repair table 表名 add partitions
@@ -467,6 +466,8 @@
             row format delimited fields terminated by '\t';
         2. 设置成非严格模式
             set hive.exec.dynamic.partition.mode=nonstrict;
+            # 默认strict(严格模式)，要求必须指定至少一个分区为静态分区
+            # nonstrict(非严格模式)，允许所有的分区字段都使用动态分区
         3. 将查询的结果插入到分区表中
             insert into table dept_partition_dynamic
             partition(loc)  #指定分区字段
@@ -482,24 +483,24 @@
             id int,
             name string
         )
-        clustered by(id)  #指定分桶字段(会对该字段的值的 hashCode值 % 桶的数量 进行分桶)
-        sorted by (id)  #分桶时对数据进行排序,按照id升序
-        into 4 buckets  #桶的数量(分几个文件)
+        clustered by(id)  # 指定分桶字段(会对该字段的值的 hashCode值 % 桶的数量 进行分桶)
+        sorted by (id)    # 分桶时对数据进行排序,按照id升序
+        into 4 buckets    # 桶的数量(分几个文件)
         row format delimited fields terminated by '\t';
     2. 向分桶表中导入数据
         insert / load
-        #向分桶表中导入的数据(load data方式)必须放在HDFS上
+        # 向分桶表中导入的数据(load data方式)必须放在HDFS上
         load data inpath '/demo/datas2/student2.txt' into table stu_buck;
 ### 6.row format 数据匹配
     指定serde，serde是Serializer and Deserializer的简写。hive使用serde序列化和反序列化每行数据
     1. delimited
         表示对文件中的每个字段按照特定分割符进行分割，其会使用默认的serde对每行数据进行序列化和反序列化
         row format delimited
-        [fields terminated by 分隔字符]  #每个字段用什么分隔
-        [collection items terminated by 分隔字符]  #复杂数据类型中的元素之间用什么分隔
-        [map keys terminated by 分隔字符]  #map中的元素的key和value用什么分隔
-        [lines terminated by 分隔字符]  #每条数据之间用什么分隔
-        [null defined as 字符]  #表中的null值在HDFS上的文件中用什么字符表示，默认\N
+        [fields terminated by 分隔字符]            # 每个字段用什么分隔
+        [collection items terminated by 分隔字符]  # 复杂数据类型中的元素之间用什么分隔
+        [map keys terminated by 分隔字符]          # map中的元素的key和value用什么分隔
+        [lines terminated by 分隔字符]             # 每条数据之间用什么分隔
+        [null defined as 字符]                    # 表中的null值在HDFS上的文件中用什么字符表示，默认\N
         案例:
         create table stu
         (
@@ -534,9 +535,9 @@
                 name string
             )
             row format delimited fields terminated by '\t'
-            stored as textfile;  #指定存储格式
-            [set hive.exec.compress.output=true;  #SQL语句的最终输出结果是否压缩
-            set mapreduce.output.fileoutputformat.compress.codec =org.apache.hadoop.io.compress.SnappyCodec;  #输出结果的压缩格式]
+            stored as textfile;  # 指定存储格式
+            [set hive.exec.compress.output=true;  # SQL语句的最终输出结果是否压缩
+            set mapreduce.output.fileoutputformat.compress.codec =org.apache.hadoop.io.compress.SnappyCodec;  # 输出结果的压缩格式]
         2. 导入数据
             load data local inpath '/opt/module/hive/datas/student2.txt' into table textfile_table;
     2. orc(列存储)
@@ -547,9 +548,9 @@
                 name string
             )
             row format delimited fields terminated by '\t'
-            stored as orc  #指定存储格式
-            tblproperties ("orc.compress"="none");  #不开启压缩
-            / tblproperties ("orc.compress"="snappy");  #开启压缩
+            stored as orc                               # 指定存储格式
+            tblproperties ("orc.compress"="none");      # 不开启压缩
+            / tblproperties ("orc.compress"="snappy");  # 开启压缩
         2. 导入数据，只能通过insert
             insert into table orc_table select * from textfile_table;
     3. parquet(列存储)
@@ -560,8 +561,8 @@
                 name string
             )
             row format delimited fields terminated by '\t'
-            stored as parquet;  #指定存储格式
-            [tblproperties ("parquet.compression"="snappy");  #开启压缩]
+            stored as parquet;  # 指定存储格式
+            [tblproperties ("parquet.compression"="snappy");  # 开启压缩]
         2. 导入数据，只能通过insert
             insert into table parquet_table select * from textfile_table;
 ### 8.location 数据的存储路径
@@ -579,9 +580,9 @@
     show tables [in 库名] like ['匹配规则'](可使用 *、|)
 ### 2.查看表信息
     desc(describe) [ectended | formatted] [库名.]表名
-    #desc 表名  #查看字段信息
-    #desc formatted 表名  #查看表的详细信息
-    #desc ectended 表名  #查看表的详细信息但是显示的内容没有格式化
+    # desc 表名            # 查看字段信息
+    # desc formatted 表名  # 查看表的详细信息
+    # desc ectended 表名   # 查看表的详细信息但是显示的内容没有格式化
 ### 3.修改表名
     alter table 原表名 rename to 新表名
 ### 4.列操作
@@ -591,7 +592,7 @@
         alter table 表名 change [column] 原字段名 新字段名 字段类型 [comment 注释]
     3. 更新列-更新列的类型
         alter table 表名 change [column] 字段名 字段名 字段新类型 [commnet 注释]
-        #注意字段的类型是否可以转。比如int可以转string，但string不能转int
+        # 注意字段的类型是否可以转。比如int可以转string，但string不能转int
     4. 更新列-调字段的位置
         alter table 表名 change [column] 字段名 字段名 字段新类型 [comment 注释] [first | after 字段名]
         1. 在交换位置时只能交换元数据，数据不会交换
@@ -604,20 +605,20 @@
 ### 5.删除表
     drop table 表名
 ### 6.清空表
-    truncate table 表名  #不能清空外部表
+    truncate table 表名  # 不能清空外部表
 ### 7.导入导出数据
     1. load从文件中导入数据
         load data [local] inpath '文件路径' [overwrite] into table 表名
         [partiton (partcol1=val1,partcol2=val2,...)];
-        #local 从本地拷贝数据，没有该字段则从hdfs上剪切数据
-        #overwrite 覆盖表中原本数据，没有该字段则追加
+        # local 从本地拷贝数据，没有该字段则从hdfs上剪切数据
+        # overwrite 覆盖表中原本数据，没有该字段则追加
     2. insert导入数据
         1. 从其他表导入
             insert into/overwrite table 表名[(字段1,字段2,...)]
             [partition (partcol1=val1,partcol2=val2,...)]
             select 查询语句;
-            #into追加  表名后不指定字段则表示插入全字段，查询的字段和被插入的字段的个数和类型要保持一致
-            #overwrite覆盖  表名后不能写字段名，要求必须全字段，表的字段和查询字段类型要一致
+            # into追加  表名后不指定字段则表示插入全字段，查询的字段和被插入的字段的个数和类型要保持一致
+            # overwrite覆盖  表名后不能写字段名，要求必须全字段，表的字段和查询字段类型要一致
         2. 插入新数据
             insert into table 表名(字段名1,字段名2,...)
             [partition (partcol1=val1,partcol2=val2,...)]
@@ -631,8 +632,8 @@
         export table 表名 to 'hdfs路径'
     5. import从hdfs导入数据
         import [external] table 新表名 from 'hdfs路径' [location 'hdfs绝对路径'('hdfs://hadoop102:8020/...')]
-        #只能导入到不存在的表，只能创建新表
-        #导入的数据只能是通过export导出的数据，因为这个数据中才有元数据
+        # 只能导入到不存在的表，只能创建新表
+        # 导入的数据只能是通过export导出的数据，因为这个数据中才有元数据
 # 4.表查询
 ## 1.基本查询
     select [all | distinct]
@@ -643,26 +644,26 @@
     [where 过滤条件]
     [group by 字段名]
     [having 过滤条件]
-    [order by 字段名1 asc/desc,字段名2 asc/desc]  #排序，默认asc升序，desc降序
+    [order by 字段名1 asc/desc,字段名2 asc/desc]  # 排序，默认asc升序，desc降序
     [cluster by col_list
         [distribute by col_list] [sort by col_list]
     ]
-    [limit num1,num2]  #从第num1行开始，向下抓取num2行
-    #null与任何类型数据计算结果都为null
+    [limit num1,num2]  # 从第num1行开始，向下抓取num2行
+    # null与任何类型数据计算结果都为null
 ## 2.where及having关系运算符
     1. =
-    2. <>，!  #不等于
-    3. <=>  #都为null或都不为null，则返回true，如果只有一边为null，返回false
+    2. <>,!   # 不等于
+    3. <=>    # 都为null或都不为null，则返回true，如果只有一边为null，返回false
     4. in(值1,值2)
     5. [not] between 值1 and 值2
     6. is null / is not null
     7. and / or / not
     8. like '要匹配的字符串'
-        1. %  #代表任意长度的字符串
-        2. _  #代表1个字符
-        3. \  #代表转义字符
-        4. like 字符串 escape 字符  #使用指定字符代替转义字符
-    9. A rlike B, A regexp B  #B是基于java的正则表达式，如果A与其匹配，则返回true；反之返回false
+        1. %  # 代表任意长度的字符串
+        2. _  # 代表1个字符
+        3. \  # 代表转义字符
+        4. like 字符串 escape 字符  # 使用指定字符代替转义字符
+    9. A rlike B, A regexp B  # B是基于java的正则表达式，如果A与其匹配，则返回true；反之返回false
 ## 3.分组聚合函数
     count(*)       # 表示统计所有行数，包含null值
     count(column)  # 表示该列一共有多少行，不包含null值
@@ -687,7 +688,7 @@
         3. 所有表中的所有行互相连接
     6. union 联合
         上下拼接，去重
-        union all  #上下拼接，不去重
+        union all  # 上下拼接，不去重
         两个sql的结果，列的个数必须相同
         两个sql的结果，上下所对应列的类型必须一致
 ## 5.单行函数
@@ -695,63 +696,54 @@
     desc function 函数名           # 查看内置函数用法
     desc function extended 函数名  # 查看内置函数详细信息
 ### 1.数值函数
-    round  # 四舍五入
-    ceil   # 向上取整
-    floor  # 向下取整
+| 参数 | 描述 |
+| --- | --- |
+| round(double a, int d)  |  四舍五入，指定精度到小数点后d位
+| ceil(double a)          |  向上取整
+| floor(double a)         |  向下取整
+| rand()                  |  返回0~1随机数
+| pow(double a, double p) |  返回a的p次幂
+| sqrt(double a)          |  返回a的平方根
+| bin(BIGINT a)           |  返回a的二进制代码表示
+| hex(BIGINT a)           |  返回a的十六进制表示
+| abs(double a)           |  返回a的绝对值
 ### 2.字符串函数
-    1. substring 截取字符串
-        substring(string A, int start, [int len])
-            #返回字符串A从start位置开始，长度为len的字符串，没有len则截取到结尾
-    2. replace 替换
-        replace(string A, string B, string C)
-            #将字符串A中的子字符串B替换为C
-    3. regexp_replace 正则替换
-        regexp_replace(string A, string B, string C)
-            #将字符串A中的符合java正则表达式B的部分替换为C。注意，在有些情况下要使用转义字符
-    4. regexp 正则匹配
-        select A regexp B
-            #若字符串符A合正则表达式B，则返回true，否则返回false
-    5. repeat 重复字符串
-        repeat(string A, int n)
-            #将字符串A重复n遍
-    6. split 字符串切割
-        split(string str, string pat) 
-            #按照正则表达式pat匹配到的内容分割str，分割后的字符串，以数组的形式返回
-    7. nvl 替换null
-        nvl(A, B)
-    8. concat 拼接字符串
-        concat(string A, string B, string C) 
-            #将A,B,C等字符拼接为一个字符串
-    9. concat_ws 以指定分隔符拼接字符串或者字符串数组
-        concat_ws(string A, string B,...| array(string))
-            #使用分隔符A拼接多个字符串，或者一个数组的所有元素
-    10. get_json_object 解析json字符串
-        get_json_object(string json_string, string path)
-            #解析json的字符串json_string，返回path指定的内容。如果输入的json字符串无效，那么返回NULL
-        get_json_object('[{"name":"A","age":"25"},{"name":"B","age":"47"}]','$.[0].name');
-### 2.日期函数
-    1. unix_timestamp 返回当前或指定时间的时间戳
-        select unix_timestamp('2022/08/08 08-08-08','yyyy/MM/dd HH-mm-ss');
-    2. from_unixtime 转化UNIX时间戳（从 1970-01-01 00:00:00 UTC 到指定时间的秒数）到当前时区的时间格式
-        select from_unixtime(1659946088);
-    3. current_date 当前日期
-    4. current_timestamp 当前的日期加时间，并且精确到毫秒
-    5. month 获取日期中的月
-        select month('2022-08-08 08:08:08');
-    6. day 获取日期中的日
-        select day('2022-08-08 08:08:08');
-    7. hour 获取日期中的小时
-        select hour('2022-08-08 08:08:08');
-    8. datediff 两个日期相差的天数(左减右)
-        select datediff('2021-08-08','2022-10-09');
-    9. date_add 日期增加指定天数
-        select date_add('2022-08-08',2);
-    10. date_sub 日期减去指定天数
-        select date_sub('2022-08-08',2);
-    11. date_format 将标准日期解析成指定格式字符串
-        select date_format('2022-08-08','yyyy年-MM月-dd日');
-    12. date 获取年月日
-### 3.流程控制函数
+| 参数 | 描述 |
+| --- | --- |
+| length 返回字符串A的长度 | 				length(string A)
+| reverse 反转字符串 | 				reverse(string A)
+| concat 拼接字符串 | 				concat(string A, string B,...)
+| concat_ws 带分隔符拼接 | 				concat_ws(string SEP, string A, string B,...)
+| substr/substring 截取字符串 | 				substring(string A, int start, [int len])
+| upper/ucase 转大写 | 				upper(string A)
+| lower/lcase 转小写 | 				lower(string A)
+| trim 去首尾空格 | 				trim(string A)
+| lpad/rpad 左右补足 | 				lpad(string str, int len, string pad)
+| replace 替换(A中B替换为C) | 				replace(string A, string B, string C)
+| regexp_replace 正则替换 | 				regexp_replace(string A, string B, string C)
+| regexp 正则匹配 | 				select A regexp B
+| repeat 重复字符串 | 				repeat(string A, int n)
+| split 字符串切割 | 				split(string str, string pat) 
+| instr 查找首次出现位置 | 				instr(string str, string substr)
+| nvl 替换null | 				nvl(A, B)
+| get_json_object 解析json字符串 | get_json_object(string json_string, string path)<br>解析json的字符串json_string，返回path指定的内容。如果输入的json字符串无效，那么返回NULL<br>get_json_object('[{"name":"A","age":"25"},{"name":"B","age":"47"}]','$.[0].name')
+### 3.日期函数
+| 参数 | 描述 |
+| --- | --- |
+| unix_timestamp 当前或指定时间转时间戳 | 				unix_timestamp('2022/08/08 08-08-08','yyyy/MM/dd HH-mm-ss')
+| from_unixtime 时间戳转当前时区的时间格式 | 				from_unixtime(1659946088)
+| current_date 当前日期 | 				current_date()
+| current_timestamp 当前的日期加时间，精确到毫秒 | 				current_timestamp()
+| date 获取年月日 | 				date('2022-08-08 08:08:08')
+| year 获取年 | 				year('2022-08-08 08:08:08')
+| month 获取月 | 				month('2022-08-08 08:08:08')
+| day 获取日 | 				day('2022-08-08 08:08:08')
+| hour 获取小时 | 				hour('2022-08-08 08:08:08')
+| datediff 两日期相差的天数(左减右) | 				datediff('2021-08-08','2022-10-09')
+| date_add 日期增加指定天数 | 				date_add('2022-08-08',2)
+| date_sub 日期减去指定天数 | 				date_sub('2022-08-08',2)
+| date_format 将标准日期解析成指定格式字符串 | 				date_format('2022-08-08','yyyy年-MM月-dd日')
+### 4.流程控制函数
     1. case when 条件判断函数
         1. case
             when 表达式1 then 返回值1
@@ -768,30 +760,23 @@
     2. if函数
         if(boolean testCondition, T valueTrue, T valueFalseOrNull)
         select if(10 > 5,true,false);
-### 4.集合函数
-    1. array  #array(val1, val2,...) 
-        select array('1','2','3','4');
-    2. array_contains  #判断array中是否包含某个元素
-        select array_contains(array('a','b','c','d'),'a');
-    3. sort_array  #将array中的元素排序
-        select sort_array(array('a','d','c'));
-    4. size  #集合中元素的个数
-        select size(friends) from test;  #每一行数据中的friends集合里的个数
-    5. map  #map (key1, value1, key2, value2,...)
-        select map('jia',1,'yi',2);
-    6. map_keys  #返回map中的key
-        select map_keys(map('jia',1,'yi',2));
-    7. map_values  #返回map中的value
-        select map_values(map('jia',1,'yi',2));
-    8. struct  #声明struct中的各属性  struct(val1, val2, val3,...) 
-        select struct('name','age','weight');
-        输出:{"col1":"name","col2":"age","col3":"weight"}
-    9. named_struct  #声明struct的属性和值
-        select named_struct('name','jia','age',18,'weight',80);
-        输出:{"name":"jia","age":18,"weight":80}
-### 5.高级聚合函数
-    1. collect_list  #收集并形成list
-    2. collect_set  #收集并形成set，去重
+### 5.集合函数
+| 参数 | 描述 |
+| --- | --- |
+| array | 				array('1','2','3','4')
+| array_contains 判断array中是否包含某个元素 | 				array_contains(array('a','b','c','d'),'a')
+| sort_array 排序array中的元素 | 				sort_array(array('a','d','c'))
+| size 集合尺寸 | select size(friends) from test<br>每一行数据中的friends集合里的个数
+| map | 				map('jia',1,'yi',2)
+| map_keys 返回map中的key | 				map_keys(map('jia',1,'yi',2))
+| map_values 返回map中的value | 				map_values(map('jia',1,'yi',2))
+| struct 声明struct中的各属性 | struct('name','age','weight')<br>输出: {"col1":"name","col2":"age","col3":"weight"}
+| named_struct 声明struct的属性和值 | named_struct('name','jia','age',18,'weight',80)<br>输出: {"name":"jia","age":18,"weight":80}
+### 6.高级聚合函数
+| 参数 | 描述 |
+| --- | --- |
+| collect_list |  按分组收集并形成list
+| collect_set  |  按分组收集并形成set，去重
 ## 6.高级函数
 ### 1.炸裂函数
     1. 格式
@@ -812,23 +797,21 @@
         # n preceding              # 上n行
         # n following              # 下n行
         # current row              # 当前行
-        1. select user_name,count(*) over()  #对窗口中的数据进行count
-            from order_info；
-        2. select *,
-                sum(order_amount) over(partition by user_name order by order_date rows between unbounded preceding and current row )
-            from order_info;
-    2. 取上1行与下1行
-        lag(字段名,n,默认值)   # 当前行的前n行的字段值 如果没有用默认值
-        lead(字段名,n,默认值)  # 当前行的后n行的字段值 如果没有用默认值
-        注意:不支持自定义窗口范围，只可以写上无边界到下无边界
-        1. select *,
+        1. select count(*) over() from order_info;
+            对窗口中的数据进行count
+        2. select sum(order_amount) over(partition by user_name order by order_date rows between unbounded preceding and current row ) from order_info;
+    2. 取上下n行
+        lag(字段名,n,默认值)   # 当前行的前n行的字段值 如果没有则用默认值
+        lead(字段名,n,默认值)  # 当前行的后n行的字段值 如果没有则用默认值
+        注意: 不支持自定义窗口范围，只可以写上无边界到下无边界
+        1. select
                 lag(order_amount, 1, 0) over (partition by user_name order by order_date),
                 lead(order_amount, 1, 0) over (partition by user_name order by order_date)
             from order_info
-    3. 取第1个与最后1个
-        first_value(字段名,true/false)  # 获取窗口中的第一条数据，true/false是否获取null值
-        last_value(字段名,true/false)   # 获取窗口中的最后一条数据，true/false是否获取null值
-        1. select *,
+    3. 取首末
+        first_value(字段名,true/false)  # 获取窗口中的首条数据，true/false表示是否获取null值
+        last_value(字段名,true/false)   # 获取窗口中的末条数据，true/false表示是否获取null值
+        1. select
                 first_value(order_date,false) over(partition by user_name order by order_date
                     rows between unbounded preceding and unbounded following),
                 last_value(order_date,false) over(partition by user_name order by order_date
@@ -838,8 +821,8 @@
         rank()        # 排名不一定连续
         dense_rank()  # 排名连续
         row_number()  # 行号
-        注意:不支持自定义窗口
-        1. select *,
+        注意: 不支持自定义窗口
+        1. select
                 rank() over (order by order_amount desc),
                 dense_rank() over (order by order_amount desc),
                 row_number() over (order by order_amount desc)
@@ -990,12 +973,12 @@
     若参与join的两表均为大表，其中一张表的数据是倾斜的，此时也可对SQL语句进行相应的调整
     select *
     from(
-        select  #打散操作
+        select  # 打散操作
             concat(id,'_',cast(rand()*2 as int)) id,
             value
         from A) ta
     join(
-        select  #扩容操作
+        select  # 扩容操作
             concat(id,'_',0) id,
             value
         from B
@@ -1014,12 +997,12 @@
         若查询的表中存在大量小文件，则会启动大量Map Task，造成计算资源的浪费
         这种情况下，可以使用Hive提供的CombineHiveInputFormat，多个小文件合并为一个切片，从而控制Map Task个数
         set hive.input.format=org.apache.hadoop.hive.ql.io.CombineHiveInputFormat;
-            #使用Hive提供的CombineHiveInputFormat
+            使用Hive提供的CombineHiveInputFormat
     2. Map端有复杂的查询逻辑
         若SQL语句中有正则替换、json解析等复杂耗时的查询逻辑时，Map端的计算会相对慢一些
         若想加快计算速度，在计算资源充足的情况下，可考虑增大Map端的并行度，令Map Task多一些，每个Map Task计算的数据少一些
         set mapreduce.input.fileinputformat.split.maxsize=256000000
-            #一个切片的最大值
+            一个切片的最大值
 ### 2.Reduce端并行度
     Reduce端的并行度，也就是Reduce个数。相对来说更需要关注
     Reduce端的并行度，可由用户自己指定，也可由Hive自行根据该MR Job输入的文件大小进行估算

@@ -1,5 +1,5 @@
 import re
-import sys
+import os
 
 
 class Converter:
@@ -21,9 +21,10 @@ class Converter:
     def convertParagraph(self, content):
         try:
             tab_num = re.findall(r"\t*\t", content)[0].count("\t")
-        except:
+        except Exception as e:
+            print(e)
             print(content)
-            sys.pause()
+            os.system("pause")
         self.paragraph_tab_num = tab_num if self.paragraph_tab_num == 0 else self.paragraph_tab_num
         space_num = (tab_num - self.paragraph_tab_num + 1) * 4
         content = re.sub(r"\t*\t", " " * space_num, content, count=1, flags=0)

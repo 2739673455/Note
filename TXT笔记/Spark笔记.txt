@@ -599,9 +599,215 @@
 				SparkSession spark = SparkSession.builder()
 					.enableHiveSupport() // 添加hive支持
 					.config(conf).getOrCreate();
-
 				spark.sql("show tables").show();
 				spark.sql("create table user_info(name String,age bigint)");
 				spark.sql("insert into table user_info values('zhangsan',10)");
 				spark.sql("select * from user_info").show();
 				spark.close();
+
+5.SparkStreaming
+	1.SparkStreaming概述
+		1.什么是Spark Streaming
+			数据流:
+				有界数据流: 有开始，有结束的数据流，如内存集合，磁盘文件
+				无界数据流: 有开始，没有结束的数据流，如socket，Kafka，计算时需要切分为有界数据流
+			数据处理延迟:
+				离线:   延迟时间以小时、天为单位
+				准实时: 延迟时间以秒、分钟单位
+				实时:   延迟时间以毫秒为单位
+			数据处理方式:
+				批量:   一批一批数据的处理
+				微批量: 一小批一小批数据的处理
+				流式:   一条一条数据的处理
+			Spark只能处理有界数据流，是批量、离线数据处理框架
+			SparkStreaming: 微批量、准实时数据处理框架
+		2.Spark Streaming架构原理
+			Spark Core数据模型:       RDD
+			Spark SQL数据模型:        Dataset
+			Spark Streaming数据模型:  DStream(离散化流)
+				DStream是随时间推移而收到的数据的序列
+				在DStream内部，每个时间区间收到的数据都作为RDD存在，而DStream是由这些RDD所组成的序列
+				DStream就是对RDD在实时数据处理场景的一种封装
+	2.SparkStreaming使用
+		1.使用socket接收数据
+			# 需要提前监听9999端口并将数据转发给socketTextStream
+			SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("SparkStreaming");
+			JavaStreamingContext jsc = new JavaStreamingContext(conf, new Duration(3000));
+			JavaReceiverInputDStream<String> dstream = jsc.socketTextStream("127.0.0.1", 9999);
+			dstream.print();
+			jsc.start();
+			jsc.awaitTermination();
+		2.读取kafka主题中的数据
+			1. 添加依赖
+				<dependency>
+					<groupId>org.apache.spark</groupId>
+					<artifactId>spark-streaming-kafka-0-10_2.12</artifactId>
+					<version>3.3.1</version>
+				</dependency>
+			2. 编写代码
+				SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("HelloWorld");
+				JavaStreamingContext jsc = new JavaStreamingContext(conf, new Duration(3000));
+				// 创建配置参数
+				HashMap<String, Object> conf = new HashMap<>();
+				conf.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092,hadoop103:9092,hadoop104:9092");
+				conf.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+				conf.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+				conf.put(ConsumerConfig.GROUP_ID_CONFIG, "group1");
+				conf.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+				// 需要消费的主题
+				ArrayList<String> topics = new ArrayList<>();
+				topics.add("test");
+				JavaInputDStream<ConsumerRecord<String, String>> directStream = KafkaUtils.createDirectStream(
+						jsc,
+						LocationStrategies.PreferBrokers(),
+						ConsumerStrategies.Subscribe(topics, conf)
+				);
+				directStream.map(v1 -> v1.value()).print(100);
+				jsc.start();
+				jsc.awaitTermination();
+	3.DStream转换
+		1.无状态转化操作
+			无状态转化操作: 就是把RDD转化操作应用到DStream每个批次上，每个批次相互独立
+			离散化流DStream的方法称之为原语
+			transform原语用于将数据模型进行转换，转成RDD
+
+			JavaDStream<String> transformDS = dstream.transform(
+					rdd -> {
+						// 此处代码运行在Driver上(每个采集周期运行一次)
+						return rdd.sortBy(s -> {
+							// 此处代码运行在Executor上(Task)
+							return s;
+						}, true, 2);
+					}
+			);
+		2.窗口操作
+			1. 代码实现
+				JavaDStream<String> windowDS = dstream.window(new Duration(6000), new Duration(3000));
+				JavaPairDStream<String, Integer> wordCountDS = windowDS.reduceByKey(Integer::sum);
+				wordCountDS.print();
+			2. window需要两个参数:
+				窗口范围:       计算内容的时间范围
+				窗口移动时间间隔: 隔多久触发一次计算
+				都必须为采集时间的整数倍
+			3. 窗口数据处理的类型:
+				1. 窗口范围(6s)大于窗口移动幅度(3s): 重复数据
+				2. 窗口范围(3s)等于窗口移动幅度(3s)
+				3. 窗口范围(3s)小于窗口移动幅度(6s): 丢失数据
+			4. reduceByKeyAndWindow
+				reduceByKeyAndWindow(func, windowLength, slideInterval, [numTasks])
+				当在一个(K,V)对的DStream上调用此函数，会返回一个新(K,V)对的DStream，此处通过对滑动窗口中批次数据使用reduce函数来整合每个key的value值
+	4.DStream输出
+		DStream与RDD中的惰性求值类似，如果一个DStream及其派生出的DStream都没有被执行输出操作，那么这些DStream就都不会被求值
+		如果StreamingContext中没有设定输出操作，整个Context就都不会启动
+		输出操作API如下:
+		1. saveAsTextFiles(prefix, [suffix])
+			以text文件形式存储这个DStream的内容。每一批次的存储文件名基于参数中的prefix和suffix
+			如: prefix-Time_IN_MS[.suffix]
+			注意: 以上操作都是每一批次写出一次，会产生大量小文件，在生产环境，很少使用
+		2. print()
+			在运行流程序的驱动结点上打印DStream中每一批次数据的最开始10个元素，用于开发和调试
+		3. foreachRDD(func)
+			最通用的输出操作，将函数func用于产生DStream的每一个RDD
+			在企业开发中通常采用foreachRDD()，它用来对DStream中的RDD进行任意计算，这和transform()有些类似，都可以让我们访问任意RDD
+			在foreachRDD()中，可以重用我们在Spark中实现的所有行动操作(action算子)，比如把数据写入MySQL
+			例:
+			wordCountDS.foreachRDD(
+				rdd -> {
+					System.out.println("-------------------------------------------");
+					System.out.println("Time: " + System.currentTimeMillis());
+					System.out.println("-------------------------------------------");
+				}
+			);
+	5.优雅关闭
+		SparkStreaming采集器计算功能一般不会关闭，除非:
+			1. 业务升级，数据规则发生变化
+			2. 技术升级
+		javaStreamingContext.stop(true, true)
+		一般不会在main()主线程中进行关闭，一般会在子线程中监听某一状态值来确定何时关闭
+
+6.Spark内核
+	1.Spark提交流程(YarnCluster)
+		1. 脚本启动执行
+			解析参数
+			创建客户端
+			封装提交参数和命令
+			向ResourceManager提交任务信息submitApplication
+			向HDFS提交资源数据
+		2. RM启动ApplicationMaster
+		3. AM根据参数启动Driver线程并初始化SparkContext
+		4. Driver在NodeManager上启动Executor(ExecutorBackend)
+		5. Driver将Task添加进TaskPool，并通过RPC发送给Executor
+		6. Executor创建ThreadPool运行Task
+	2.任务切分与调度
+		1. DAGScheduler
+			根据宽依赖做Stage划分
+			根据分区数做Task划分
+		2. TaskScheduler
+			TaskScheduler通过TaskSet获取job的所有Task,然后序列化发往Executor
+		3. SchedulableBuilder(FIFO/Fair)
+		4. SchedulerBackend(通信后台)
+			负责与ExecutorBackend通信
+	3.Spark通信原理
+		Spark底层通信采用的是netty通信框架(AIO, NIO(EPOCH))
+		通信方式类似于生活中发邮件
+		- RpcEndpoint
+			RPC通信终端，Spark针对每个节点(Client/Master/Worker)都称之为一个RPC终端，且都实现RpcEndpoint接口
+		- RpcEnv
+			RPC上下文环境，每个RPC终端运行时依赖的上下文环境称为RpcEnv，在当前Spark版本中使用的NettyRpcEnv
+		- RpcEndpointRef
+			RpcEndpointRef是对远程RpcEndpoint的一个引用，当我们需要向一个具体的RpcEndpoint发送消息时，一般我们需要获取到该RpcEndpoint的引用，然后通过该应用发送消息
+		- RpcAddress
+			表示远程的RpcEndpointRef的地址，Host + Port
+		- Dispatcher
+			消息调度(分发)器，针对于RPC终端需要发送远程消息或者从远程RPC接收到的消息，分发至对应的指令收件箱(发件箱)，如果指令接收方是自己则存入收件箱，如果指令接收方不是自己，则放入发件箱
+		- Inbox
+			# 指令消息收件箱，一个本地RpcEndpoint对应一个收件箱，Dispatcher在每次向Inbox存入消息时，都将对应EndpointData加入内部ReceiverQueue中#
+			# 另外Dispatcher创建时会启动一个单独线程进行轮询ReceiverQueue，进行收件箱消息消费
+		- OutBox
+			# 指令消息发件箱，对于当前RpcEndpoint来说，一个目标RpcEndpoint对应一个发件箱，如果向多个目标RpcEndpoint发送信息，则有多个OutBox#
+			# 当消息放入Outbox后，紧接着通过TransportClient将消息发送出去，消息放入发件箱以及发送过程是在同一个线程中进行
+		- TransportClient
+			Netty通信客户端，一个OutBox对应一个TransportClient，TransportClient不断轮询OutBox，根据OutBox消息的receiver信息，请求对应的远程TransportServer
+		- TransportServer
+			Netty通信服务端，一个RpcEndpoint对应一个TransportServer，接受远程消息后调用Dispatcher分发消息至对应收发件箱
+	4.Shuffle原理
+		SortShuffle:
+		在溢写磁盘前，先根据key进行排序，再分批默认以每批一万条通过缓冲区溢写的方式写入磁盘文件
+		每次溢写都会产生一个磁盘文件，也就是说一个Task过程会产生多个临时文件
+		最后在每个Task中，将所有的临时文件合并，一次写入到最终文件
+		每个文件会产生一个index文件，用于记录之后的每个Task所要读取的数据的索引
+	5.Spark内存
+		1.三种内存
+			1. 堆外内存: 直接向操作系统申请的内存，不受JVM控制
+				减少了垃圾回收的工作，但难以控制，如果内存泄漏，那么很难排查
+				堆外内存本身是序列化的，但相对来说，不适合存储很复杂的对象
+				堆外内存大小设置: spark.memory.offHeap.enabled 参数启用，并由 spark.memory.offHeap.size 参数设定堆外空间的大小
+			2. 堆内内存: 程序在运行时动态地申请的内存空间
+				堆内内存大小设置: -executor-memory 或 spark.executor.memory
+			3. 非堆内存: 方法区、栈等
+		2.堆内内存空间分配
+			1. Java内存管理: 分代管理
+				新生代: 会有minor gc
+					EDNE(伊甸):  新出生的
+					S1(幸存区1): EDNE中从minor gc中幸存下来的
+					S2(幸存区2): S1中从minor gc中幸存下来的
+				老年代: 会有major gc
+					经历过一定轮数minor gc的会进入老年代
+			2. Spark内存管理: 分层管理
+				动态内存管理，Storage和Execution所占用内存不固定
+				Storage(存储内存)30%:   cache、广播变量
+				Execution(执行内存)30%: shuffle
+				Other(其他内存)40%:     Spark的内部对象
+
+		3.存储内存管理
+			RDD的持久化机制:
+				在对RDD持久化时，Spark规定了MEMORY_ONLY、MEMORY_AND_DISK 等7种不同的存储级别
+				存储级别从三个维度定义了RDD的 Partition(同时也就是Block)的存储方式
+					存储位置: 磁盘／堆内内存／堆外内存
+						如MEMORY_AND_DISK是同时在磁盘和堆内内存上存储，实现了冗余备份
+						OFF_HEAP 则是只在堆外内存存储，目前选择堆外内存时不能同时存储到其他位置
+					存储形式: Block 缓存到存储内存后，是否为非序列化的形式
+						如 MEMORY_ONLY是非序列化方式存储
+						OFF_HEAP 是序列化方式存储
+					副本数量: 大于1时需要远程冗余备份到其他节点
+						如DISK_ONLY_2需要远程备份1个副本

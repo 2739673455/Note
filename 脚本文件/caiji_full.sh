@@ -65,7 +65,6 @@ echo is.seperated.tables=0 >> $conf_path
 echo hdfs.uri=hdfs://$active_node:8020 >> $conf_path
 echo import_out_dir=$import_path >> $conf_path
 cd $conf_dir;java -jar datax-config-generator-1.0-SNAPSHOT-jar-with-dependencies.jar
-#指定各个路径与库名
 
 case $1 in
 "all")

@@ -151,6 +151,16 @@
 					retries>0
 					acks=-1
 					当此批次的SeqNumber比最新的SeqNumber大2，证明乱序，拒绝写入，回应Producer，对RecorderAccumulator中的分区的batch重新排序
+	5.生产者API
+		Properties properties = new Properties();
+		properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092,hadoop103:9092,hadoop104:9092");
+		properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
+		for (int i = 0; i < 10; i++) {
+			kafkaProducer.send(new ProducerRecord<>("test", String.valueOf(i)));
+		}
+		kafkaProducer.close();
 
 4.Broker
 	1.Broker工作流程
@@ -376,6 +386,20 @@
 			2. 如果是下游的数据处理不及时，提高每批次拉取的数量。批次拉取数据过少(拉取数据/处理时间<生产速度)，使处理的数据小于生产的数据，也会造成数据积压
 			fetch.max.bytes  #默认Default:52428800(50m)，消费者获取服务器端一批消息最大的字节数
 			max.poll.records  #默认500条，一次poll拉取数据返回消息的最大条数
+	6.消费者API
+		Properties properties = new Properties();
+		properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092,hadoop103:9092,hadoop104:9092");
+		properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+		properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+		properties.put(ConsumerConfig.GROUP_ID_CONFIG, "group1");
+		KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(properties);
+		ArrayList<String> topics = new ArrayList<>();
+		topics.add("test");
+		kafkaConsumer.subscribe(topics);
+		while (true) {
+			ConsumerRecords<String, String> consumerRecords = kafkaConsumer.poll(Duration.ofMillis(1000));
+			consumerRecords.forEach(System.out::println);
+		}
 
 6.Kafka Kraft模式
 	1.Kraft架构

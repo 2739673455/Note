@@ -17,7 +17,7 @@
     4. 创建用户
         useradd atguigu
         passwd atguigu
-        visudo  #赋予root权限
+        visudo  # 赋予root权限
         atguigu ALL=(ALL) NOPASSWD:ALL
     5. 创建目录
         mkdir /opt/module
@@ -33,12 +33,12 @@
             export HADOOP_HOME=/opt/module/hadoop-3.3.4
             export PATH=$PATH:$HADOOP_HOME/bin
             export PATH=$PATH:$HADOOP_HOME/sbin
-        source /etc/profile  #让环境变量生效
+        source /etc/profile  # 让环境变量生效
 # 2.集群配置
 ## 1.配置ssh免密登录
-    ssh-keygen -t rsa  #生成密钥
-    ssh-copy-id 主机名  #分发密钥
-    #密钥在/home/atguigu/.ssh目录下
+    ssh-keygen -t rsa  # 生成密钥
+    ssh-copy-id 主机名  # 分发密钥
+    # 密钥在/home/atguigu/.ssh目录下
     问题:
     1. ssh分发之后登录仍需密码
         用户目录权限过大，修改为700
@@ -208,7 +208,7 @@
         </property>
     </configuration>
 ### 5.workers
-    #配置从节点信息
+    # 配置从节点信息
     hadoop102
     hadoop103
     hadoop104
@@ -285,10 +285,10 @@
         1. 授权192.168.10.0网段上的所有机器可以从这台机器上查询和同步时间
             restrict 192.168.10.0 mask 255.255.255.0 nomodify notrap
         2. 集群在局域网中，不使用其他互联网上的时间，将其他时间服务器注释掉
-            #server 0.centos.pool.ntp.org iburst
-            #server 1.centos.pool.ntp.org iburst
-            #server 2.centos.pool.ntp.org iburst
-            #server 3.centos.pool.ntp.org iburst
+            # server 0.centos.pool.ntp.org iburst
+            # server 1.centos.pool.ntp.org iburst
+            # server 2.centos.pool.ntp.org iburst
+            # server 3.centos.pool.ntp.org iburst
         3. 当该节点丢失网络连接，依然可以采用本地时间作为时间服务器为集群中的其他节点提供时间同步
             server 127.127.1.0
             fudge 127.127.1.0 stratum 10
@@ -670,17 +670,17 @@
         1. 在Mapper的setup()阶段，将文件读取到缓存集合中
             URI[] cacheFiles = context.getCacheFiles();
             Path path = new Path(cacheFiles[0]);
-                #通过缓存文件得到小表数据
+                # 通过缓存文件得到小表数据
         2. 在Driver驱动类中加载缓存
             job.addCacheFile(new URI("file:///e:/cache/pd.txt"));
-                #缓存普通文件到Task运行节点
+                # 缓存普通文件到Task运行节点
             job.addCacheFile(new URI("hdfs://hadoop102:8020/cache/pd.txt"));
-                #如果是集群运行,需要设置HDFS路径
+                # 如果是集群运行,需要设置HDFS路径
 ### 2.Reduce Join
     1. Map端的主要工作:为来自不同表或文件的key/value对，打标签以区别不同来源的记录。然后用连接字段作为key，其余部分和新加的标志作为value，最后进行输出
         FileSplit fileSplit = (FileSplit) context.getInputSplit();
         fileName = fileSplit.getPath().getName();
-            #确定数据来源与哪个文件
+            # 确定数据来源与哪个文件
     2. Reduce端的主要工作:在每一个分组当中将那些来源于不同文件的记录(在Map阶段已经打标志)分开，最后进行合并
 # 5.Yarn
 ## 1.Yarn的基础架构
@@ -977,7 +977,7 @@
         </property>
     4. 分发配置文件whitelist，hdfs-site.xml
     5. 第一次添加白名单必须重启集群，如不是第一次，只需要刷新NameNode节点即可
-        hdfs dfsadmin -refreshNodes  #刷新NameNode节点
+        hdfs dfsadmin -refreshNodes  # 刷新NameNode节点
 ### 4.黑名单
     在黑名单的主机IP地址不可以存储数据
     企业中配置黑名单，用来退役服务器
@@ -991,7 +991,7 @@
         </property>
     4. 分发配置文件blacklist，hdfs-site.xml
     5. 第一次添加黑名单必须重启集群，如不是第一次，只需要刷新NameNode节点即可
-        hdfs dfsadmin -refreshNodes  #刷新NameNode节点
+        hdfs dfsadmin -refreshNodes  # 刷新NameNode节点
     6. 等待退役节点状态为decommissioned(所有块已经复制完成)，停止该节点及节点资源管理器
     注意:如果副本数是3，服役的节点小于等于3，是不能退役成功的，需要修改副本数后才能退役
 ## 3.HDFS-安全模式
@@ -1009,10 +1009,10 @@
             稳定时间，默认值30000毫秒，即30秒
 ### 2.基本语法
     集群处于安全模式，不能执行重要操作（写操作）。集群启动完成后，自动退出安全模式。
-    bin/hdfs dfsadmin -safemode get  #查看安全模式状态
-    bin/hdfs dfsadmin -safemode enter  #进入安全模式状态
-    bin/hdfs dfsadmin -safemode leave  #离开安全模式状态
-    bin/hdfs dfsadmin -safemode wait  #等待安全模式状态
+    bin/hdfs dfsadmin -safemode get    # 查看安全模式状态
+    bin/hdfs dfsadmin -safemode enter  # 进入安全模式状态
+    bin/hdfs dfsadmin -safemode leave  # 离开安全模式状态
+    bin/hdfs dfsadmin -safemode wait   # 等待安全模式状态
 ## 4.Hadoop数据压缩
 ### 1.概述
     压缩的优点:减少磁盘IO、减少磁盘存储空间
@@ -1040,22 +1040,22 @@
 ### 4.在Hadoop中启用压缩的配置参数
 | 参数 | 描述 |
 | --- | --- |
-| DEFLATE | org.apache.hadoop.io.compress.DefaultCodec
-| gzip | org.apache.hadoop.io.compress.GzipCodec
-| bzip2 | org.apache.hadoop.io.compress.BZip2Codec
-| LZO | com.hadoop.compression.lzo.LzopCodec
-| Snappy | org.apache.hadoop.io.compress.SnappyCodec
-    1. io.compression.codecs(在core-site.xml中配置)  #输入压缩
+| DEFLATE |  org.apache.hadoop.io.compress.DefaultCodec
+| gzip    |  org.apache.hadoop.io.compress.GzipCodec
+| bzip2   |  org.apache.hadoop.io.compress.BZip2Codec
+| LZO     |  com.hadoop.compression.lzo.LzopCodec
+| Snappy  |  org.apache.hadoop.io.compress.SnappyCodec
+    1. io.compression.codecs(在core-site.xml中配置)  # 输入压缩
         默认值无，这个需要在命令行输入hadoop checknative查看
         Hadoop使用文件扩展名判断是否支持某种编解码器
-    2. mapreduce.map.output.compress(在mapred-site.xml中配置)  #mapper输出
+    2. mapreduce.map.output.compress(在mapred-site.xml中配置)  # mapper输出
         默认false，设置为true则启用压缩
-    3. mapreduce.map.output.compress.codec(在mapred-site.xml中配置)  #mapper输出
+    3. mapreduce.map.output.compress.codec(在mapred-site.xml中配置)  # mapper输出
         默认org.apache.hadoop.io.compress.DefaultCodec
         企业多使用LZO或Snappy编解码器在此阶段压缩数据
-    4. mapreduce.output.fileoutputformat.compress(在mapred-site.xml中配置)  #reducer输出
+    4. mapreduce.output.fileoutputformat.compress(在mapred-site.xml中配置)  # reducer输出
         默认false，设置为true则启用压缩
-    5. mapreduce.output.fileoutputformat.compress.codec(在mapred-site.xml中配置)  #reducer输出
+    5. mapreduce.output.fileoutputformat.compress.codec(在mapred-site.xml中配置)  # reducer输出
         默认org.apache.hadoop.io.compress.DefaultCodec
         使用标准工具或者编解码器，如gzip和bzip2
 ### 5.压缩实操案例
@@ -1079,12 +1079,12 @@
         自定义类继承Partitioner，重写getPartition方法
     3. 减少溢写的次数
         mapreduce.task.io.sort.mb
-            #Shuffle的环形缓冲区大小，默认100m，可以提高到200m
+            Shuffle的环形缓冲区大小，默认100m，可以提高到200m
         mapreduce.map.sort.spill.percent
-            #环形缓冲区溢出的阈值，默认80% ，可以提高的90%
+            环形缓冲区溢出的阈值，默认80% ，可以提高的90%
     4. 增加每次Merge合并次数
         mapreduce.task.io.sort.factor
-            #默认10，可以提高到20
+            默认10，可以提高到20
     5. 在不影响业务结果的前提条件下可以提前采用Combiner
         job.setCombinerClass(xxxReducer.class);
     6. 为了减少磁盘IO，可以采用Snappy或者LZO压缩
@@ -1092,13 +1092,13 @@
         conf.setClass("mapreduce.map.output.compress.codec", SnappyCodec.class,CompressionCodec.class);
     7. 增大MapTask内存上限
         mapreduce.map.memory.mb
-            #默认MapTask内存上限1024MB，可以根据128m数据对应1G内存原则提高该内存
+            默认MapTask内存上限1024MB，可以根据128m数据对应1G内存原则提高该内存
     8. 增加MapTaskCPU核数
         mapreduce.map.cpu.vcores
-            #默认MapTask的CPU核数1，计算密集型任务可以增加CPU核数
+            默认MapTask的CPU核数1，计算密集型任务可以增加CPU核数
     9. 异常重试
         mapreduce.map.maxattempts
-            #每个Map Task最大重试次数，一旦重试次数超过该值则认为Map Task运行失败，默认值4，根据机器性能适当提高
+            每个Map Task最大重试次数，一旦重试次数超过该值则认为Map Task运行失败，默认值4，根据机器性能适当提高
 ### 2.Reduce端优化
     1. mapreduce.reduce.shuffle.parallelcopies
         每个Reduce去Map中拉取数据的并行数，默认值是5，可以提高到10
@@ -1151,13 +1151,13 @@
         重命名/opt/module/zookeeper-3.7.1/conf这个目录下的zoo_sample.cfg为zoo.cfg
         mv zoo_sample.cfg zoo.cfg
         vi zoo.cfg
-        #修改数据存储路径配置
+        # 修改数据存储路径配置
         dataDir=/opt/module/zookeeper-3.7.1/zkData
-        #增加如下配置
+        # 增加如下配置
         server.2=hadoop102:2888:3888
         server.3=hadoop103:2888:3888
         server.4=hadoop104:2888:3888
-        #配置参数解读:server.第几号服务器=服务器的地址:服务器Follower与集群中的Leader服务器交换信息的端口:执行选举时服务器相互通信的端口
+        # 配置参数解读:server.第几号服务器=服务器的地址:服务器Follower与集群中的Leader服务器交换信息的端口:执行选举时服务器相互通信的端口
         同步zoo.cfg文件
     4. 集群操作
         分别启动ZooKeeper
@@ -1192,28 +1192,28 @@
 ### 2.命令行语法
 | 参数 | 描述 |
 | --- | --- |
-| help      | 显示所有操作命令
-| ls path   | 使用 ls 命令来查看当前znode的子节点， -w 监听子节点变化， -s 附加次级信息
-| create    | 普通创建， -s 含有序列， -e 临时(重启或者超时消失)
-| get 节点   | 获得节点的值， -w 监听节点内容变化， -s 附加次级信息
-| set       | 设置节点的具体值
-| stat      | 查看节点状态
-| delete    | 删除节点
-| deleteall | 递归删除节点
+| help      |  显示所有操作命令
+| ls path   |  使用 ls 命令来查看当前znode的子节点， -w 监听子节点变化， -s 附加次级信息
+| create    |  普通创建， -s 含有序列， -e 临时(重启或者超时消失)
+| get 节点   |  获得节点的值， -w 监听节点内容变化， -s 附加次级信息
+| set       |  设置节点的具体值
+| stat      |  查看节点状态
+| delete    |  删除节点
+| deleteall |  递归删除节点
 ### 3.节点数据信息
 | 参数 | 描述 |
 | --- | --- |
-| czxid          | 创建节点的事务zxid，每次修改ZooKeeper状态都会产生一个ZooKeeper事务ID。事务ID是ZooKeeper中所有修改总的次序。每次修改都有唯一的zxid，如果zxid1小于zxid2，那么zxid1在zxid2之前发生
-| ctime          | znode被创建的毫秒数(从1970年开始)
-| mzxid          | znode最后更新的事务zxid
-| mtime          | znode最后修改的毫秒数(从1970年开始)
-| pZxid          | znode最后更新的子节点zxid
-| cversion       | znode子节点变化号，znode子节点修改次数
-| dataversion    | znode数据变化号
-| aclVersion     | znode访问控制列表的变化号
-| ephemeralOwner | 如果是临时节点，这个是znode拥有者的session id。如果不是临时节点则是0
-| dataLength     | znode的数据长度
-| numChildren    | znode子节点数量
+| czxid          |  创建节点的事务zxid，每次修改ZooKeeper状态都会产生一个ZooKeeper事务ID。事务ID是ZooKeeper中所有修改总的次序。每次修改都有唯一的zxid，如果zxid1小于zxid2，那么zxid1在zxid2之前发生
+| ctime          |  znode被创建的毫秒数(从1970年开始)
+| mzxid          |  znode最后更新的事务zxid
+| mtime          |  znode最后修改的毫秒数(从1970年开始)
+| pZxid          |  znode最后更新的子节点zxid
+| cversion       |  znode子节点变化号，znode子节点修改次数
+| dataversion    |  znode数据变化号
+| aclVersion     |  znode访问控制列表的变化号
+| ephemeralOwner |  如果是临时节点，这个是znode拥有者的session id。如果不是临时节点则是0
+| dataLength     |  znode的数据长度
+| numChildren    |  znode子节点数量
 ### 4.监听器原理
     客户端注册监听它关心的目录节点，当目录节点发生变化(数据改变、节点删除、子目录节点增加删除)时，ZooKeeper会通知客户端。监听机制保证ZooKeeper保存的任何的数据的任何改变都能快速的响应到监听了该节点的应用程序
 ## 5.写数据流程
