@@ -75,7 +75,5 @@ case $1 in
 "jps")jpsall;;
 "zk")zk $2;;
 "kafka")kafka $2;;
-*)
-    echo "start|stop|clean|compare|jps|zk|kafka" 
-;;
+*)echo "start|stop|clean|compare|jps|zk|kafka";;
 esac

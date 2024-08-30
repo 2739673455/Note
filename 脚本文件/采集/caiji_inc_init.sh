@@ -1,10 +1,7 @@
 #!/bin/bash
 #mysql中业务数据使用maxwell首次采集历史全量到kafka
 #该脚本的作用是初始化所有的增量表，只需执行一次
-if [ $# -lt 1 ];then
-	echo "all | tableName"
-	exit
-fi
+[ $# -lt 1 ] && echo "all | tableName" && exit
 database_name="gmall"
 MAXWELL_HOME=/opt/module/maxwell-1.29.2
 table_list=(

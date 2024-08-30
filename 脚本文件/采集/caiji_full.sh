@@ -1,4 +1,5 @@
 #!/bin/bash
+#mysql中业务数据使用datax全量采集到hdfs
 conf_path=/opt/module/gen_datax_config/configuration.properties
 database_name=gmall
 DATAX_HOME=/opt/module/datax
@@ -23,26 +24,12 @@ json_list=(
 	"promotion_pos"
 	"promotion_refer"
 )
-#mysql中业务数据使用datax全量采集到hdfs
-if [ $# -lt 1 ]; then
-	echo "all | tableName"
-	exit
-fi
+[ $# -lt 1 ] && echo "all | tableName [date]" && exit
 #如果传入日期则do_date等于传入的日期，否则等于前一天日期
-if [ -n "$2" ]; then
-	do_date=$2
-else
-	do_date=`date -d "-1 day" +%F`
-fi
-#处理目标路径，此处的处理逻辑是，如果目标路径不存在，则创建；若存在，则清空，目的是保证同步任务可重复执行
+[ -n "$2" ] && do_date=$2 || do_date=`date -d "-1 day" +%F`
 handle_targetdir() {
 	hadoop fs -test -e $1
-	if [[ $? -eq 1 ]]; then
-		echo "路径$1不存在，正在创建......"
-		hadoop fs -mkdir -p $1
-	else
-		echo "路径$1已经存在"
-	fi
+	[ $? -eq 1 ] && hadoop fs -mkdir -p $1
 }
 #数据同步
 import_data() {

@@ -432,7 +432,7 @@
         load data [local] inpath '数据的地址' [overwrite] into table 表名 partition(分区字段名='分区值')
         load data local inpath '/opt/module/hive/datas/20221010.txt' into table dept_partition partition(day='20221010')
         # 如果导数据时没有对应的分区那么会自动创建
-    5. 同步hdfs与元数据分区信息
+    5. 修复分区
         1. 增加hdfs路径存在但元数据缺失的分区信息(有目录但是没有对应的元数据)
             msck repair table 表名 add partitions
         2. 删除hdfs路径已经删除但元数据仍然存在的分区信息(有元数据但是没有对应的目录)

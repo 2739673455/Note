@@ -638,6 +638,7 @@
 | interrupt()                    |  中断线程，若要通过该方法制造InterrupttedException，需要这个线程正在执行可能发生该异常的方法，例如:sleep，wait等
 | setDaemon(true)                |  将指定线程设置为守护线程，必须在线程启动之前设置，否则会报IllegalThreadStateException异常
 | isDaemon()                     |  判断线程是否是守护线程
+| sleep(),wait()                 |  t1.sleep() 当前main线程进入休眠，t1.wait() t1线程进入休眠 
 ## 3.同步锁(synchronized)
     1. 同步方法
         [其他修饰符] synchronized 返回值类型 方法名([形参列表]){
