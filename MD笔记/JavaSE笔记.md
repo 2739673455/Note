@@ -1021,7 +1021,7 @@
 | str.replaceAll(正则表达式, value)   |  将所有满足正则的所有字符替换为value
 | str.replaceFirst(正则表达式, value) |  将首个满足正则的字符替换为value
 | str.replace(value1, value2)       |  将所有value1替换为value2
-| str.split(value)                  |  将str按value为分隔拆分为字符串数组
+| str.split(regex)                  |  将str按正则表达式为分隔拆分为字符串数组
 | str.trim()                        |  去掉前后空白字符(包括空格\t\n等)
 | str1.intern() | 如果常量池中存在当前字符串, 就会直接返回当前字符串. 如果常量池中没有此字符串, 会将此字符串放入常量池中后, 再返回
 | byte[] bytes = str.getBytes("UTF-8") |  字符串按UTF-8编码后的byte数组

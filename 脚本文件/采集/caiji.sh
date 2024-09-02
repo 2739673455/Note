@@ -16,14 +16,14 @@ function maxwell_operate(){
 	message="Maxwell db1 : mysql -> kafka"
 	check_status "$maxwell_conf"
 	case $1 in
-	"start")[ $? -lt 1 ] && echo "$message start" && $MAXWELL_HOME/bin/maxwell --config $MAXWELL_HOME/config.properties --daemon || echo "$message is running";;
+	"start")[ $? -lt 1 ] && echo "$message start" && $maxwell_home/bin/maxwell --config $maxwell_home/config.properties --daemon || echo "$message is running";;
 	"stop")[ $? -gt 0 ] && echo "$message stop" && eval $(ps_stop $maxwell_conf) || echo "$message isn't running";;
 	esac
 }
 function flume_operate(){
 	host=$1
 	conf_file=$2
-	message=$3
+	message=$host" flume "$3
 	check_status_remote $host $conf_file
 	case $4 in
 	"start")[ $? -lt 1 ] && echo "$message start" && ssh $host "$(flume_start $conf_file)" || echo "$message is running";;
@@ -32,31 +32,31 @@ function flume_operate(){
 }
 
 FLUME_HOME=/opt/module/flume-1.10.1
-MAXWELL_HOME=/opt/module/maxwell-1.29.2
+maxwell_home=/opt/module/maxwell-1.29.2
 flume_conf_log1=file_to_kafka.conf
 flume_conf_log2=kafka_to_hdfs_log.conf
 flume_conf_db2=kafka_to_hdfs_db.conf
 maxwell_conf=com.zendesk.maxwell.Maxwell
 
 case $1 in
-"log1open")flume_operate hadoop102 $flume_conf_log1 "hadoop102 flume log1 : logfile -> kafka" start;;
-"log1close")flume_operate hadoop102 $flume_conf_log1 "hadoop102 flume log1 : logfile -> kafka" stop;;
-"db2open")flume_operate hadoop103 $flume_conf_db2 "hadoop103 flume db2 : kafka -> hdfs" start;;
-"db2close")flume_operate hadoop103 $flume_conf_db2 "hadoop103 flume db2 : kafka -> hdfs" stop;;
-"log2open")flume_operate hadoop104 $flume_conf_log2 "hadoop104 flume log2 : kafka -> hdfs" start;;
-"log2close")flume_operate hadoop104 $flume_conf_log2 "hadoop104 flume log2 : kafka -> hdfs" stop;;
+"log1open")flume_operate hadoop102 $flume_conf_log1 "log1 : logfile -> kafka" start;;
+"log1close")flume_operate hadoop102 $flume_conf_log1 "log1 : logfile -> kafka" stop;;
+"db2open")flume_operate hadoop103 $flume_conf_db2 "db2 : kafka -> hdfs" start;;
+"db2close")flume_operate hadoop103 $flume_conf_db2 "db2 : kafka -> hdfs" stop;;
+"log2open")flume_operate hadoop104 $flume_conf_log2 "log2 : kafka -> hdfs" start;;
+"log2close")flume_operate hadoop104 $flume_conf_log2 "log2 : kafka -> hdfs" stop;;
 "maxwellstart")maxwell_operate start;;
 "maxwellstop")maxwell_operate stop;;
 "allstart")
-	flume_operate hadoop102 $flume_conf_log1 "hadoop102 flume log1 : logfile -> kafka" start
-	flume_operate hadoop104 $flume_conf_log2 "hadoop104 flume log2 : kafka -> hdfs" start
-	flume_operate hadoop103 $flume_conf_db2 "hadoop103 flume db2 : kafka -> hdfs" start
+	flume_operate hadoop102 $flume_conf_log1 "log1 : logfile -> kafka" start
+	flume_operate hadoop104 $flume_conf_log2 "log2 : kafka -> hdfs" start
+	flume_operate hadoop103 $flume_conf_db2 "db2 : kafka -> hdfs" start
 	maxwell_operate start
 	;;
 "allstop")
-	flume_operate hadoop102 $flume_conf_log1 "hadoop102 flume log1 : logfile -> kafka" stop
-	flume_operate hadoop104 $flume_conf_log2 "hadoop104 flume log2 : kafka -> hdfs" stop
-	flume_operate hadoop103 $flume_conf_db2 "hadoop103 flume db2 : kafka -> hdfs" stop
+	flume_operate hadoop102 $flume_conf_log1 "log1 : logfile -> kafka" stop
+	flume_operate hadoop104 $flume_conf_log2 "log2 : kafka -> hdfs" stop
+	flume_operate hadoop103 $flume_conf_db2 "db2 : kafka -> hdfs" stop
 	maxwell_operate stop
 	;;
 *)
