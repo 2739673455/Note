@@ -1,5 +1,5 @@
 #!/bin/bash
-[ $# -lt 1 ] && echo "[all|tableName] date" && exit
+[ $# -lt 1 ] && echo "<all|tableName> date" && exit
 [ -n "$2" ] && do_date="$2" || { echo "please input date"; exit; }
 hive_db=gmall240522
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-[ $# -lt 1 ] && echo "[all|tableName] date" && exit
+[ $# -lt 1 ] && echo "<all|tableName> [date]" && exit
 [ -n "$2" ] && do_date="$2" || do_date=`date -d "-1 day" +%F`
 hive_db=gmall240522
 
@@ -352,7 +352,6 @@ left join
 )dic
 on rule.activity_type=dic.dic_code;
 "
-
 
 dim_promotion_pos_full="
 insert overwrite table ${hive_db}.dim_promotion_pos_full partition(dt='$do_date')

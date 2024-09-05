@@ -1,5 +1,5 @@
 #!/bin/bash
-[ $# -lt 1 ] && echo "Usage: $0 all|ods_tableName [date]" && exit
+[ $# -lt 1 ] && echo "<all|ods_tableName> [date]" && exit
 [ -n "$2" ] && do_date=$2 || do_date=`date -d '-1 day' +%F`
 inc_prefix=/gmall/db_inc
 full_prefix=/gmall/db_full

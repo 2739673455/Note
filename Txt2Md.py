@@ -25,6 +25,7 @@ class Converter:
             print(e)
             print(content)
             os.system("pause")
+            tab_num = 0
         self.paragraph_tab_num = tab_num if self.paragraph_tab_num == 0 else self.paragraph_tab_num
         space_num = (tab_num - self.paragraph_tab_num + 1) * 4
         content = re.sub(r"\t*\t", " " * space_num, content, count=1, flags=0)
@@ -32,7 +33,7 @@ class Converter:
         return content
 
     def convertTable(self, content, md_file):
-        '''
+        """
         表格样式1: - ... #...
         表格样式2: - ...
                     ...
@@ -40,7 +41,7 @@ class Converter:
                     #...#
                     #...#
                     #...
-        '''
+        """
         if self.table_head_flag == 1:
             # 添加表头
             md_file.write("| 参数 | 描述 |\n")
@@ -69,9 +70,9 @@ class Converter:
 
 
 def txtToMd(txt_file_path):
-    md_file_path = txt_file_path.replace("TXT", "MD").split(".")[0] + ".md"
-    txt_file = open(txt_file_path, 'r', encoding="utf8")
-    md_file = open(md_file_path, 'w', encoding="utf8")
+    md_file_path = txt_file_path.replace("Txt", "Markdown").split(".")[0] + ".md"
+    txt_file = open(txt_file_path, "r", encoding="utf8")
+    md_file = open(md_file_path, "w", encoding="utf8")
     converter1 = Converter()
     for content in txt_file.readlines():
         if content == "\n":
@@ -87,7 +88,7 @@ def txtToMd(txt_file_path):
     md_file.close()
 
 
-txt_file_prefix = "D:/Code/笔记/TXT笔记/"
+txt_file_prefix = "D:/Code/笔记/Txt/"
 txt_file_list = [
     "JavaSE笔记.txt",
     "Maxwell和DataX笔记.txt",
@@ -97,7 +98,8 @@ txt_file_list = [
     "Flume笔记.txt",
     "Kafka笔记.txt",
     "采集项目笔记.txt",
-    "Spark笔记.txt"
+    "Spark笔记.txt",
+    "数据仓库笔记.txt",
 ]
 
 for txt_file_path in txt_file_list:

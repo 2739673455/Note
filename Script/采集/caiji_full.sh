@@ -24,7 +24,7 @@ json_list=(
 	"promotion_pos"
 	"promotion_refer"
 )
-[ $# -lt 1 ] && echo "all | tableName [date]" && exit
+[ $# -lt 1 ] && echo "<all|tableName> [date]" && exit
 #如果传入日期则do_date等于传入的日期，否则等于前一天日期
 [ -n "$2" ] && do_date=$2 || do_date=`date -d "-1 day" +%F`
 #数据同步
@@ -66,6 +66,6 @@ case $1 in
 			exit
 		fi
 	done
-	echo "table not exist"
+	echo "table not found"
 	;;
 esac
