@@ -1,4 +1,5 @@
 sub connect()
+	Wscript.Sleep 3000
 	set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
 	set colAdapters = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionID = 'ethernet'")
 	For Each objAdapter in colAdapters
