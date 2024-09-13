@@ -5,4 +5,4 @@ hdfs_dir="/gmall/log/$do_date"
 hive_db=gmall240522
 echo "log date : $do_date"
 hadoop fs -test -e $hdfs_dir
-[ $? = 0 ] && sql="load data inpath $hdfs_dir into table ${hive_db}.ods_log_inc partition(dt='$do_date');" && hive -e "$sql" || echo "$hdfs_dir not exist"
+[ $? = 0 ] && sql="load data inpath '$hdfs_dir' into table ${hive_db}.ods_log_inc partition(dt='$do_date');" && hive -e "$sql" || echo "$hdfs_dir not exist"

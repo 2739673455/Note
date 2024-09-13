@@ -53,13 +53,11 @@ export_data() {
 	$datax_home/bin/datax.py -p"-Dexportdir=$export_dir" $datax_config
 }
 
-flag=1
 for table in "${table_list[@]}"; do
 	if [ "$1" == "$table" ] || [ "$1" == "all" ]; then
-		flag=0
 		echo "$table : hdfs -> mysql"
 		export_data $export_path/$database_name.${table}.json $hdfs_path/${table}
 		[ "$1" != "all" ] && exit
 	fi
 done
-[ $flag -eq 1 ] && echo "table not found"
+[ "$1" != "all" ] && echo "table not found" || exit 0

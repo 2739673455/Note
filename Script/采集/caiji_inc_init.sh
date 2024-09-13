@@ -23,21 +23,11 @@ import_data() {
 	$maxwell_home/bin/maxwell-bootstrap --database $database_name --table $1 --config $maxwell_home/config.properties
 }
 
-case $1 in
-"all")
-	echo "maxwell inc init start : mysql -> kafka"
-	for table in ${table_list[@]}; do
+for table in "${table_list[@]}"; do
+	if [ "$1" == "$table" ] || [ "$1" == "all" ]; then
+		echo "maxwell $table inc init start : mysql -> kafka"
 		import_data $table
-	done
-	;;
-*)
-	for table in "${table_list[@]}"; do
-		if [[ "$table" == "$1" ]]; then
-			echo "maxwell $1 inc init start : mysql -> kafka"
-			import_data $table
-			exit
-		fi
-	done
-	echo "table not found"
-	;;
-esac
+		[ "$1" != "all" ] && exit
+	fi
+done
+[ "$1" != "all" ] && echo "table not found" || exit 0

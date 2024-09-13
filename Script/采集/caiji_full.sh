@@ -52,32 +52,11 @@ import_data() {
 	python $datax_home/bin/datax.py -p"-Dtargetdir=$target_dir" $datax_config
 }
 
-flag=1
 for table in "${table_list[@]}"; do
 	if [ "$1" == "$table" ] || [ "$1" == "all" ]; then
-		flag=0
 		echo "$table : mysql -> hdfs"
 		import_data $import_path/$database_name.${table}.json $hdfs_path/${table}_full/$do_date
 		[ "$1" != "all" ] && exit
 	fi
 done
-[ $flag -eq 1 ] && echo "table not found"
-
-# case $1 in
-# "all")
-# 	echo "datax full start : mysql -> hdfs"
-# 	for table in ${table_list[@]}; do
-# 		import_data $import_path/$database_name.${table}.json $hdfs_path/${table}_full/$do_date
-# 	done
-# 	;;
-# *)
-# 	for table in "${table_list[@]}"; do
-# 		if [[ "$table" == "$1" ]]; then
-# 			echo "datax $1 full start : mysql -> hdfs"
-# 			import_data $import_path/$database_name.${table}.json $hdfs_path/${table}_full/$do_date
-# 			exit
-# 		fi
-# 	done
-# 	echo "table not found"
-# 	;;
-# esac
+[ "$1" != "all" ] && echo "table not found" || exit 0

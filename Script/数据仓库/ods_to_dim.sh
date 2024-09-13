@@ -385,8 +385,6 @@ case $1 in
 "dim_activity_full")hive -e "$dim_activity_full";;
 "dim_promotion_pos_full")hive -e "$dim_promotion_pos_full";;
 "dim_promotion_refer_full")hive -e "$dim_promotion_refer_full";;
-"all")
-	hive -e "$dim_user_zip$dim_sku_full$dim_province_full$dim_coupon_full$dim_activity_full$dim_promotion_refer_full$dim_promotion_pos_full"
-	;;
+"all")hive -e "$dim_user_zip$dim_sku_full$dim_province_full$dim_coupon_full$dim_activity_full$dim_promotion_refer_full$dim_promotion_pos_full";;
 *)echo "table not found";;
 esac

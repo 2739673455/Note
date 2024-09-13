@@ -47,6 +47,6 @@ hive_tables=(
 	"ods_user_info_inc"
 )
 case $1 in
-    "all")load_data ${hive_tables[@]};;
-	*)load_data $1;;
+"all")load_data ${hive_tables[@]};;
+*)load_data $1;;
 esac

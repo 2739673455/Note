@@ -7,7 +7,7 @@ function check_status_remote(){
     return $(ssh $1 "ps -ef | grep $2 | grep -v grep | wc -l")
 }
 function flume_start(){
-	echo "nohup ${FLUME_HOME}/bin/flume-ng agent -n a1 -c ${FLUME_HOME}/conf -f ${FLUME_HOME}/job/$1 >/dev/null 2>&1 &"
+	echo "nohup ${flume_home}/bin/flume-ng agent -n a1 -c ${flume_home}/conf -f ${flume_home}/job/$1 >/dev/null 2>&1 &"
 }
 function ps_stop(){
 	echo "ps -ef | grep $1 | grep -v grep | awk '{print \$2}' | xargs kill -9"
@@ -31,7 +31,7 @@ function flume_operate(){
 	esac
 }
 
-FLUME_HOME=/opt/module/flume-1.10.1
+flume_home=/opt/module/flume-1.10.1
 maxwell_home=/opt/module/maxwell-1.29.2
 flume_conf_log1=file_to_kafka.conf
 flume_conf_log2=kafka_to_hdfs_log.conf
