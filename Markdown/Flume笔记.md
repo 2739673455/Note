@@ -25,7 +25,7 @@
     修改conf下的log4j2.xml确定日志打印的位置,在53行后插入
         53  <AppenderRef ref="LogFile" />
         54  <AppenderRef ref="Console" />
-    可在/opt/module/flume/conf/flume-env.sh中调节Flume堆内存大小
+    可在/opt/module/flume-1.10.1/conf/flume-env.sh中调节Flume堆内存大小
         export JAVA_OPTS="-Xms1024m -Xmx1024m"
         -Xms  #jvm启动时分配的内存
         -Xmx  #jvm运行过程中分配的最大内存

@@ -2,8 +2,8 @@
 HIVE_LOG_DIR=$HIVE_HOME/logs
 [ ! -d $HIVE_LOG_DIR ] && mkdir -p $HIVE_LOG_DIR
 
-hiveserver2_host=hadoop102
-metastore_host=hadoop102
+hiveserver2_host=hadoop100
+metastore_host=hadoop101
 
 function check_process(){
 	server_name=$1

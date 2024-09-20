@@ -1,17 +1,14 @@
 #!/bin/bash
 hosts=(`cat /home/atguigu/bin/hosts.sh`)
-hdfs_host=${hosts[0]}
-yarn_host=${hosts[1]}
-histoty_host=${hosts[0]}
+hdfs_host=hadoop100
+yarn_host=hadoop101
 function hadoop_start(){
     echo ------- hadoop start -------
     ssh $hdfs_host start-dfs.sh
     ssh $yarn_host start-yarn.sh
-    ssh $histoty_host mapred --daemon start historyserver
 }
 function hadoop_stop(){
     echo ------- hadoop stop -------
-    ssh $histoty_host mapred --daemon stop historyserver
     ssh $yarn_host stop-yarn.sh
     ssh $hdfs_host stop-dfs.sh
 }
@@ -39,7 +36,7 @@ function hadoop_compare(){
             continue
         fi
         for host in ${hosts[@]}; do
-            ssh $host cat $file | diff $file - > /dev/null || echo $file on $host is different
+            ssh $host cat $file | diff $file - > /dev/null || echo $file on  $host is different
         done
     done
     echo ------- compare finish -------
@@ -51,15 +48,25 @@ function jpsall(){
     done
 }
 function zk(){
+    zk_host=(
+        hadoop102
+        hadoop103
+        hadoop104
+    )
     echo ------- zookeeper $1 -------
-    for host in ${hosts[@]}; do
+    for host in ${zk_host[@]}; do
         echo ------- $host -------
         ssh $host zkServer.sh $1
     done
 }
 function kafka(){
+    kafka_host=(
+        hadoop102
+        hadoop103
+        hadoop104
+    )
     echo ------- kafka $1 -------
-    for host in ${hosts[@]}; do
+    for host in ${kafka_host[@]}; do
         echo ------- $host -------
         case $1 in
         "start") ssh $host kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties;;
@@ -67,6 +74,7 @@ function kafka(){
         esac
     done
 }
+
 case $1 in
 "start")hadoop_start;;
 "stop")hadoop_stop;;

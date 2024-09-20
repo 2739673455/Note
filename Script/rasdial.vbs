@@ -1,14 +1,26 @@
 sub connect()
 	Wscript.Sleep 3000
 	set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
-	set colAdapters = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionID = 'ethernet'")
+	
+	' set colAdapters = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionID = 'ethernet'")
+	' For Each objAdapter in colAdapters
+	' 	connectStatus = objAdapter.NetConnectionStatus
+	' 	set colConfigs = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE Index = " & objAdapter.Index & " AND IPEnabled = True")
+	' 	For Each objConfig in colConfigs
+	' 		ipAddr = objConfig.IPAddress(0)
+	' 	Next
+	' Next
+
+	AdapterIndex = 1
+	set colAdapters = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapter WHERE index = " & AdapterIndex)
 	For Each objAdapter in colAdapters
 		connectStatus = objAdapter.NetConnectionStatus
-		set colConfigs = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE Index = " & objAdapter.Index & " AND IPEnabled = True")
-		For Each objConfig in colConfigs
-			ipAddr = objConfig.IPAddress(0)
-		Next
 	Next
+	set colConfigs = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration WHERE Index = " & AdapterIndex & " AND IPEnabled = True")
+	For Each objConfig in colConfigs
+		ipAddr = objConfig.IPAddress(0)
+	Next
+
 	set objWMIService = Nothing
 	set ws = CreateObject("wscript.shell")
 	if connectStatus=2 and (Mid(ipAddr,1,InStrRev(ipAddr,"."))="192.168.33." or Mid(ipAddr,1,7)="169.254") then

@@ -6,7 +6,7 @@ fi
 hosts=(`cat /home/atguigu/bin/hosts.sh`)
 for host in ${hosts[@]}; do
     echo ------- $host -------
-    for file in $@; do
+    for file in $@;do
         if [ -e $file ]; then
             pdir=$(cd -P $(dirname $file); pwd)
             fname=$(basename $file)
