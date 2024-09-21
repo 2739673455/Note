@@ -723,9 +723,9 @@ from (
         '$do_date'            as dt,
         days,
         paper_id,
-        string (avg(score))     as avg_score,
-        avg(duration_sec)       as avg_duration_sec,
-        count(distinct user_id) as count_user
+        cast(avg(score) as decimal(16, 2)) as avg_score,
+        avg(duration_sec)                  as avg_duration_sec,
+        count(distinct user_id)            as count_user
     from (
         select
             paper_id,
@@ -761,7 +761,7 @@ select
     days            recent_days,
     course_id,
     course_name,
-    string (avg(score)),
+    cast(avg(score) as decimal(16, 2)),
     avg(duration_sec),
     count(distinct user_id)
 from (

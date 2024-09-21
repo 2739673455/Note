@@ -300,9 +300,9 @@ CREATE TABLE `ads_examination_paper_avg_stats`
     `recent_days`      bigint(20)                                              NOT NULL COMMENT '最近1/7/30日',
     `paper_id`         varchar(16) CHARACTER SET utf8 COLLATE utf8_general_ci  NOT NULL COMMENT '试卷id',
     `paper_name`       varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '试卷名称',
-    `avg_score`        varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '平均分',
+    `avg_score`        decimal(16, 2)                                          NOT NULL COMMENT '平均分',
     `avg_duration_sec` decimal(16, 2)                                          NULL DEFAULT NULL COMMENT '平均时长',
-    `count_user`       decimal(16, 2)                                          NULL DEFAULT NULL COMMENT '用户数',
+    `count_user`       bigint(20)                                              NULL DEFAULT NULL COMMENT '用户数',
     PRIMARY KEY (`dt`, `recent_days`, `paper_id`) USING BTREE
 ) ENGINE = InnoDB
   CHARACTER SET = utf8
@@ -317,7 +317,7 @@ CREATE TABLE `ads_course_exam_avg_stats`
     `recent_days`      bigint(20)                                              NOT NULL COMMENT '最近1/7/30日',
     `course_id`        varchar(16) CHARACTER SET utf8 COLLATE utf8_general_ci  NOT NULL COMMENT '课程ID',
     `course_name`      varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '课程名称',
-    `avg_score`        varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '平均分',
+    `avg_score`        decimal(16, 2)                                          NOT NULL COMMENT '平均分',
     `avg_duration_sec` decimal(16, 2)                                          NULL DEFAULT NULL COMMENT '平均时长',
     `count_user_id`    bigint(20)                                              NOT NULL COMMENT '用户数',
     PRIMARY KEY (`dt`, `recent_days`, `course_id`) USING BTREE

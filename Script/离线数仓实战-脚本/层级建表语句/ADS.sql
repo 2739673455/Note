@@ -264,9 +264,9 @@ create table ads_examination_paper_avg_stats
     recent_days      bigint comment '最近天数,1:最近 1 天,7:最近 7天,30:最近 30 天',
     paper_id         string comment '试卷id',
     paper_name       string comment '试卷名称',
-    avg_score        string comment '平均分',
+    avg_score        decimal(16, 2) comment '平均分',
     avg_duration_sec decimal(16, 2) comment '平均时长',
-    count_user         decimal(16, 2) comment '用户数'
+    count_user       bigint comment '用户数'
 ) comment '各试卷相关指标统计'
     row format delimited fields terminated by '\t'
     location '/warehouse/edu/ads/ads_examination_paper_avg_stats/';
@@ -279,8 +279,8 @@ create table ads_course_exam_avg_stats
     recent_days      bigint comment '最近天数,1:最近 1 天,7:最近 7天,30:最近 30 天',
     course_id        string comment '课程id',
     course_name      string comment '课程名称',
-    avg_score        string comment '平均分',
-    avg_duration_sec decimal(16,2) comment '平均时长',
+    avg_score        decimal(16, 2) comment '平均分',
+    avg_duration_sec decimal(16, 2) comment '平均时长',
     count_user_id    bigint comment '用户数'
 ) comment '各课程考试相关指标统计'
     row format delimited fields terminated by '\t'
