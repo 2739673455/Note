@@ -14,16 +14,8 @@
 		fsutil file createnew d:\system.ini 1048576
 	5. 修改关联性
 		cmd /c assoc .txt=exefile  # 将.txt文件修改为可执行程序
-	6. 系统定时关机
-		shutdown -s -t 60
-			-s: 关机
-			-r: 重启
-			-t: 指定时间
-			-f: 强制
-			-c: 注释
-			-a: 取消一切定时
 
-2.用户与组管理
+2.用户与组管理net user/localgroup
 	1.用户管理
 		账户密码存储位置: C:\windows\system32\config\SAM
 		内置账户:
@@ -58,7 +50,7 @@
 			net localgroup <group> /add         # 创建组
 			net localgroup <group> /del         # 删除组
 
-3.网络共享
+3.网络共享net use
 	net use \\<ip>\ipc$ <password> /user:<username>   # 创建ipc$连接
 	net use z: \\<ip>\c$ <password> /user:<username>  # c$映射到z:
 	net use * /del                                    # 删除所有连接
@@ -74,12 +66,32 @@
 		Grant-SmbShareAccess -Name <sharename> -AccountName <user> -AccessRight <Full/Change/Read>  # 授予用户权限
 		Remove-SmbShare -Name <sharename> -Force                                                    # 删除共享文件夹
 
-netsh
+4.定时任务schtasks
+	/s    # 指定要连接到的远程系统
+	/u    # 指定用于执行schtasks.exe的用户
+	/p    # 指定用户密码
+	/ru   # 指定用于执行定时任务的用户
+	/rp   # 指定用户密码
+	/sc   # 指定计划频率(minute,hourly,daily,weekly,monthly,once,onstart,onlogon)
+	/st   # 任务开始时间
+	/tn   # 任务名
+	/tr   # 任务内容
+	/it   # 以/ru给定用户交互式运行任务
+	/np   # 以/ru给定用户非交互式运行任务，不储存密码
+	/f    # 强制操作并抑制警告
+	/run  # 立即运行任务
+	创建任务，与指定用户交互式运行:
+		schtasks /create /s <ip> /u <username> /p <passwd> /tn <任务名> /tr <任务指令> /sc <执行频率> /f
+		schtasks /create /tn <任务名> /tr <任务指令> /sc <执行频率> /st <执行时间> /ru <username> /rp <passwd> /it /f
+	创建任务，后台运行:
+		schtasks /create /tn <任务名> /tr <任务指令> /sc <执行频率> /ru system /f
+
+5.netsh
 	netsh advfirewall set currentprofile state off    # 关闭防火墙
 	netsh firewall set service RemoteAdmin enable     # 开启远程管理
 	netsh wlan show profile name="<net>" key=clear    # 查看wlan密码
 
-wmic
+6.wmic
 	查询所有用户的SID:
 		wmic useraccount get name,sid
 	查看文件夹共享:
@@ -99,7 +111,7 @@ wmic
 	事件查看器:
 		wevtutil qe
 
-注册表查询与修改:
+7.注册表查询与修改:
 	查询SID对应用户的环境变量:
 		reg query "HKU\<sid>\Environment"
 	查询当前用户环境变量:
@@ -116,16 +128,7 @@ wmic
 	筛选管理员令牌:
 		HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\FilterAdministratorToken
 
-Schtasks定时任务:
-	创建任务，与指定用户交互式运行:
-		schtasks /create /s <ip> /u <username> /p <passwd> /tn <taskname> /tr [任务指令] /sc [执行频率] /f
-		schtasks /create /tn <taskname> /tr [任务指令] /sc [执行频率] /st [执行时间] /ru <username> /rp <passwd> /it /f
-	创建任务，后台运行:
-		schtasks /create /s <ip> /u administrator /p <passwd> /tn <taskname> /tr [任务指令] /sc [执行频率] /ru system /f
-	立即运行任务:
-		schtasks /run /s <ip> /u administrator /p <passwd> /tn <taskname>
-
-4.批处理 .bat
+4.cmd命令
 	@echo off 关闭回显
 	echo. 空一行
 	pause 暂停
@@ -138,10 +141,16 @@ Schtasks定时任务:
 	%a% 使用变量a
 	set /p a= 变量a来自输入
 	timeout /t 1 等待1秒
-	for /l %a in ([start],[step],[end]) do [command] for循环
+	for /l %a in (<start>,<step>,<end>) do <command> for循环
 	taskkill /f /im explorer.exe 关闭资源管理器进程
 	start c:\windows\explorer.exe 开启资源管理器
-
+	shutdown -s -t 60
+		-s: 关机
+		-r: 重启
+		-t: 指定时间
+		-f: 强制
+		-c: 注释
+		-a: 取消一切定时
 
 ./psexec.exe \\<ip> -u <username> -p <password> -i cmd psexec 远程获取shell
 
@@ -151,7 +160,7 @@ SAM破解密码:
 	将sam.hive和system.hive文件放在mimikatz.exe同一目录下
 	mimikatz.exe lsadump::sam /sam:sam.hive /system:system.hive 得到hash值
 
-16.DHCP部署与安全
+DHCP部署与安全
 	Dynamic Host Configure Protocol,自动分配IP地址
 	地址池/作用域:(IP、子网掩码、网关、DNS、租期)
 	DHCP优点:减少工作量，避免IP冲突，提高地址利用率
@@ -179,7 +188,7 @@ SAM破解密码:
 		2. 伪装DHCP服务器，将自己部署为DHCP服务器，为客户提供非法IP地址
 			防御: 在交换机上，除合法的服务器所在接口外，全部设置为禁止发送DHCP Offer包
 
-17.DNS部署与安全
+DNS部署与安全
 	Domain Name Service,为客户提供域名解析服务
 	端口53
 	ipconfig /displaydns  展示DNS缓存
@@ -187,13 +196,13 @@ SAM破解密码:
 	手动解析域名
 		nslookup www.jd.com
 
-25.数据链路层(2层)
+数据链路层(2层)
 	交换机工作原理:
 		收到一个数据帧后学习帧的源MAC地址来形成MAC地址表
 		检查帧的目标MAC地址并匹配MAC地址表，如表中有匹配项，单播转发。如无匹配项，则除接收端口外广播转发
 	MAC地址表的老化时间默认是300秒(可修改)
 
-26.IP
+IP
 	IP包头长度20-60字节
 	IP数据包格式:
 		1. 版本(4bit)
@@ -213,7 +222,7 @@ SAM破解密码:
 			DF=0表示数据包可以被分段
 		7. 段偏移量(13bit)
 			用于标识该数据段在上层初始数据报文中的偏移量
-		8. TTL(8bit) 
+		8. TTL(8bit)
 			time to live
 			每经过一台路由器TTL值减一，防止数据包在网络上永久循环
 		9. 协议号(8bit)
@@ -249,7 +258,7 @@ SAM破解密码:
 			172.16.0.0/16-172.31.0.0/16 (172.16开头到172.31开头)
 			192.168.0.0/16 (192.168开头的)
 
-27.路由概述
+路由概述
 	路由器工作原理:
 	1. 一个帧到达路由器，路由器首先检查目标MAC地址是否是自己，如果不是则丢弃。是则解封装，并将IP包送到路由器内部
 	2. 检查IP包头中的目标IP并匹配路由表，匹配失败则丢弃并向源IP回馈错误信息。如匹配成功则将IP包路由到出接口
@@ -258,7 +267,7 @@ SAM破解密码:
 		windows:tracert IP
 		linux或路由:traceroute IP
 
-28.ARP
+ARP
 	Address Resolution Protocol 地址解析协议
 	将IP地址解析为MAC地址
 	MAC地址广播: FF-FF-FF-FF-FF-FF
@@ -286,7 +295,7 @@ SAM破解密码:
 			交换机支持端口做动态ARP绑定(配合DHCP服务器)
 			或静态ARP绑定
 
-29.VLAN
+VLAN
 	Virtual LAN 虚拟局域网(二层技术)
 	使用VLAN控制广播(隔离广播域)，VLAN技术在交换机上实现，通过逻辑隔离划分的广播域
 	一个VLAN = 一个广播域 = 一个网段

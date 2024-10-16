@@ -45,31 +45,31 @@
 ### 1.主题命令行操作
 | 参数 | 描述 |
 | --- | --- |
-| kafka-topics.sh                   | 查看操作主题命令参数
-| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号
-| --topic 主题名                     | 操作的topic名称
-| --create                          | 创建主题
-| --delete                          | 删除主题
-| --alter                           | 修改主题
-| --list                            | 查看所有主题
-| --describe                        | 查看主题详细描述
-| --partitions 分区数                | 设置分区数
-| --replication-factor 副本数        | 设置分区副本
-| --config <name=value>             | 更新系统默认的配置
+| kafka-topics.sh                   |  查看操作主题命令参数
+| --bootstrap-server hadoop102:9092 |  连接的Kafka Broker主机名称和端口号
+| --topic 主题名                     |  操作的topic名称
+| --create                          |  创建主题
+| --delete                          |  删除主题
+| --alter                           |  修改主题
+| --list                            |  查看所有主题
+| --describe                        |  查看主题详细描述
+| --partitions 分区数                |  设置分区数
+| --replication-factor 副本数        |  设置分区副本
+| --config <name=value>             |  更新系统默认的配置
 ### 2.生产者命令行操作
 | 参数 | 描述 |
 | --- | --- |
-| kafka-console-producer.sh         | 查看操作生产者命令参数
-| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号
-| --topic 主题名                     | 操作的topic名称
+| kafka-console-producer.sh         |  查看操作生产者命令参数
+| --bootstrap-server hadoop102:9092 |  连接的Kafka Broker主机名称和端口号
+| --topic 主题名                     |  操作的topic名称
 ### 3.消费者命令行操作
 | 参数 | 描述 |
 | --- | --- |
-| kafka-console-consumer.sh         | 查看操作消费者命令参数
-| --bootstrap-server hadoop102:9092 | 连接的Kafka Broker主机名称和端口号
-| --topic 主题名                     | 操作的topic名称
-| --from-beginning                  | 从头开始消费
-| --group 消费者组名称                | 指定消费者组名称
+| kafka-console-consumer.sh         |  查看操作消费者命令参数
+| --bootstrap-server hadoop102:9092 |  连接的Kafka Broker主机名称和端口号
+| --topic 主题名                     |  操作的topic名称
+| --from-beginning                  |  从头开始消费
+| --group 消费者组名称                |  指定消费者组名称
 # 3.生产者
 ## 1.生产者消息发送流程
     在消息发送的过程中，涉及到了两个线程，main线程和Sender线程
@@ -123,7 +123,7 @@
         Partition表示分区号
         Sequence Number是单调自增的
         所以幂等性只能保证在单分区单会话内不重复
-        enable.idempotence  #默认为true，开启幂等性
+        enable.idempotence  # 默认为true，开启幂等性
     2. 生产者事务
         注意:提前开启幂等性
         Kafka0.11版本引入了事务的特性，为了实现跨分区跨会话的事务，需要引入一个全局唯一的Transaction ID，并将Producer获得的PID和Transaction ID绑定，这样当Producer重启后就可以通过正在进行的Transaction ID获得原来的PID
@@ -139,35 +139,74 @@
             acks=-1
             当此批次的SeqNumber比最新的SeqNumber大2，证明乱序，拒绝写入，回应Producer，对RecorderAccumulator中的分区的batch重新排序
 ## 5.生产者API
-    Properties properties = new Properties();
-    properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092,hadoop103:9092,hadoop104:9092");
-    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
-    for (int i = 0; i < 10; i++) {
-        kafkaProducer.send(new ProducerRecord<>("test", String.valueOf(i)));
+    public class ProducerClient {
+        public static void main(String[] args) throws ExecutionException, InterruptedException {
+            Properties properties = new Properties();
+            // 集群的地址
+            properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092,hadoop103:9092,hadoop104:9092");
+            // key的序列化器
+            properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            // value的序列化器
+            properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            // 设置自定义分区器
+            properties.setProperty(ProducerConfig.PARTITIONER_CLASS_CONFIG, MyPartitioner.class.getName());
+            KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
+            for (int i = 0; i < 10; i++) {
+                // 异步发送
+                producer.send(new ProducerRecord<>("test", String.valueOf(i)));
+                // 同步发送，加get()方法即可
+                producer.send(new ProducerRecord<>("test", 0, String.valueOf(i), "111")).get();
+                // 带回调函数
+                producer.send(
+                        new ProducerRecord<>("test", String.valueOf(i)),
+                        new Callback() {
+                            // 该方法在Producer收到ack时调用，为异步调用
+                            @Override
+                            public void onCompletion(RecordMetadata metadata, Exception exception) {
+                                if (exception == null) // 没有异常,输出信息到控制台
+                                    System.out.println(metadata.topic() + "->" + metadata.partition());
+                                else // 出现异常打印
+                                    exception.printStackTrace();
+                            }
+                        }
+                );
+            }
+            producer.close();
+        }
+        // 自定义分区器，实现Partition接口，重写partition
+        public static class MyPartitioner implements Partitioner {
+            @Override
+            public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
+                return value.toString().hashCode() % 2;
+            }
+            @Override
+            public void close() {
+            }
+            @Override
+            public void configure(Map<String, ?> map) {
+            }
+        }
     }
-    kafkaProducer.close();
 # 4.Broker
 ## 1.Broker工作流程
 ### 1.Zookeeper中存储的Kafka信息
     admin
     brokers
-        ids  #[0,1,2] 记录有哪些服务器
+        ids  # [0,1,2] 记录有哪些服务器
         topics
-            first  #主题名
-                partitions  #分区
-                    0  #分区号
-                        state  #{"leader":1,"isr":[1,0,2]} 记录谁是leader，有哪些服务器可用
+            first  # 主题名
+                partitions  # 分区
+                    0  # 分区号
+                        state:{"leader":1,"isr":[1,0,2]}  # 记录谁是leader，有哪些服务器可用
         seqid
     cluster
         id
-    consumers  #0.9版本之前保存offset信息，0.9之后offset存储在Kafka主题中
-    controller
+    consumers  # 0.9版本之前保存offset信息，0.9之后offset存储在Kafka主题中
+    controller:{"brokerid":0}  # 辅助选举leader
     config
 ### 2.leader选举流程
     1. broker启动后在zookeeper中注册
-    2. broker中的controller先在zookeeper中的controller节点注册的进行leader选举决策
+    2. broker中的controller抢先注册zookeeper中的controller节点的主持leader选举
     3. controller监听zookeeper中brokers节点变化
     4. controller在ar中按顺序轮询，如果在isr中存活，则选为leader
     5. controller将选举结果写入zookeeper的/brokers/topic/主题名/partitions/0/state中
@@ -233,13 +272,13 @@
     2. index文件中保存的offset为相对值，以确保offset的值所占空间不会太大
 ### 2.文件清理策略
     1. 日志默认保存7天，可通过参数修改保存时间
-        log.retention.hours  #默认7天，Kafka中数据保存的时间
-        log.retention.minutes  #默认关闭，Kafka中数据保存的时间，分钟级别
-        log.retention.ms  #默认关闭，Kafka中数据保存的时间，毫秒级别
+        log.retention.hours  # 默认7天，Kafka中数据保存的时间
+        log.retention.minutes  # 默认关闭，Kafka中数据保存的时间，分钟级别
+        log.retention.ms  # 默认关闭，Kafka中数据保存的时间，毫秒级别
     2. delete日志删除:将过期数据删除
-        log.cleanup.policy = delete  #所有数据启用删除策略
+        log.cleanup.policy = delete  # 所有数据启用删除策略
     3. compact日志压缩:对于相同key的不同value值，只保存最后一个版本，压缩后的offset可能是不连续的
-        log.cleanup.policy=compact  #数据启用压缩
+        log.cleanup.policy=compact  # 数据启用压缩
 ## 4.高效读写
     1. Kafka是分布式集群，使用分区技术，并行度高
     2. 读数据采用稀疏索引，可快速定位要消费的数据
@@ -247,8 +286,8 @@
     4. 页缓存+零拷贝技术
         PageCache页缓存:Kafka重度依赖底层操作系统提供的PageCache功能，当上层有写操作时，操作系统只是将数据写入PageCache。当读操作发生时，先从PageCache中查找，如果找不到再去磁盘中读取。实际上PageCache是把尽可能多的空闲内存当作磁盘缓存使用
         零拷贝:Kafka的数据加工处理操作交由Kafka生产者和Kafka消费者处理，Kafka broker应用层不关心存储的数据，所以不用走应用层，传输效率高
-        log.flush.interval.messages  #默认是long的最大值，强制页缓存刷写到磁盘的条数，一般不建议修改，交给系统自己管理
-        log.flush.interval.ms  #默认是null，每隔多久，刷数据到磁盘，一般不建议修改，交给系统自己管理
+        log.flush.interval.messages  # 默认是long的最大值，强制页缓存刷写到磁盘的条数，一般不建议修改，交给系统自己管理
+        log.flush.interval.ms  # 默认是null，每隔多久，刷数据到磁盘，一般不建议修改，交给系统自己管理
 # 5.消费者
 ## 1.消费方式:pull
     consumer从broker中主动拉取数据
@@ -276,10 +315,10 @@
     4. ParseRecord反序列化
     5. Interceptors拦截器
     6. 处理数据
-    fetch.max.wait.ms  #默认500ms，一批数据最小值未达到的超时时间
-    fetch.max.bytes  #默认50m，每批次最大抓取大小
-    fetch.min.bytes  #默认1字节，每批次最小抓取大小
-    max.poll.records  #默认500条，一次拉取数据返回消息的最大条数，每条数据都要走一遍处理逻辑
+    fetch.max.wait.ms  # 默认500ms，一批数据最小值未达到的超时时间
+    fetch.max.bytes  # 默认50m，每批次最大抓取大小
+    fetch.min.bytes  # 默认1字节，每批次最小抓取大小
+    max.poll.records  # 默认500条，一次拉取数据返回消息的最大条数，每条数据都要走一遍处理逻辑
 ## 3.重要参数
 | 参数 | 描述 |
 | --- | --- |
@@ -297,20 +336,21 @@
 | fetch.max.wait.ms | 			默认500ms，如果没有从服务器端获取到一批数据的最小字节数。该时间到，仍然会返回数据
 | fetch.max.bytes | 			默认Default:52428800(50m)，消费者获取服务器端一批消息最大的字节数。如果服务器端一批次的数据大于该值(50m)仍然可以拉取回来这批数据，因此，这不是一个绝对最大值。一批次的大小受message.max.bytes(broker config)或max.message.bytes(topic config)影响
 | max.poll.records | 			默认500条，一次poll拉取数据返回消息的最大条数
+| isolation.level | 			事务隔离级别 read_committed 读已提交(只能读取到生产者端事务已经正确提交的数据)，read_uncommitted 读未提交(可以读取到生产者端事务已经正确提交的数据)
 ## 4.offset位移
 ### 1.offset的默认维护位置
     __consumer_offsets
     __consumer_offsets主题里面采用key和value的方式存储数据。key是group.id+topic+分区号，value就是当前offset的值。每隔一段时间，Kafka内部会对这个topic进行compact，也就是每个group.id+topic+分区号只保留最新数据
 ### 2.自动提交offset
-    enable.auto.commit  #默认true，是否开启自动提交offset功能
-    auto.commit.interval.ms  #默认5s，自动提交offset的时间间隔
+    enable.auto.commit  # 默认true，是否开启自动提交offset功能
+    auto.commit.interval.ms  # 默认5s，自动提交offset的时间间隔
 ### 3.手动提交offset
     由于自动提交offset基于时间提交，开发人员难以把握offset提交的时机，因此Kafka提供手动提交offset的API
     手动提交offset方式有commitSync(同步提交)和commitAsync(异步提交)两种，两者都会将本次提交的一批数据最高的偏移量提交
     同步提交阻塞当前线程，失败自动重试，直到提交成功。必须等待offset提交完毕再消费下一批数据
     异步提交没有失败重试机制，有可能提交失败。发送完offset提交请求后就开始消费下一批数据
 ### 4.offset消费的不同模式
-    auto.offset.reset = earliest | latest | none  #默认是latest
+    auto.offset.reset = earliest | latest | none  # 默认是latest
     当Kafka中没有初始偏移量(消费者组第一次消费)或服务器上不再存在当前偏移量时(例如该数据已被删除)如何处理:
     earliest:自动将偏移量重置为最早的偏移量，--from-beginning
     latest(默认值):自动将偏移量重置为最新偏移量
@@ -323,7 +363,7 @@
 ## 5.生产经验
 ### 1.分区的分配及再平衡
     Kafka有四种主流分配策略:Range，RoundRobin，Sticky，CooperactiveSticky
-    partition.assignment.strategy  #消费者分区分配策略，默认策略是Range+CooperativeSticky，可同时使用多个分区分配策略
+    partition.assignment.strategy  # 消费者分区分配策略，默认策略是Range+CooperativeSticky，可同时使用多个分区分配策略
     某个消费者挂掉后，消费者组需要等待45s来判断它是否退出，判断它真的退出就会把任务分配给其他consumer执行，故障消费者被踢出消费者组后重新分配消费分区
 #### 1.Range及再分配
     Range是对每个topic而言的
@@ -342,8 +382,8 @@
 ### 3.数据积压(消费者如何提高吞吐量)
     1. 如果是Kafka消费能力不足，可以考虑增加topic的分区数，并且同时提升消费组的消费者数量，消费者数=分区数(两者缺一不可)
     2. 如果是下游的数据处理不及时，提高每批次拉取的数量。批次拉取数据过少(拉取数据/处理时间<生产速度)，使处理的数据小于生产的数据，也会造成数据积压
-    fetch.max.bytes  #默认Default:52428800(50m)，消费者获取服务器端一批消息最大的字节数
-    max.poll.records  #默认500条，一次poll拉取数据返回消息的最大条数
+    fetch.max.bytes  # 默认Default:52428800(50m)，消费者获取服务器端一批消息最大的字节数
+    max.poll.records  # 默认500条，一次poll拉取数据返回消息的最大条数
 ## 6.消费者API
     Properties properties = new Properties();
     properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092,hadoop103:9092,hadoop104:9092");
@@ -369,15 +409,15 @@
 ## 2.Kafka-Kraft集群部署
     1. 修改/opt/module/kafka-kraft/config/kraft/server.properties配置文件
         process.roles=broker, controller
-            #kafka的角色(controller相当于主机、broker节点相当于从机，主机类似zk功能)
+            # kafka的角色(controller相当于主机、broker节点相当于从机，主机类似zk功能)
         node.id=2
-            #节点ID
+            # 节点ID
         controller.quorum.voters=2@hadoop102:9093,3@hadoop103:9093,4@hadoop104:9093
-            #全Controller列表
+            # 全Controller列表
         advertised.Listeners=PLAINTEXT://hadoop102:9092
-            #broker对外暴露的地址
+            # broker对外暴露的地址
         log.dirs=/opt/module/kafka-kraft/datas
-            #kafka数据存储目录
+            # kafka数据存储目录
         分发配置文件
     2. 初始化集群数据目录
         1. 首先生成存储目录唯一ID。

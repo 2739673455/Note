@@ -1,16 +1,14 @@
 #!/bin/bash
 hosts=(`cat /home/atguigu/bin/hosts.sh`)
-hdfs_host=hadoop100
-yarn_host=hadoop101
 function hadoop_start(){
     echo ------- hadoop start -------
-    ssh $hdfs_host start-dfs.sh
-    ssh $yarn_host start-yarn.sh
+    ssh hadoop100 start-dfs.sh
+    ssh hadoop101 start-yarn.sh
 }
 function hadoop_stop(){
     echo ------- hadoop stop -------
-    ssh $yarn_host stop-yarn.sh
-    ssh $hdfs_host stop-dfs.sh
+    ssh hadoop101 stop-yarn.sh
+    ssh hadoop100 stop-dfs.sh
 }
 function hadoop_clean(){
     echo ------- hadoop clean -------

@@ -90,16 +90,18 @@ def txtToMd(txt_file_path):
 
 txt_file_prefix = "D:/Code/笔记/Txt/"
 txt_file_list = [
-    "JavaSE笔记.txt",
-    "Maxwell和DataX笔记.txt",
-    "Linux笔记.txt",
-    "Hadoop笔记.txt",
-    "Hive笔记.txt",
-    "Flume笔记.txt",
-    "Kafka笔记.txt",
-    "采集项目笔记.txt",
-    "Spark笔记.txt",
-    "数据仓库笔记.txt",
+    "JavaSE.txt",
+    "Linux.txt",
+    "Hadoop.txt",
+    "Hive.txt",
+    "Flume.txt",
+    "Kafka.txt",
+    "Maxwell&DataX.txt",
+    "采集项目.txt",
+    "Spark.txt",
+    "数据仓库.txt",
+    "Redis.txt",
+    "Flink.txt",
 ]
 
 for txt_file_path in txt_file_list:
