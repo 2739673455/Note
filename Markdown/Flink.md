@@ -414,7 +414,7 @@
     2. env.setParallelism(n)
     3. 算子().setParallelism(n)
     4. 集群配置文件中 parallelism.default: 1 来指定集群默认并行度
-    5. 提交作业时指定并行度 bin/flink run -p n
+    5. 提交作业时指定并行度 bin/flink run -p n ...
 ### 2.算子链(Operator Chain)
 #### 1.Flink的数据分发规则(分区规则):
     ChannelSelector
@@ -438,7 +438,7 @@
             GlobalPartitioner : global()
                 强制并行度为1
             ForwardPartitioner : forward()
-                直连，上游与下游并行度保持一直
+                直连，上游与下游并行度保持一致
                 若上下游并行度一样，且未指定数据分发规则，默认为forward()
 #### 2.算子链:
     将上下游算子的并行实例合并在一起，形成一个算子链
@@ -514,6 +514,8 @@
         专门用于批处理的执行模式
     3. 自动模式(AutoMatic)
         在这种模式下，将由程序根据输入数据源是否有界，来自动选择执行模式
+    通过命令行配置
+        flink run -Dexecution.runtime-mode=BATCH ...
 ## 3.源算子
 ### 1.从集合中读取数据
     1. 方式一
@@ -683,3 +685,254 @@
                     getReduceState()
                     getAggregatingState()
                     getMapState()
+### 4.物理分区算子(Physical Partitioning)
+| 参数 | 描述 |
+| --- | --- |
+| keyBy() | 按照指定的key求hash值，对下游算子并行度取余，决定数据发往哪个并行实例
+| rebalance() | 轮询发往下一个并行实例<br>若上下游并行度不一样，且未指定数据分发规则，默认为rebalance()
+| rescale() | 按轮询，将数据均衡的发往组内的下游的并行实例<br>0->0<br>0->1<br>----<br>1->2<br>1->3
+| shuffle() | 随机
+| broadcast() | 广播
+| global() | 强制并行度为1
+| forward() | 直连，上游与下游并行度保持一致<br>若上下游并行度一样，且未指定数据分发规则，默认为forward()
+    自定义分区:
+        ds.partitionCustom(
+            new Partitioner<String>() {
+                @Override
+                public int partition(String s, int i) {
+                    return Math.abs(s.hashCode() % 5);
+                }
+            },
+            Event::getUser
+        ).print();
+### 5.分流
+    1. 简单实现: 通过filter算子，从原始流中将满足条件的数据挑选出来放到新流中
+        ds.filter(o -> "zhangsan".equals(o.getUser()))
+            .print("zhangsan => ");
+        ds.filter(o -> "lisi".equals(o.getUser()))
+            .print("lisi => ");
+        ds.filter(o -> !"zhangsan".equals(o.getUser()) && !"lisi".equals(o.getUser()))
+            .print("other => ");
+    2. 使用侧输出流:
+        OutputTag<Event> zhangsanTag = new OutputTag<>("zhangsan->", Types.POJO(Event.class));
+        OutputTag<Event> lisiTag = new OutputTag<>("lisi->", Types.POJO(Event.class));
+        DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(3), WatermarkStrategy.noWatermarks(), "ds");
+        SingleOutputStreamOperator<Event> mainDS = ds.process(
+            new ProcessFunction<Event, Event>() {
+                @Override
+                public void processElement(Event event, ProcessFunction<Event, Event>.Context context, Collector<Event> out) throws Exception {
+                    if ("zhangsan".equals(event.getUser()))
+                        context.output(zhangsanTag, event);
+                    else if ("lisi".equals(event.getUser()))
+                        context.output(lisiTag, event);
+                    else
+                        out.collect(event);
+                }
+            }
+        );
+        mainDS.print("main ");
+        mainDS.getSideOutput(zhangsanTag).print("zhangsan ");
+        mainDS.getSideOutput(lisiTag).print("lisi ");
+### 6.合流
+    1. union合流: 合并多条流，要求被合并的流中数据类型一致
+        OutputTag<Event> zhangsanTag = new OutputTag<>("zhangsan->", Types.POJO(Event.class));
+        OutputTag<Event> lisiTag = new OutputTag<>("lisi->", Types.POJO(Event.class));
+        DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(3), WatermarkStrategy.noWatermarks(), "ds");
+        SingleOutputStreamOperator<Event> mainDS = ds.process(
+            new ProcessFunction<Event, Event>() {
+                @Override
+                public void processElement(Event event, ProcessFunction<Event, Event>.Context context, Collector<Event> out) throws Exception {
+                    if ("zhangsan".equals(event.getUser()))
+                        context.output(zhangsanTag, event);
+                    else if ("lisi".equals(event.getUser()))
+                        context.output(lisiTag, event);
+                    else
+                        out.collect(event);
+                }
+            }
+        );
+        SideOutputDataStream<Event> zhangsanStream = mainDS.getSideOutput(zhangsanTag);
+        SideOutputDataStream<Event> lisiStream = mainDS.getSideOutput(lisiTag);
+        DataStream<Event> unionDS = mainDS.union(zhangsanStream, lisiStream);
+        unionDS.print();
+    2. connect合流: 将不同数据类型的两条流合并
+        1. CoMapFunction()
+            DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(3), WatermarkStrategy.noWatermarks(), "ds");
+            DataStreamSource<Integer> intStream = env.fromElements(1, 2, 3, 4, 5);
+            ConnectedStreams<Event, Integer> connectStream = ds.connect(intStream);
+            SingleOutputStreamOperator<String> connectDS = connectStream.map(
+                new CoMapFunction<Event, Integer, String>() {
+                    @Override
+                    public String map1(Event event) {
+                        return event.getTimestamp().toString();
+                    }
+                    @Override
+                    public String map2(Integer integer) {
+                        return integer.toString();
+                    }
+                }
+            );
+            connectDS.print();
+        2. keyBy()
+            ConnectedStreams也可以直接调用.keyBy()进行按键分区的操作，得到的还是一个ConnectedStreams：
+                connectedStreams.keyBy(keySelector1, keySelector2);
+            这里传入两个参数keySelector1和keySelector2，是两条流中各自的键选择器；当然也可以直接传入键的位置值(keyPosition)，或者键的字段名(field)，这与普通的keyBy用法完全一致。ConnectedStreams进行keyBy操作，其实就是把两条流中key相同的数据放到了一起，然后针对来源的流再做各自处理，这在一些场景下非常有用
+        3. CoProcessFunction()
+            CoProcessFunction()需要实现processElement1()、processElement2()两个方法，在每个数据到来时，会根据来源的流调用其中的一个方法进行处理
+            CoProcessFunction同样可以通过上下文ctx来访问timestamp、水位线，并通过TimerService注册定时器；另外也提供了.onTimer()方法，用于定义定时触发的处理操作
+            SingleOutputStreamOperator<String> connectDS = connectStream.process(
+                new CoProcessFunction<Event, Integer, String>() {
+                    @Override
+                    public void processElement1(Event o, CoProcessFunction.Context context, Collector collector) throws Exception {
+                        collector.collect(o.toString());
+                    }
+                    @Override
+                    public void processElement2(Integer o, CoProcessFunction.Context context, Collector collector) throws Exception {
+                        collector.collect(o.toString());
+                    }
+                }
+            );
+## 5.输出算子
+### 1.输出到文件
+    FileSink支持行编码(Row-encoded)和批量编码(Bulk-encoded)格式。这两种不同的方式都有各自的构建器(builder)，可以直接调用FileSink的静态方法:
+        行编码: FileSink.forRowFormat(basePath，rowEncoder)
+        批量编码: FileSink.forBulkFormat(basePath，bulkWriterFactory)
+    // 开启检查点
+    env.enableCheckpointing(5000L);
+    DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(30), WatermarkStrategy.noWatermarks(), "ds");
+    SingleOutputStreamOperator<String> stringDS = ds.map(Objects::toString);
+    FileSink<String> fileSink = FileSink.<String>forRowFormat(
+            new Path("D:\\Code\\JavaProject\\20240522java\\BigData0522\\Flink\\output"),
+            new SimpleStringEncoder<>()
+        )
+        .withRollingPolicy(
+                DefaultRollingPolicy.builder()
+                        .withMaxPartSize(MemorySize.parse("3m")) //文件多大滚动
+                        .withRolloverInterval(Duration.ofSeconds(10L)) // 滚动间隔
+                        .withInactivityInterval(Duration.ofSeconds(5L)) // 文件非活跃滚动间隔
+                        .build()
+        ) // 文件滚动策略
+        .withBucketAssigner(
+                new DateTimeBucketAssigner<>("yyyy-MM-dd hh-mm")
+        ) // 目录滚动策略
+        .withOutputFileConfig(
+                OutputFileConfig.builder()
+                        .withPartPrefix("event") // 文件名前缀
+                        .withPartSuffix(".log") // 文件名后缀
+                        .build()
+        ) // 文件名策略
+        .withBucketCheckInterval(1000L) // 检查间隔
+        .build();
+    stringDS.sinkTo(fileSink);
+### 2.输出到Kafka
+    1. 使用KafkaSink,DeliveryGuarantee.EXACTLY_ONCE 一致性级别 注意事项:
+        1. The transaction timeout is larger than the maximum value allowed by the broker (as configured by transaction.max.timeout.ms)
+            Kafka Broker 级别的超时时间:
+                transaction.max.timeout.ms: 900000(15 minutes)
+            Kafka Producer 级别的超时时间:
+                transaction.timeout.ms: 60000(1 minutes)
+            Flink KafkaSink 默认的事务超时时间:
+                DEFAULT_KAFKA_TRANSACTION_TIMEOUT(transaction.timeout.ms) = Duration.ofHours(1); // 1 hour
+        2. 设置事务id前缀
+    2. 只有value写入
+        // 开启检查点
+        env.enableCheckpointing(2000L);
+        DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(1), WatermarkStrategy.noWatermarks(), "ds");
+        KafkaSink<Event> kafkaSink = KafkaSink.<Event>builder()
+            .setBootstrapServers("hadoop102:9092,hadoop103:9092,hadoop104:9092")
+            .setRecordSerializer(
+                KafkaRecordSerializationSchema.<Event>builder()
+                    .setTopic("topicA")
+                    .setValueSerializationSchema(
+                        new SerializationSchema<Event>() {
+                            @Override
+                            public byte[] serialize(Event event) {
+                                return event.toString().getBytes();
+                            }
+                        }
+                    )
+                    .build()
+            )
+            .setDeliveryGuarantee(DeliveryGuarantee.EXACTLY_ONCE) // 设置精准一次
+            .setProperty("transaction.timeout.ms", "600000") // 设置Producer事务超时时间
+            .setTransactionalIdPrefix("flink-" + System.currentTimeMillis()) // 设置事务id前缀
+            .build();
+        ds.sinkTo(kafkaSink);
+    3. 带key写入
+        DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(1), WatermarkStrategy.noWatermarks(), "ds");
+        KafkaSink<Event> kafkaSink = KafkaSink.<Event>builder()
+            .setBootstrapServers("hadoop102:9092,hadoop103:9092,hadoop104:9092")
+            .setRecordSerializer(
+                new KafkaRecordSerializationSchema<Event>() {
+                    @Nullable
+                    @Override
+                    public ProducerRecord<byte[], byte[]> serialize(Event event, KafkaSinkContext kafkaSinkContext, Long aLong) {
+                        String key = event.getUser();
+                        String value = JSON.toJSONString(event);
+                        return new ProducerRecord<>("topicA", key.getBytes(), value.getBytes());
+                    }
+                }
+            )
+            .build();
+        ds.sinkTo(kafkaSink);
+### 3.输出到MySQL
+    JDBCConnector: 支持将数据写入外部数据库
+    添加依赖:
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-jdbc</artifactId>
+            <version>3.1.0-1.17</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.0.32</version>
+            <scope>compile</scope>
+        </dependency>
+    // 开启检查点
+    env.enableCheckpointing(2000L);
+    DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(2), WatermarkStrategy.noWatermarks(), "ds");
+    SinkFunction<Event> jdbcSink = JdbcSink.sink(
+        "insert into event_table1 (user,url,ts) values(?,?,?)",
+        //"replace into event_table1 (user,url,ts) values(?,?,?)", // 覆盖该条数据
+        //"insert into event_table1 (user,url,ts) values(?,?,?) on duplicate key update url=values(url)", // 覆盖该条数据指定字段
+        new JdbcStatementBuilder<Event>() {
+            @Override
+            public void accept(PreparedStatement preparedStatement, Event event) throws SQLException {
+                // 给sql中的占位符赋值
+                preparedStatement.setString(1, event.getUser());
+                preparedStatement.setString(2, event.getUrl());
+                preparedStatement.setLong(3, event.getTimestamp());
+            }
+        },
+        // 按批写入
+        JdbcExecutionOptions.builder()
+            .withBatchSize(5)
+            .withBatchIntervalMs(5000L)
+            .withMaxRetries(3)
+            .build(),
+        new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
+            .withDriverName("com.mysql.cj.jdbc.Driver")
+            .withUrl("jdbc:mysql://localhost:3306/db1")
+            .withUsername("root")
+            .withPassword("123321")
+            .build()
+    );
+    ds.addSink(jdbcSink);
+### 4.自定义Sink输出
+    public class Flink05_UserDefineSink {
+        public static void main(String[] args) throws Exception {
+            StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+            env.setParallelism(1);
+            DataStreamSource<Event> ds = env.fromSource(SourceUtil.getDataGeneratorSource(3), WatermarkStrategy.noWatermarks(), "ds");
+            ds.addSink(new MySink());
+            env.execute();
+        }
+        public static class MySink implements SinkFunction<Event> {
+            @Override
+            public void invoke(Event value, Context context) {
+                System.out.println(value);
+            }
+        }
+    }

@@ -91,6 +91,7 @@ def txtToMd(txt_file_path):
 txt_file_prefix = "D:/Code/笔记/Txt/"
 txt_file_list = [
     "JavaSE.txt",
+    "JDBC.txt",
     "Linux.txt",
     "Hadoop.txt",
     "Hive.txt",
